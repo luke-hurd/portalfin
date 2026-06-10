@@ -45,6 +45,7 @@ top overlay.
 | Default host | Empty | Empty (the previous v0 builds shipped a hard-coded LAN address — removed in v1.0.0) |
 | SPA route transitions | Hard snap between routes | Native [View Transitions API](https://developer.mozilla.org/docs/Web/API/View_Transitions_API): home → library → detail navigations crossfade in 180ms with an ease-out curve. The portalfin header gets a `view-transition-name` so it stays put across routes. ([feature/view-transitions](https://github.com/luke-hurd/portalfin/tree/feature/view-transitions)) |
 | Cold-launch transition | OS splash hard-cuts to the activity, then loading container hard-cuts to the WebView | OS splash icon fades + scales (`installSplashScreen().setOnExitAnimationListener`); the loading-container wordmark animates up + scales down while the WebView crossfades in (240ms). ([feature/splash-crossfade](https://github.com/luke-hurd/portalfin/tree/feature/splash-crossfade)) |
+| Idle behavior | Portal dims and goes to its own screensaver | Ambient slideshow at 60s idle: rotating fullscreen Jellyfin backdrop art, oversized clock + date, current item title. Acquires `FLAG_KEEP_SCREEN_ON` so Portal doesn't dim mid-show. Tap to dismiss. ([feature/ambient-mode](https://github.com/luke-hurd/portalfin/tree/feature/ambient-mode)) |
 
 ## Supported devices
 
