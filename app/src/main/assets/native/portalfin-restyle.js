@@ -731,6 +731,204 @@ try {
             .verticalSection {
                 margin-bottom: 16px !important;
             }
+
+            /* === DETAIL PAGE GLOW-UP ===================================== */
+
+            /* (1) Play / Resume / Replay buttons: Meta blue capsule (NOT
+                   a circle — these have text labels, they need to be pill-shaped) */
+            .itemDetailPage .btnPlay,
+            .itemDetailPage .btnReplay {
+                background-color: ${PRIMARY} !important;
+                background-image: none !important;
+                color: ${ON_BACKGROUND} !important;
+                width: auto !important;          /* override the 52px from the icon-button rule */
+                height: 44px !important;
+                min-width: 0 !important;
+                border-radius: 22px !important;  /* capsule, not circle */
+                padding: 0 22px !important;
+                margin: 0 8px !important;
+            }
+            .itemDetailPage .btnPlay .material-icons,
+            .itemDetailPage .btnPlay span,
+            .itemDetailPage .btnReplay .material-icons,
+            .itemDetailPage .btnReplay span {
+                color: ${ON_BACKGROUND} !important;
+            }
+
+            /* (1b) Trim the action row to: Play / Watched / Favorite / Download.
+                    Hide trailer (no YouTube), shuffle, instant mix, split, more menu,
+                    timer cancel buttons (those are admin functions). */
+            .itemDetailPage .btnPlayTrailer,
+            .itemDetailPage .btnInstantMix,
+            .itemDetailPage .btnShuffle,
+            .itemDetailPage .btnSplitVersions,
+            .itemDetailPage .btnCancelSeriesTimer,
+            .itemDetailPage .btnCancelTimer,
+            .itemDetailPage .btnMoreCommands {
+                display: none !important;
+            }
+            /* Force the Download button visible (jellyfin sometimes adds 'hide' class). */
+            .itemDetailPage .btnDownload {
+                display: inline-flex !important;
+            }
+
+            /* (2) Hero gradient: fade ONLY the bottom edge of the backdrop
+                  into the page background. The backdrop should remain
+                  mostly visible — we just want a soft transition into the
+                  synopsis area, not a wall of darkness over the artwork. */
+            .itemDetailPage .itemBackdrop,
+            .detailPagePrimaryContainer .itemBackdrop {
+                position: relative !important;
+                /* Make the backdrop hero taller so we see more artwork */
+                min-height: 480px !important;
+            }
+            .itemDetailPage .itemBackdrop::after,
+            .detailPagePrimaryContainer .itemBackdrop::after {
+                content: '' !important;
+                position: absolute !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                height: 25% !important;          /* was 60% — now just the bottom slice */
+                background: linear-gradient(
+                    to bottom,
+                    rgba(26,26,26,0) 0%,
+                    rgba(26,26,26,0.5) 60%,
+                    var(--portalfin-bg, ${BACKGROUND}) 100%
+                ) !important;
+                pointer-events: none !important;
+            }
+
+            /* (3) Action row: Resume / Mark Watched / Favorite as
+                  consistent circular icon buttons. jellyfin-web puts them
+                  in .detailButton; we round them and bump size. */
+            .itemDetailPage .detailButton,
+            .itemDetailPage .paper-icon-button-light,
+            .nameContainer + div .paper-icon-button-light {
+                width: 52px !important;
+                height: 52px !important;
+                border-radius: 50% !important;
+                margin: 0 8px !important;
+                background: ${SURFACE} !important;
+                transition: background 200ms ease !important;
+            }
+            .itemDetailPage .detailButton:hover,
+            .itemDetailPage .paper-icon-button-light:hover {
+                background: ${SURFACE_HIGH} !important;
+            }
+            .itemDetailPage .detailButton .material-icons,
+            .itemDetailPage .paper-icon-button-light .material-icons {
+                font-size: 26px !important;
+                color: ${ON_BACKGROUND} !important;
+            }
+            /* Icons that should stay colored when toggled (favorite filled, etc.) */
+            .itemDetailPage .ratingbutton-icon-withrating,
+            .itemDetailPage .playstatebutton-icon-played {
+                color: ${PRIMARY_TEXT} !important;
+            }
+
+            /* (4) Hide noisy technical metadata. The "1080p H264 SDR" /
+                  "Dolby Digital 5.1" / "Off" rows are <select> dropdowns
+                  for choosing video/audio/subtitle track. We hide the
+                  entire selector section because (a) most viewers don't
+                  care, (b) jellyfin defaults to the right track anyway. */
+            .itemDetailPage .selectVideo,
+            .itemDetailPage .selectAudio,
+            .itemDetailPage .selectSubtitles,
+            .itemDetailPage .detailTrackSelect,
+            .itemDetailPage .selectVideoContainer,
+            .itemDetailPage .selectAudioContainer,
+            .itemDetailPage .selectSubtitlesContainer,
+            /* their fieldset-style wrappers */
+            .itemDetailPage .selectContainer-inline:has(.selectVideo),
+            .itemDetailPage .selectContainer-inline:has(.selectAudio),
+            .itemDetailPage .selectContainer-inline:has(.selectSubtitles) {
+                display: none !important;
+            }
+
+            /* (5) Bigger synopsis for living-room readability */
+            .itemDetailPage .overview,
+            .itemDetailPage .detailPageOverview,
+            .itemDetailPage .overview-readabletext,
+            .itemDetailPage p[data-overview] {
+                font-size: 18px !important;
+                line-height: 1.55 !important;
+                max-width: 70ch !important;
+                color: ${ON_BACKGROUND} !important;
+                opacity: 0.92 !important;
+            }
+            /* Tagline above synopsis ("How do I loathe thee?…") */
+            .itemDetailPage .tagline {
+                font-size: 17px !important;
+                font-style: italic !important;
+                color: ${ON_SURFACE} !important;
+                margin-bottom: 16px !important;
+            }
+
+            /* (7) Cast as a horizontal scroll carousel with bigger avatars */
+            .itemDetailPage .castContent,
+            .itemDetailPage .peopleSection .itemsContainer {
+                display: flex !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                gap: 16px !important;
+                padding: 8px 0 !important;
+                white-space: nowrap !important;
+                scrollbar-width: none !important;
+            }
+            .itemDetailPage .castContent::-webkit-scrollbar,
+            .itemDetailPage .peopleSection .itemsContainer::-webkit-scrollbar {
+                display: none !important;
+            }
+            .itemDetailPage .card.personCard,
+            .itemDetailPage .peopleSection .card {
+                flex: 0 0 auto !important;
+                width: 140px !important;
+            }
+            .itemDetailPage .card.personCard .cardImageContainer,
+            .itemDetailPage .peopleSection .cardImageContainer {
+                border-radius: 50% !important;
+                width: 110px !important;
+                height: 110px !important;
+                margin: 0 auto !important;
+            }
+            .itemDetailPage .card.personCard .cardText,
+            .itemDetailPage .peopleSection .cardText {
+                text-align: center !important;
+                font-size: 14px !important;
+                white-space: normal !important;
+            }
+
+            /* (8) Similar movies row — bigger and more prominent */
+            .itemDetailPage .similarSection .sectionTitle,
+            .itemDetailPage .nextUpSection .sectionTitle {
+                font-size: 22px !important;
+                font-weight: 700 !important;
+                margin-bottom: 12px !important;
+                margin-top: 32px !important;
+            }
+            .itemDetailPage .similarSection .card,
+            .itemDetailPage .nextUpSection .card {
+                width: 180px !important;
+            }
+
+            /* (extra) Strip remaining card containers app-wide. We already
+               un-carded home tiles; do the same for any leftover surface
+               panels (formDialogs, paperLists in detail/settings, etc.). */
+            .itemDetailPage .detailSection,
+            .itemDetailPage .verticalSection,
+            .itemDetailPage .listItemMetadata,
+            .itemDetailPage .listItem-border,
+            .listItem-border,
+            .collapseContent,
+            .paperList,
+            .visualCardBox,
+            .formDialogFooter:not(.formDialogFooter-clear),
+            .formDialogHeader:not(.formDialogHeader-clear) {
+                background-color: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
         `;
         (document.head || document.documentElement).appendChild(style);
     }
