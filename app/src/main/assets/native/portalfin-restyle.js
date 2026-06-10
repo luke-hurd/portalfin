@@ -114,7 +114,7 @@ try {
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 58px !important;        /* +7 to fit the larger 40px wordmark */
+                height: 68px !important;        /* fits 48px wordmark + 7px bottom pad + breathing */
                 padding: 0 12px 7px 12px !important;
                 background: var(--portalfin-bg, ${BACKGROUND}) !important;
                 box-sizing: border-box !important;
@@ -145,13 +145,13 @@ try {
             #portalfin-header .pf-btn:hover { background: ${SURFACE} !important; }
             #portalfin-header .pf-btn svg { width: 22px !important; height: 22px !important; }
             #portalfin-header .pf-wordmark {
-                width: 175px !important;        /* +25% from 140 */
-                height: 40px !important;        /* +25% from 32 */
+                width: 210px !important;        /* +20% from 175 */
+                height: 48px !important;        /* +20% from 40 */
                 background-image: url('/native/wordmark.png') !important;
                 background-size: contain !important;
                 background-repeat: no-repeat !important;
                 background-position: left center !important;
-                margin-left: 13px !important;   /* +5px from 8 to align under Portal back button */
+                margin-left: 13px !important;   /* aligns under Portal back button */
             }
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
@@ -223,7 +223,7 @@ try {
             html body .pageWithAbsoluteTabs,
             html body .itemDetailPage,
             html body div[data-role="page"] {
-                padding-top: 60px !important;
+                padding-top: 70px !important;   /* matches 68px header + 2px breathing */
                 margin-top: 0 !important;
             }
 
@@ -493,8 +493,11 @@ try {
                 inset: 0 !important;
                 background-size: cover !important;
                 background-position: center !important;
-                opacity: 0 !important;
+                opacity: 0;       /* NOT !important — JS toggles via class below */
                 transition: opacity 1500ms ease-in-out !important;
+            }
+            #portalfin-ambient .pf-ambient-img.is-visible {
+                opacity: 1 !important;
             }
             #portalfin-ambient .pf-ambient-scrim {
                 position: absolute !important;
@@ -1080,12 +1083,13 @@ try {
         preload.onload = () => {
             console.log('[portalfin] ambient img loaded', item.name);
             targetEl.style.backgroundImage = 'url("' + item.url + '")';
-            targetEl.style.opacity = '1';
-            if (previousEl) previousEl.style.opacity = '0';
+            // Class-based toggle so CSS .is-visible (opacity:1!important) wins
+            // over the base .pf-ambient-img (opacity:0) rule.
+            targetEl.classList.add('is-visible');
+            if (previousEl) previousEl.classList.remove('is-visible');
         };
         preload.onerror = (e) => { console.warn('[portalfin] ambient image FAILED', item.url); };
         preload.src = item.url;
-        console.log('[portalfin] ambient preload start', item.url);
         activeImgEl = target;
         const meta = document.getElementById('pf-ambient-meta');
         if (meta) meta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
