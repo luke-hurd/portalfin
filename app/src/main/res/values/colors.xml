@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Portal palette (Meta blue primary, dark surfaces) -->
+    <color name="jellyfin_primary">#1A1A1A</color>
+    <color name="jellyfin_primary_dark">#1A1A1A</color>
+    <color name="jellyfin_accent">#0866FF</color>
+
+    <!-- Launcher icon background -->
+    <color name="ic_launcher_background">#0866FF</color>
+
+    <!-- Splash logo tint for API < 24. API >= 24 uses splash_fill from color-v24/. -->
+    <color name="splash_fill">#0866FF</color>
+
+    <!-- App colors -->
+    <color name="theme_background">#1A1A1A</color>
+    <color name="playback_controls_background">#80000000</color>
+    <color name="playback_info_background">#cc000000</color>
+    <color name="playback_timebar_unplayed">#2B2B2B</color>
+
+    <!-- Skip Media Segment Button -->
+    <color name="skip_media_segment_background">#2B2B2B</color>
+    <color name="skip_media_segment_text">#DADADA</color>
+</resources>

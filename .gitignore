@@ -1,0 +1,17 @@
+*.iml
+.gradle
+/.kotlin
+/local.properties
+/.idea
+.DS_Store
+build
+/captures
+.externalNativeBuild
+.cxx
+
+# portalfin additions
+*.apk
+*.aab
+keystore.jks
+keystore.properties
+**/.DS_Store

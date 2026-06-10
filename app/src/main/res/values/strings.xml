@@ -1,0 +1,172 @@
+<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+    <string name="dialog_web_view_not_supported">WebView not supported</string>
+    <string name="dialog_web_view_not_supported_message">WebViews are not supported by this device.\nInstall a compatible WebView implementation or switch to a supported device.</string>
+    <string name="dialog_web_view_outdated">WebView outdated</string>
+    <string name="dialog_web_view_outdated_message">The WebView implementation used by your device is outdated.\nPlease update it to a compatible version.</string>
+    <string name="dialog_button_check_for_updates">Check for updates</string>
+    <string name="dialog_button_close_app">Close app</string>
+    <string name="dialog_button_open_settings">Open settings</string>
+    <string name="dialog_button_ignore">Ignore</string>
+    <string name="toast_reopen_after_change">Please reopen the app after changes are made</string>
+
+    <string name="login_title">Sign In</string>
+    <string name="login_subtitle">to %1$s</string>
+    <string name="username_input_hint">Username</string>
+    <string name="password_input_hint">Password</string>
+    <string name="login_button_text">Sign In</string>
+    <string name="login_change_server">Switch Server</string>
+    <string name="login_error_invalid">Invalid username or password</string>
+    <string name="login_error_network">Couldn\'t reach the server. Try again.</string>
+
+    <string name="connect_to_server_title">Connect to Server</string>
+    <string name="host_input_hint">Host</string>
+    <string name="connection_error_cannot_connect">Connection cannot be established.\nPlease check the hostname and your network connection.</string>
+    <plurals name="connection_error_prefix">
+        <item quantity="one">Tried %d candidate for input, without success.</item>
+        <item quantity="other">Tried %d candidates for input, without success.</item>
+    </plurals>
+    <string name="connection_error_unable_to_reach_sever">Unable to reach server</string>
+    <string name="connection_error_unsupported_version_or_product">Unsupported version or product</string>
+    <string name="connect_button_text">Connect</string>
+    <string name="choose_server_button_text">Choose server</string>
+    <string name="available_servers_title">Available servers</string>
+    <string name="button_use_different_server">Use a different server</string>
+
+    <string name="bluetooth_permission_title">Allow Bluetooth access?</string>
+    <string name="bluetooth_permission_message">To detect when wireless headphones or speakers are disconnected, the app requires Bluetooth access. On Android, this permission is described as access to nearby devices, and warns that Bluetooth devices can be used to infer the current location. However, the Jellyfin app will never use this permission to detect your location.</string>
+    <string name="bluetooth_permission_continue">Continue</string>
+    <string name="bluetooth_permission_granted">Bluetooth permission was granted</string>
+    <string name="battery_optimizations_message">Please disable battery optimizations for media playback while the screen is off.</string>
+    <string name="network_title">Allowed Network Types</string>
+    <string name="network_message">Do you want to allow the download to run over mobile data or roaming networks? Charges from your provider may apply. You can change this option later from settings.</string>
+    <string name="wifi_only">WiFi Only</string>
+    <string name="mobile_data">Mobile Data</string>
+    <string name="mobile_data_and_roaming">Mobile Data &amp; Roaming</string>
+    <string name="wifi_only_summary">Media will be downloaded over WiFi only.</string>
+    <string name="mobile_data_summary">Media will be downloaded over WiFi and mobile networks.</string>
+    <string name="mobile_data_and_roaming_summary">Media will be downloaded over WiFi, mobile and roaming networks.</string>
+    <string name="downloading">Downloading</string>
+    <string name="download_no_storage_permission">Cannot download files without storage permissions</string>
+
+    <string name="media_service_generic_error">An error occurred</string>
+    <string name="media_service_item_not_found">Media item could not be found</string>
+    <string name="media_service_unknown_page">Unknown page</string>
+    <string name="media_service_no_items">No items found</string>
+    <string name="media_service_auth_expired">Please open the app on your phone to sign in to your Jellyfin server.</string>
+    <string name="media_service_invalid_id">Invalid item ID</string>
+
+    <!-- MediaService / Car-related strings -->
+    <string name="media_service_car_section_recents">Recently played</string>
+    <string name="media_service_car_section_favorites">Favorites</string>
+    <string name="media_service_car_section_albums">Albums</string>
+    <string name="media_service_car_section_audiobooks">Audiobooks</string>
+    <string name="media_service_car_section_artists">Artists</string>
+    <string name="media_service_car_section_songs">Songs</string>
+    <string name="media_service_car_section_genres">Genres</string>
+    <string name="media_service_car_section_playlists">Playlists</string>
+    <string name="media_service_car_item_no_title">No title</string>
+
+    <string name="music_notification_channel">Jellyfin Music Player</string>
+    <string name="music_notification_channel_description">Used for music playback controls</string>
+    <string name="notification_action_previous">Previous</string>
+    <string name="notification_action_rewind">Rewind</string>
+    <string name="notification_action_play">Play</string>
+    <string name="notification_action_pause">Pause</string>
+    <string name="notification_action_fast_forward">Fast-forward</string>
+    <string name="notification_action_next">Next</string>
+    <string name="notification_action_stop">Stop</string>
+
+    <string name="player_error_invalid_play_options">Unable to resolve playback info</string>
+    <string name="player_error_network_failure">Unable to load media info from server</string>
+    <string name="player_error_unsupported_content">Media cannot be played by this device</string>
+    <string name="player_error_unspecific_exception">Something went wrong with the player</string>
+    <string name="playback_info_play_method">Play method: %s</string>
+    <string name="playback_info_transcoding">Transcoding: %b</string>
+    <string name="playback_info_video_streams">Video streams</string>
+    <string name="playback_info_audio_streams">Audio streams</string>
+    <string name="playback_info_stream_unknown_title">Unknown title</string>
+    <string name="playback_info_and_x_more">…and %d more</string>
+    <string name="menu_item_none">None</string>
+    <string name="menu_item_auto">Auto</string>
+    <string name="menu_item_hardware_decoding">Hardware Decoding</string>
+    <string name="menu_item_software_decoding">Software Decoding</string>
+    <string name="skip_media_segment">Skip</string>
+
+    <string name="external_player_invalid_play_method">Invalid play method.</string>
+    <string name="external_player_not_supported_yet">Playback tracking not supported in selected external player yet. Contact developers to try to add support for it.</string>
+    <string name="external_player_invalid_player">No valid external player selected. Playback tracking disabled.</string>
+    <string name="external_player_unknown_error">Unknown error in external player. Playback tracking disabled.</string>
+
+    <string name="activity_name_settings">Jellyfin Settings</string>
+    <string name="pref_category_music_player">Music player</string>
+    <string name="pref_music_notification_always_dismissible_title">Dismissible player notification</string>
+    <string name="pref_music_notification_always_dismissible_summary_off">The notification can only be dismissed when playback is paused</string>
+    <string name="pref_music_notification_always_dismissible_summary_on">The notification can always be dismissed, even when playing media</string>
+    <string name="pref_category_video_player">Video player</string>
+    <string name="pref_video_player_type_title">Video player type</string>
+    <string name="video_player_web">Web player</string>
+    <string name="video_player_integrated">Integrated player</string>
+    <string name="video_player_external">External player</string>
+    <string name="video_player_web_description">The default HTML video player from the Web UI</string>
+    <string name="video_player_native_description">Based on ExoPlayer, supports more video formats and codecs, and is more integrated into the OS</string>
+    <string name="video_player_external_description">External video playback apps like MX Player and VLC</string>
+    <string name="pref_exoplayer_start_landscape_video_in_landscape">Start landscape mode videos in landscape orientation</string>
+    <string name="pref_exoplayer_allow_brightness_volume_gesture">Brightness and volume gestures</string>
+    <string name="pref_exoplayer_remember_brightness">Remember display brightness</string>
+    <string name="pref_exoplayer_allow_press_speed_up">Hold to speed up</string>
+    <string name="pref_exoplayer_allow_press_speed_up_summary">Touch and hold the screen to temporarily speed up playback</string>
+    <string name="pref_exoplayer_allow_background_audio">Background audio</string>
+    <string name="pref_exoplayer_allow_background_audio_summary">Allow playing videos in the background with audio-only</string>
+    <string name="pref_exoplayer_direct_play_ass">Allow SSA/ASS subtitles in direct play</string>
+    <string name="pref_exoplayer_direct_play_ass_summary">Prevent transcoding and show subtitles with basic styling only. Advanced subtitle styling will not be available if enabled.</string>
+    <string name="pref_exoplayer_network_buffer">Playback buffer size</string>
+    <string name="network_buffer_auto">Auto</string>
+    <string name="network_buffer_auto_description">Default buffer, suitable for most playback scenarios</string>
+    <string name="network_buffer_large">Large</string>
+    <string name="network_buffer_large_description">Larger buffer, may help on moderate or variable connections</string>
+    <string name="network_buffer_extra_large">Extra large</string>
+    <string name="network_buffer_extra_large_description">Maximum buffer, intended for slow or satellite connections</string>
+
+    <string name="external_player_app">External player app</string>
+    <string name="external_player_mpv">MPV Player</string>
+    <string name="external_player_mpv_description">A simple, small and light-weight free (as in freedom) video player. It supports a wide variety of media file formats.</string>
+    <string name="external_player_mx_player_free">MX Player Free</string>
+    <string name="external_player_mx_player_free_description">Powerful video player with advanced hardware acceleration and subtitle support.</string>
+    <string name="external_player_mx_player_pro">MX Player Pro</string>
+    <string name="external_player_mx_player_pro_description">The paid version of MX Player which provides an uninterrupted video experience.</string>
+    <string name="external_player_vlc_player">VLC Player</string>
+    <string name="external_player_vlc_player_description">Free and open source cross-platform multimedia player that plays most multimedia files.</string>
+    <string name="external_player_mpvkt">mpvKt Player</string>
+    <string name="external_player_mpvkt_description">A media player based on mpv-android aiming to provide a nicer user interface over the original.</string>
+    <string name="external_player_system_default">System default</string>
+    <string name="external_player_system_default_description">Let the system handle the player choice, some players may not be fully compatible.</string>
+
+    <string name="pref_subtitle_style">Customize subtitle style</string>
+    <string name="pref_subtitle_style_summary">You can change the subtitle style in the Android settings</string>
+
+    <string name="pref_category_downloads">Downloads</string>
+    <string name="pref_download_location">Download location</string>
+    <string name="view_downloads">View downloads</string>
+    <string name="downloads">Downloads</string>
+    <string name="download_notifications_description">Download notifications</string>
+    <string name="failed_thumbnail">Failed to download thumbnail</string>
+    <string name="failed_information">Failed to retrieve media information</string>
+    <string name="failed_network_method_check">Please check your allowed download methods</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+    <string name="thumbnail_desc">Thumbnail</string>
+    <string name="store_videos_in_internal_storage">Store videos in internal storage</string>
+    <string name="stored_videos_in_internal_storage_desc">Videos such as movies and TV shows will be stored in the app\'s internal storage. Allowing access from within the app.</string>
+    <string name="tv_show_desc">%1$s - S%2$dE%3$d</string>
+    <string name="downloading_desc">Downloading %1$d titles</string>
+    <string name="downloaded">Downloaded %1$s</string>
+    <string name="special_episode">Special</string>
+    <string name="downloading_title">Downloading %1$s</string>
+    <string name="download_cancel">Cancel</string>
+    <string name="download_completed">Download completed</string>
+    <string name="download_progress">%1$d%%</string>
+    <string name="download_remove">Remove download</string>
+    <string name="download_remove_keep_local">Keep local file(s)</string>
+    <string name="download_remove_description">Do you want to remove "%1$s" from your downloads?</string>
+    <string name="download_incomplete">Download incomplete</string>
+</resources>

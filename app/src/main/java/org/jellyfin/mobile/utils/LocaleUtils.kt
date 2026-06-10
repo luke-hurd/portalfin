@@ -1,0 +1,58 @@
+package org.jellyfin.mobile.utils
+
+import android.content.Context
+import android.content.res.Configuration
+import android.webkit.WebView
+import org.json.JSONException
+import org.json.JSONObject
+import timber.log.Timber
+import java.util.Locale
+import java.util.UUID
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
+
+suspend fun WebView.initLocale(userId: UUID) {
+    // Try to set locale via user settings
+    val userSettings = suspendCoroutine { continuation ->
+        // jellyfin-web uses dash-less user ids
+        val flatUserId = userId.toString().replace("-", "")
+        evaluateJavascript("window.localStorage.getItem('$flatUserId-language')") { result ->
+            try {
+                continuation.resume(JSONObject("{locale:$result}").getString("locale"))
+            } catch (e: JSONException) {
+                continuation.resume(null)
+            }
+        }
+    }
+
+    if (context.setLocale(userSettings)) return
+
+    // Fallback to device locale
+    Timber.i("Couldn't acquire locale from config, keeping current")
+}
+
+private fun Context.setLocale(localeString: String?): Boolean {
+    if (localeString.isNullOrEmpty()) return false
+
+    val localeSplit = localeString.split('-')
+    val locale = when (localeSplit.size) {
+        1 -> Locale(localeString, "")
+        2 -> Locale(localeSplit[0], localeSplit[1])
+        else -> return false
+    }
+
+    val configuration = resources.configuration
+    if (locale != configuration.primaryLocale) {
+        Locale.setDefault(locale)
+        configuration.setLocale(locale)
+        @Suppress("DEPRECATION")
+        resources.updateConfiguration(configuration, resources.displayMetrics)
+
+        Timber.i("Updated locale from web: '$locale'")
+    } // else: Locale is already applied
+    return true
+}
+
+@Suppress("DEPRECATION")
+private val Configuration.primaryLocale: Locale
+    get() = if (AndroidVersion.isAtLeastN) locales[0] else locale
