@@ -153,6 +153,18 @@ try {
                 background-position: left center !important;
                 margin-left: 13px !important;   /* aligns under Portal back button */
             }
+            #portalfin-header .pf-title {
+                color: ${ON_BACKGROUND} !important;
+                font-size: 20px !important;
+                font-weight: 600 !important;
+                margin-left: 8px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 600px !important;
+            }
+            /* Title is empty by default — only shows when JS populates it */
+            #portalfin-header .pf-title:empty { display: none !important; }
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
                 display: none !important;
@@ -780,6 +792,7 @@ try {
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
                 </button>
                 <div class="pf-wordmark"></div>
+                <div class="pf-title"></div>
             </div>
             <div class="pf-right">
                 <button class="pf-btn pf-cast" aria-label="Cast">
@@ -806,11 +819,13 @@ try {
     }
 
     /**
-     * Show/hide the wordmark on home only.
+     * Show/hide the wordmark on home only. Populate the page title
+     * (next to the back arrow) on non-home pages.
      */
     function updateWordmark() {
         const wm = document.querySelector('#portalfin-header .pf-wordmark');
         const bb = document.querySelector('#portalfin-header .pf-back');
+        const tt = document.querySelector('#portalfin-header .pf-title');
         if (!wm) return;
         const hash = window.location.hash || '';
         const isHome = hash === '' || hash === '#' || hash === '#/' ||
@@ -818,6 +833,74 @@ try {
         // Use class so we beat the !important rules in our stylesheet
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
+
+        // Page title — only on non-home pages. The detail-page item name
+        // isn't in the DOM at the moment of route change (jellyfin-web
+        // populates it asynchronously). Schedule a couple of retries.
+        if (tt) {
+            const apply = () => { tt.textContent = isHome ? '' : derivePageTitle(hash); };
+            apply();
+            setTimeout(apply, 250);
+            setTimeout(apply, 1000);
+        }
+    }
+
+    /**
+     * Derive a human-readable page title for the back arrow's right side.
+     * Tries (in order): jellyfin-web's .pageTitle text, the URL collectionType
+     * or path segment, document.title fallback.
+     */
+    function derivePageTitle(hash) {
+        // Detail pages: try a list of selectors that jellyfin-web has used
+        // for the item title in different versions/layouts.
+        if (/^#\/details/i.test(hash)) {
+            const candidates = [
+                'h1.itemName',
+                'h2.itemName',
+                'h3.itemName',
+                '.itemName',
+                '.parentName + .itemName',
+                '.titleNameLink',
+                '.detailPagePrimaryContainer .nameContainer h3',
+                '.detailPagePrimaryContainer h3',
+                '.pageTitle',
+            ];
+            for (const sel of candidates) {
+                const el = document.querySelector(sel);
+                if (el) {
+                    const txt = (el.textContent || '').trim();
+                    if (txt && txt.length < 100 && !/Lukes-iMac/i.test(txt)) return txt;
+                }
+            }
+            // Fallback: document.title (jellyfin sets it to "ItemName | Jellyfin")
+            const dt = (document.title || '').replace(/\s*\|\s*Jellyfin.*$/i, '').trim();
+            if (dt && !/^Jellyfin$/i.test(dt)) return dt;
+            return 'Details';
+        }
+        // Library pages: derive from URL collectionType / path segment
+        const m = hash.match(/^#\/(movies|tvshows|music|livetv|playlists|favorites|search)/i);
+        if (m) {
+            const map = {
+                movies: 'Movies', tvshows: 'TV Shows', music: 'Music',
+                livetv: 'Live TV', playlists: 'Playlists',
+                favorites: 'Favorites', search: 'Search',
+            };
+            return map[m[1].toLowerCase()] || '';
+        }
+        // List pages — try the URL type=Movie param to label
+        const lm = hash.match(/^#\/list[^?]*\?[^#]*[?&]type=(\w+)/i);
+        if (lm) {
+            const t = lm[1].toLowerCase();
+            return t === 'series' ? 'TV Shows' : t === 'movie' ? 'Movies' : 'Library';
+        }
+        if (/^#\/list/i.test(hash)) return 'Library';
+        // Fallback: jellyfin's .pageTitle text (server name etc.)
+        const native = document.querySelector('.pageTitle');
+        if (native) {
+            const txt = (native.textContent || '').trim();
+            if (txt && txt.length < 80) return txt;
+        }
+        return '';
     }
 
     /**
@@ -860,10 +943,15 @@ try {
                 d.style.display = 'none';
             });
 
-            // Force-redirect any admin/dashboard hash routes back to /home
-            const hash = window.location.hash || '';
-            if (/(dashboard|configurationpage|metadataNfo|metadataimages|^#\/library$|users\.html|plugins|scheduledtasks|activity|encoder|streaming|networking|notifications|server)/i.test(hash)) {
-                console.log('[portalfin] redirecting from admin route', hash);
+            // Force-redirect any admin/dashboard hash routes back to /home.
+            // Anchor on the path part ONLY (before the query string) so that
+            // detail-page URLs like #/details?id=...&serverId=... aren't
+            // matched on the substring 'server' inside their query.
+            const fullHash = window.location.hash || '';
+            const pathPart = fullHash.split('?')[0]; // e.g. "#/dashboard" or "#/details"
+            const adminRoutes = /^#\/(dashboard|configurationpage|metadataNfo|metadataimages|library|users|plugins|scheduledtasks|activity|encoder|streaming|networking|notifications|server)(\.html)?\/?$/i;
+            if (adminRoutes.test(pathPart)) {
+                console.log('[portalfin] redirecting from admin route', pathPart);
                 window.location.hash = '#/home';
                 window.location.reload();
             }
