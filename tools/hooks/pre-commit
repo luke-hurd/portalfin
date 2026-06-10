@@ -1,0 +1,24 @@
+#!/bin/sh
+# portalfin pre-commit guard.
+#
+# portalfin-restyle.js is one giant JS template literal (the whole stylesheet
+# lives inside backticks). A stray backtick in a CSS comment closes the literal
+# early and silently breaks ALL styling app-wide — the app falls back to raw
+# Jellyfin. This has bitten us more than once. `node --check` catches it in ~1s,
+# versus a 10-minute build+sideload+eyeball round-trip.
+#
+# This hook BLOCKS the commit if the restyle JS doesn't parse.
+
+RESTYLE="app/src/main/assets/native/portalfin-restyle.js"
+
+if [ -f "$RESTYLE" ]; then
+    if ! node --check "$RESTYLE" 2>/tmp/portalfin-restyle-check.err; then
+        echo "✗ pre-commit: $RESTYLE has a JS syntax error — commit blocked."
+        echo "  (most often a stray backtick in a CSS comment closing the template literal)"
+        echo ""
+        cat /tmp/portalfin-restyle-check.err
+        exit 1
+    fi
+fi
+
+exit 0
