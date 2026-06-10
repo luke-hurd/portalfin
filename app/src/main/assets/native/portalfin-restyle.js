@@ -580,6 +580,77 @@ try {
                 opacity: 1 !important;
             }
 
+            /* === PROFILE / SETTINGS MENU =================================
+               Viewer-only kiosk: JS prunes to 5 rows (Playback, Subtitles,
+               Downloads, Select Server, Sign Out). This makes the remaining
+               list feel native — generous touch rows, clear separation,
+               centered column, larger icons + labels. */
+            body.pf-profile-page .readOnlyContent,
+            body.pf-profile-page .settingsContainer,
+            body.pf-profile-page .verticalSection {
+                max-width: 720px !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            /* The row list: stack with real gaps instead of smashed-together.
+               Tight vertical padding + bottom-margin on each section so two
+               sections (per-user + "User") read as one continuous list with
+               no big empty gap where the hidden headers used to be. */
+            body.pf-profile-page .verticalSection {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+                padding: 0 24px !important;
+                margin: 0 0 12px 0 !important;
+            }
+            body.pf-profile-page .verticalSection:first-of-type {
+                margin-top: 16px !important;
+            }
+            body.pf-profile-page .listItem {
+                background: ${SURFACE} !important;
+                border-radius: 16px !important;
+                min-height: 64px !important;
+                padding: 0 22px !important;
+                margin: 0 !important;
+                transition: background 160ms ease, transform 120ms ease !important;
+            }
+            body.pf-profile-page .listItem:hover,
+            body.pf-profile-page .listItem:active {
+                background: ${SURFACE_HIGH} !important;
+                transform: scale(0.99) !important;
+            }
+            /* Icon: circular Meta-blue-tinted chip, bigger glyph. */
+            body.pf-profile-page .listItem .listItemIcon,
+            body.pf-profile-page .listItem .material-icons {
+                color: ${PRIMARY_TEXT} !important;
+                font-size: 26px !important;
+                width: 44px !important;
+                height: 44px !important;
+                line-height: 44px !important;
+                margin-right: 8px !important;
+                border-radius: 50% !important;
+                background: rgba(8, 102, 255, 0.14) !important;
+                text-align: center !important;
+                flex-shrink: 0 !important;
+            }
+            /* Label: larger, comfortable weight. */
+            body.pf-profile-page .listItem .listItemBodyText,
+            body.pf-profile-page .listItem .listItemBody {
+                font-size: 17px !important;
+                font-weight: 500 !important;
+            }
+            /* Chevron at the end of each row for affordance. */
+            body.pf-profile-page .listItem::after {
+                content: '' !important;
+                margin-left: auto !important;
+                width: 9px !important;
+                height: 9px !important;
+                border-right: 2px solid rgba(255,255,255,0.35) !important;
+                border-bottom: 2px solid rgba(255,255,255,0.35) !important;
+                transform: rotate(-45deg) !important;
+                flex-shrink: 0 !important;
+            }
+
             /* Loading spinners → use Meta blue */
             .mdl-spinner__layer-1,
             .mdl-spinner__layer-3 { border-color: ${PRIMARY} !important; }
@@ -1072,6 +1143,35 @@ try {
         }
     }
 
+    // Profile/settings menu (#/mypreferencesmenu): jellyfin-web renders ~13
+    // .listItem rows distinguished only by text (no class/href hooks). For a
+    // viewer-only kiosk we keep just the 5 that matter and hide the section
+    // headers, leaving a single clean list.
+    const PROFILE_KEEP = ['playback', 'subtitles', 'downloads', 'select server', 'sign out'];
+    function pruneProfileMenu() {
+        const onProfile = /mypreferences|preferencesmenu/i.test(window.location.hash || '');
+        document.body.classList.toggle('pf-profile-page', onProfile);
+        if (!onProfile) return;
+        const items = document.querySelectorAll('.listItem');
+        if (items.length === 0) return;
+        items.forEach((el) => {
+            const txt = (el.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase();
+            const keep = PROFILE_KEEP.some((k) => txt.startsWith(k));
+            el.style.display = keep ? '' : 'none';
+        });
+        // Hide the per-user / "User" section headers — the trimmed list reads
+        // fine without them.
+        document.querySelectorAll('.verticalSection > h2, .sectionTitle, .verticalSection .sectionTitle')
+            .forEach((h) => { h.style.display = 'none'; });
+        // Collapse any .verticalSection that has no visible rows left after the
+        // prune (otherwise its padding leaves a big empty gap mid-list).
+        document.querySelectorAll('.verticalSection').forEach((sec) => {
+            const visibleRows = Array.from(sec.querySelectorAll('.listItem'))
+                .filter((r) => r.style.display !== 'none');
+            sec.style.display = visibleRows.length ? '' : 'none';
+        });
+    }
+
     function applyAll(reason) {
         console.log('[portalfin] applyAll:', reason);
         injectStyle();
@@ -1080,6 +1180,12 @@ try {
         buildCustomHeader();
         updateWordmark();
         applyTimeOfDayTheme();
+        pruneProfileMenu();
+        // jellyfin-web re-renders the menu async after route change; re-prune.
+        if (/mypreferences|preferencesmenu/i.test(window.location.hash || '')) {
+            setTimeout(pruneProfileMenu, 300);
+            setTimeout(pruneProfileMenu, 900);
+        }
         // (diagnostic probes removed)
         // Now that <style> is in place, lift the visibility gate.
         // Use rAF so the style has applied before paint.
