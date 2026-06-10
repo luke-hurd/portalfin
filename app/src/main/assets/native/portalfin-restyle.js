@@ -116,7 +116,11 @@ try {
                 right: 0 !important;
                 height: 68px !important;        /* fits 48px wordmark + 7px bottom pad + breathing */
                 padding: 0 12px 7px 12px !important;
-                background: var(--portalfin-bg, ${BACKGROUND}) !important;
+                /* Frosted glass: translucent base + blur + saturation boost
+                   so scrolled content is fuzzy-visible underneath. */
+                background: var(--portalfin-header-bg, rgba(26, 26, 26, 0.6)) !important;
+                -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+                backdrop-filter: blur(20px) saturate(180%) !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 align-items: center !important;
@@ -911,13 +915,14 @@ try {
      */
     function applyTimeOfDayTheme() {
         const h = new Date().getHours();
-        let bg, surf;
-        if (h >= 5 && h < 9)        { bg = '#1A1F22'; surf = '#2B3036'; } // morning, cool
-        else if (h >= 9 && h < 17)  { bg = '#1A1A1A'; surf = '#2B2B2B'; } // day, neutral
-        else if (h >= 17 && h < 21) { bg = '#221A1A'; surf = '#352B2B'; } // evening, warm
-        else                        { bg = '#0E0E12'; surf = '#1F1F26'; } // night, deep
+        let bg, surf, hdr;
+        if (h >= 5 && h < 9)        { bg = '#1A1F22'; surf = '#2B3036'; hdr = 'rgba(26,31,34,0.55)'; }   // morning, cool
+        else if (h >= 9 && h < 17)  { bg = '#1A1A1A'; surf = '#2B2B2B'; hdr = 'rgba(26,26,26,0.55)'; }   // day, neutral
+        else if (h >= 17 && h < 21) { bg = '#221A1A'; surf = '#352B2B'; hdr = 'rgba(34,26,26,0.55)'; }   // evening, warm
+        else                        { bg = '#0E0E12'; surf = '#1F1F26'; hdr = 'rgba(14,14,18,0.6)'; }    // night, deep
         document.documentElement.style.setProperty('--portalfin-bg', bg);
         document.documentElement.style.setProperty('--portalfin-surface', surf);
+        document.documentElement.style.setProperty('--portalfin-header-bg', hdr);
     }
     if (!window.__portalfinThemeTickerStarted) {
         window.__portalfinThemeTickerStarted = true;
