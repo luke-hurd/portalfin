@@ -470,6 +470,74 @@ try {
                 view-transition-name: portalfin-header;
             }
 
+            /* === AMBIENT MODE OVERLAY ===
+               Fullscreen rotating gallery activated after 60s of idle.
+               Two crossfading background layers, scrim for legibility,
+               oversized clock, current item title. */
+            #portalfin-ambient {
+                position: fixed !important;
+                inset: 0 !important;
+                z-index: 100000 !important;
+                pointer-events: none !important;
+                opacity: 0 !important;
+                transition: opacity 600ms ease !important;
+                background: ${BACKGROUND} !important;
+            }
+            body.pf-ambient-active #portalfin-ambient {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+            #portalfin-ambient .pf-ambient-img {
+                position: absolute !important;
+                inset: 0 !important;
+                background-size: cover !important;
+                background-position: center !important;
+                opacity: 0 !important;
+                transition: opacity 1500ms ease-in-out !important;
+            }
+            #portalfin-ambient .pf-ambient-scrim {
+                position: absolute !important;
+                inset: 0 !important;
+                background: linear-gradient(
+                    to bottom,
+                    rgba(0,0,0,0.55) 0%,
+                    rgba(0,0,0,0.15) 35%,
+                    rgba(0,0,0,0.15) 65%,
+                    rgba(0,0,0,0.7) 100%
+                ) !important;
+            }
+            #portalfin-ambient .pf-ambient-clock {
+                position: absolute !important;
+                left: 48px !important;
+                bottom: 48px !important;
+                color: ${ON_BACKGROUND} !important;
+                text-shadow: 0 2px 16px rgba(0,0,0,0.6) !important;
+            }
+            #portalfin-ambient .pf-ambient-time {
+                font-size: 88px !important;
+                font-weight: 200 !important;
+                line-height: 1 !important;
+                letter-spacing: -2px !important;
+            }
+            #portalfin-ambient .pf-ambient-date {
+                font-size: 22px !important;
+                font-weight: 400 !important;
+                opacity: 0.85 !important;
+                margin-top: 8px !important;
+            }
+            #portalfin-ambient .pf-ambient-meta {
+                position: absolute !important;
+                right: 48px !important;
+                bottom: 56px !important;
+                color: ${ON_BACKGROUND} !important;
+                font-size: 18px !important;
+                font-weight: 500 !important;
+                text-shadow: 0 2px 16px rgba(0,0,0,0.6) !important;
+                opacity: 0.85 !important;
+                max-width: 50% !important;
+                text-align: right !important;
+            }
+
             /* Loading spinners → use Meta blue */
             .mdl-spinner__layer-1,
             .mdl-spinner__layer-3 { border-color: ${PRIMARY} !important; }
@@ -883,4 +951,184 @@ try {
     }
     setInterval(checkSignedOut, 1000);
     checkSignedOut(); // seed lastHasToken
+
+    // ===========================================================
+    // Phase 6: Ambient slideshow at idle
+    // ===========================================================
+    // Portal is a stationary device that's on all the time. After 60s of
+    // no user interaction, fade in a fullscreen rotating gallery of
+    // backdrop art from the user's Jellyfin library, with time overlay.
+    // Tap anywhere to dismiss.
+    const AMBIENT_IDLE_MS = 60_000;     // 60s idle before ambient kicks in
+    const AMBIENT_ROTATE_MS = 12_000;   // each backdrop visible 12s
+
+    let ambientItems = [];
+    let ambientTimer = null;
+    let ambientRotateTimer = null;
+    let ambientIndex = 0;
+
+    function buildAmbientOverlay() {
+        if (document.getElementById('portalfin-ambient')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'portalfin-ambient';
+        overlay.innerHTML = `
+            <div class="pf-ambient-img" id="pf-ambient-img-a"></div>
+            <div class="pf-ambient-img" id="pf-ambient-img-b"></div>
+            <div class="pf-ambient-scrim"></div>
+            <div class="pf-ambient-clock">
+                <div class="pf-ambient-time" id="pf-ambient-time">--:--</div>
+                <div class="pf-ambient-date" id="pf-ambient-date"></div>
+            </div>
+            <div class="pf-ambient-meta" id="pf-ambient-meta"></div>
+        `;
+        // Tap anywhere on the overlay to dismiss
+        overlay.addEventListener('click', exitAmbient, { capture: true });
+        overlay.addEventListener('touchstart', exitAmbient, { capture: true });
+        document.body.appendChild(overlay);
+    }
+
+    function tickClock() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const ampm = h >= 12 ? 'pm' : 'am';
+        const h12 = ((h + 11) % 12) + 1;
+        const timeEl = document.getElementById('pf-ambient-time');
+        const dateEl = document.getElementById('pf-ambient-date');
+        if (timeEl) timeEl.textContent = h12 + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
+        if (dateEl) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            dateEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+        }
+    }
+
+    async function fetchAmbientItems() {
+        try {
+            const credsRaw = window.localStorage.getItem('jellyfin_credentials');
+            if (!credsRaw) return [];
+            const creds = JSON.parse(credsRaw);
+            const server = creds.Servers && creds.Servers[0];
+            if (!server || !server.AccessToken) return [];
+            const base = server.ManualAddress || server.LocalAddress;
+            const userId = server.UserId;
+            const url = base + '/Users/' + userId + '/Items?Recursive=true' +
+                '&IncludeItemTypes=Movie,Series' +
+                '&Fields=BackdropImageTags' +
+                '&Filters=IsNotFolder' +
+                '&SortBy=Random&Limit=24';
+            const resp = await fetch(url, {
+                headers: { 'X-MediaBrowser-Token': server.AccessToken },
+            });
+            if (!resp.ok) return [];
+            const data = await resp.json();
+            return (data.Items || [])
+                .filter(it => it.BackdropImageTags && it.BackdropImageTags.length > 0)
+                .map(it => ({
+                    id: it.Id,
+                    name: it.Name,
+                    year: it.ProductionYear,
+                    url: base + '/Items/' + it.Id + '/Images/Backdrop/0?tag=' + it.BackdropImageTags[0] + '&maxWidth=1280',
+                }));
+        } catch (e) {
+            console.warn('[portalfin] ambient fetch failed', e);
+            return [];
+        }
+    }
+
+    let activeImgEl = null; // 'a' or 'b' — which element currently has the visible image
+    function showNextBackdrop() {
+        if (ambientItems.length === 0) return;
+        const item = ambientItems[ambientIndex % ambientItems.length];
+        ambientIndex++;
+        // First call: show on 'a'. Subsequent: alternate.
+        const target = activeImgEl === 'a' ? 'b' : 'a';
+        const targetEl = document.getElementById('pf-ambient-img-' + target);
+        const previousEl = activeImgEl ? document.getElementById('pf-ambient-img-' + activeImgEl) : null;
+        if (!targetEl) return;
+        // Preload the image so the crossfade doesn't flash a blank gap
+        const preload = new Image();
+        preload.onload = () => {
+            console.log('[portalfin] ambient img loaded', item.name);
+            targetEl.style.backgroundImage = 'url("' + item.url + '")';
+            targetEl.style.opacity = '1';
+            if (previousEl) previousEl.style.opacity = '0';
+        };
+        preload.onerror = (e) => { console.warn('[portalfin] ambient image FAILED', item.url); };
+        preload.src = item.url;
+        console.log('[portalfin] ambient preload start', item.url);
+        activeImgEl = target;
+        const meta = document.getElementById('pf-ambient-meta');
+        if (meta) meta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
+    }
+
+    async function enterAmbient() {
+        if (document.body.classList.contains('pf-ambient-active')) return;
+        // Don't go ambient on login screens / pre-auth pages
+        const credsRaw = window.localStorage.getItem('jellyfin_credentials');
+        if (!credsRaw) return;
+        try {
+            const creds = JSON.parse(credsRaw);
+            if (!(creds.Servers && creds.Servers[0] && creds.Servers[0].AccessToken)) return;
+        } catch (_) { return; }
+        // Don't go ambient during playback
+        if (document.querySelector('video:not([paused])')) return;
+
+        if (ambientItems.length === 0) {
+            ambientItems = await fetchAmbientItems();
+            if (ambientItems.length === 0) {
+                console.log('[portalfin] ambient: no items, skipping');
+                return;
+            }
+        }
+        buildAmbientOverlay();
+        document.body.classList.add('pf-ambient-active');
+        // Ask the native side to keep the Portal screen awake while the
+        // slideshow runs (otherwise Portal dims us mid-rotation).
+        try {
+            if (window.PortalFinBridge && window.PortalFinBridge.setAmbientActive) {
+                window.PortalFinBridge.setAmbientActive(true);
+            }
+        } catch (_) {}
+        ambientIndex = 0;
+        tickClock();
+        showNextBackdrop();
+        ambientRotateTimer = setInterval(() => {
+            tickClock();
+            showNextBackdrop();
+        }, AMBIENT_ROTATE_MS);
+    }
+
+    function exitAmbient() {
+        if (!document.body.classList.contains('pf-ambient-active')) return;
+        document.body.classList.remove('pf-ambient-active');
+        if (ambientRotateTimer) {
+            clearInterval(ambientRotateTimer);
+            ambientRotateTimer = null;
+        }
+        // Release the keep-screen-on flag
+        try {
+            if (window.PortalFinBridge && window.PortalFinBridge.setAmbientActive) {
+                window.PortalFinBridge.setAmbientActive(false);
+            }
+        } catch (_) {}
+        // Reset idle timer so we don't immediately re-enter
+        resetAmbientIdle();
+    }
+
+    function resetAmbientIdle() {
+        if (ambientTimer) clearTimeout(ambientTimer);
+        ambientTimer = setTimeout(enterAmbient, AMBIENT_IDLE_MS);
+    }
+
+    ['mousemove', 'pointermove', 'touchstart', 'keydown', 'wheel', 'click'].forEach(evt => {
+        window.addEventListener(evt, () => {
+            if (document.body.classList.contains('pf-ambient-active')) {
+                exitAmbient();
+            } else {
+                resetAmbientIdle();
+            }
+        }, { passive: true });
+    });
+    resetAmbientIdle();
 })();
