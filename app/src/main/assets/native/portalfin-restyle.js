@@ -869,16 +869,18 @@ try {
                   are visible (not legs). The gradient fades the bottom
                   half so the title block (pulled up with negative margin
                   below) sits ON the artwork as it fades to background. */
+            /* Do NOT override 'top' here. jellyfin-web positions the backdrop
+               relative to the .itemDetailPage page, which carries
+               padding-top: 70px to clear the Portal system overlay + our
+               header. Forcing top:0 yanked the backdrop (and the title block
+               overlaying it) up under the Portal back/home icons. Keep native
+               positioning; just size it and anchor the artwork to the top. */
             .itemDetailPage .itemBackdrop,
             .detailPagePrimaryContainer .itemBackdrop {
-                position: relative !important;
-                top: 0 !important;       /* jellyfin-web sets top: -179.391px which yanks heads off-screen */
-                left: 0 !important;
                 height: 480px !important;
                 min-height: 480px !important;
                 background-position: center top !important;
                 background-size: cover !important;
-                margin: 0 !important;
             }
             /* Some jellyfin layouts apply the bg image to a child rather than
                the .itemBackdrop element itself — handle both. */
