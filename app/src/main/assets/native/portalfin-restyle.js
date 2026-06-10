@@ -72,9 +72,10 @@ try {
             }
 
             html, body {
-                background: ${BACKGROUND} !important;
+                background: var(--portalfin-bg, ${BACKGROUND}) !important;
                 color: ${ON_BACKGROUND};
                 font-family: -apple-system, "Inter", "Helvetica Neue", Arial, sans-serif;
+                transition: background-color 8s ease;
             }
             /* Preserve Material Icons font for glyph elements */
             .material-icons {
@@ -113,9 +114,9 @@ try {
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 51px !important;
+                height: 58px !important;        /* +7 to fit the larger 40px wordmark */
                 padding: 0 12px 7px 12px !important;
-                background: ${BACKGROUND} !important;
+                background: var(--portalfin-bg, ${BACKGROUND}) !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 align-items: center !important;
@@ -144,13 +145,13 @@ try {
             #portalfin-header .pf-btn:hover { background: ${SURFACE} !important; }
             #portalfin-header .pf-btn svg { width: 22px !important; height: 22px !important; }
             #portalfin-header .pf-wordmark {
-                width: 140px !important;
-                height: 32px !important;
+                width: 175px !important;        /* +25% from 140 */
+                height: 40px !important;        /* +25% from 32 */
                 background-image: url('/native/wordmark.png') !important;
                 background-size: contain !important;
                 background-repeat: no-repeat !important;
                 background-position: left center !important;
-                margin-left: 8px !important;
+                margin-left: 13px !important;   /* +5px from 8 to align under Portal back button */
             }
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
@@ -222,7 +223,7 @@ try {
             html body .pageWithAbsoluteTabs,
             html body .itemDetailPage,
             html body div[data-role="page"] {
-                padding-top: 52px !important;
+                padding-top: 60px !important;
                 margin-top: 0 !important;
             }
 
@@ -748,6 +749,7 @@ try {
         kioskizeChrome();
         buildCustomHeader();
         updateWordmark();
+        applyTimeOfDayTheme();
         // (diagnostic probes removed)
         // Now that <style> is in place, lift the visibility gate.
         // Use rAF so the style has applied before paint.
@@ -810,10 +812,31 @@ try {
         const hash = window.location.hash || '';
         const isHome = hash === '' || hash === '#' || hash === '#/' ||
                        /^#!?\/?(home(\.html)?|index)/i.test(hash);
-        console.log('[portalfin] wordmark hash=', hash, 'isHome=', isHome);
         // Use class so we beat the !important rules in our stylesheet
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
+    }
+
+    /**
+     * Time-of-day theme: subtly shifts the page background tint based on
+     * the local hour. Cool morning -> neutral day -> warm evening ->
+     * deep night. Updates the CSS custom properties that html/body and
+     * the header use, so the shift cascades automatically.
+     */
+    function applyTimeOfDayTheme() {
+        const h = new Date().getHours();
+        let bg, surf;
+        if (h >= 5 && h < 9)        { bg = '#1A1F22'; surf = '#2B3036'; } // morning, cool
+        else if (h >= 9 && h < 17)  { bg = '#1A1A1A'; surf = '#2B2B2B'; } // day, neutral
+        else if (h >= 17 && h < 21) { bg = '#221A1A'; surf = '#352B2B'; } // evening, warm
+        else                        { bg = '#0E0E12'; surf = '#1F1F26'; } // night, deep
+        document.documentElement.style.setProperty('--portalfin-bg', bg);
+        document.documentElement.style.setProperty('--portalfin-surface', surf);
+    }
+    if (!window.__portalfinThemeTickerStarted) {
+        window.__portalfinThemeTickerStarted = true;
+        // Re-tick every minute so the tint shifts as the day progresses
+        setInterval(applyTimeOfDayTheme, 60_000);
     }
 
     function kioskizeChrome() {
@@ -866,8 +889,14 @@ try {
         }
     }
 
-    // Phase 1: hide everything immediately
-    injectVisibilityGate();
+    // Phase 1: hide everything immediately — but ONLY on the first load.
+    // The script gets re-injected via onPageFinished on every nav; gating
+    // on every re-inject would flash the page invisible on each SPA route
+    // change. Per-window guard so re-injections are no-ops for this gate.
+    if (!window.__portalfinGateRanOnce) {
+        window.__portalfinGateRanOnce = true;
+        injectVisibilityGate();
+    }
 
     // Phase 2: apply restyle as soon as DOM is ready
     if (document.readyState === 'loading') {
