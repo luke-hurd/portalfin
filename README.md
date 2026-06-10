@@ -1,8 +1,11 @@
-# portalfin
+<p align="center">
+  <img src="docs/wordmark.png" width="320" alt="portalfin">
+</p>
 
-A Jellyfin client built specifically for the **Facebook Portal** family of devices.
-Forked from [jellyfin/jellyfin-android](https://github.com/jellyfin/jellyfin-android),
-re-skinned and re-shelled around Portal's hardware quirks.
+<p align="center">
+  A Jellyfin client built specifically for the <strong>Facebook Portal</strong> family of devices.<br/>
+  Forked from <a href="https://github.com/jellyfin/jellyfin-android">jellyfin/jellyfin-android</a>, re-skinned and re-shelled around Portal's hardware quirks.
+</p>
 
 <p align="center">
   <img src="docs/screenshots/03-home.png" width="640" alt="Home screen">
@@ -13,7 +16,7 @@ re-skinned and re-shelled around Portal's hardware quirks.
 The original Facebook Portal (codename **aloha**) shipped with ADB locked. In
 October 2025, Meta enabled ADB on a firmware update, opening the device up for
 sideloaded apps for the first time. portalfin is a pragmatic Jellyfin client
-that takes advantage of that — **native PortalFin shell** wrapping the
+that takes advantage of that — a **native portalfin shell** wrapping the
 mature jellyfin-web UI, with a real Compose login flow, kiosk-only navigation
 (no admin dashboard), and a custom header that respects Portal's reserved
 top overlay.
@@ -35,11 +38,12 @@ top overlay.
 | Sign-in | Web client login inside the WebView | **Native Compose `LoginScreen`** that calls the Jellyfin SDK directly, then seeds the WebView's `localStorage` so it lands authenticated on `/home` |
 | Top inset | None | Portal's white system overlay (back/home/wifi) reserves y=0..64; the WebView area starts below it. portalfin's header sits flush at the top of the WebView. |
 | Header chrome | Default jellyfin-web header — drawer, group, sync play, admin shortcuts | Custom 51px `#portalfin-header` with wordmark + cast/search/profile only. Hamburger drawer hidden, admin routes redirect home. |
-| Logo / branding | Jellyfin teal `#00a4dc` everywhere | PortalFin "p" mark + wordmark, Meta blue `#0866FF` accents matching Portal's design language |
+| Logo / branding | Jellyfin teal `#00a4dc` everywhere | portalfin "p" mark + wordmark, Meta blue `#0866FF` accents matching Portal's design language |
 | Battery-optim snackbar | "Please disable battery optimizations…" prompt | Suppressed on Portal (`Build.DEVICE == "aloha"`) — Portal doesn't expose battery optimization settings anyway |
 | Sign-out lifecycle | jellyfin-web logs out, you stay in WebView staring at its login | JS detects logout and clears native `UserEntity`, routing back to portalfin's native `LoginFragment` |
 | Restyle | None | `portalfin-restyle.js` is injected on every page — global Portal palette, button shape, Inter font fallback, kiosk chrome hiding, in-session route re-application |
 | Default host | Empty | Empty (the previous v0 builds shipped a hard-coded LAN address — removed in v1.0.0) |
+| SPA route transitions | Hard snap between routes | Native [View Transitions API](https://developer.mozilla.org/docs/Web/API/View_Transitions_API): home → library → detail navigations crossfade in 180ms with an ease-out curve. The portalfin header gets a `view-transition-name` so it stays put across routes. ([feature/view-transitions](https://github.com/luke-hurd/portalfin/tree/feature/view-transitions)) |
 
 ## Supported devices
 
