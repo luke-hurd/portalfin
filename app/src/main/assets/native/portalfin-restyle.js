@@ -444,6 +444,32 @@ try {
             }
             ::-webkit-scrollbar-track { background: ${BACKGROUND} !important; }
 
+            /* === SPA route transitions ===
+               document.startViewTransition() snapshots old + new state and
+               crossfades between them. Default UA animation is a 250ms
+               opacity fade. We tune to a slightly snappier 180ms with an
+               ease-out curve so navigations feel responsive but smooth. */
+            ::view-transition-old(root),
+            ::view-transition-new(root) {
+                animation-duration: 180ms !important;
+                animation-timing-function: cubic-bezier(0.2, 0, 0, 1) !important;
+            }
+            ::view-transition-old(root) {
+                animation-name: pf-fade-out !important;
+            }
+            ::view-transition-new(root) {
+                animation-name: pf-fade-in !important;
+            }
+            @keyframes pf-fade-out { from { opacity: 1; } to { opacity: 0; } }
+            @keyframes pf-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+            /* The portalfin header should NOT crossfade — it stays put across
+               navigations. Give it a stable view-transition-name so the
+               browser treats it as a continuous element. */
+            #portalfin-header {
+                view-transition-name: portalfin-header;
+            }
+
             /* Loading spinners → use Meta blue */
             .mdl-spinner__layer-1,
             .mdl-spinner__layer-3 { border-color: ${PRIMARY} !important; }
@@ -783,19 +809,38 @@ try {
     }
 
     // Phase 3: re-apply on SPA navigation. jellyfin-web uses pushState — patch it.
+    // Wrap in document.startViewTransition (where supported) so route changes
+    // crossfade instead of snap. Portal's Chromium WebView is recent enough
+    // to support same-document view transitions.
+    const supportsViewTransition = typeof document.startViewTransition === 'function';
+    function withTransition(work) {
+        if (supportsViewTransition) {
+            try { document.startViewTransition(work); return; } catch (_) {}
+        }
+        work();
+    }
     const _pushState = history.pushState;
     const _replaceState = history.replaceState;
     history.pushState = function () {
-        _pushState.apply(this, arguments);
-        applyAll('pushState');
-        updateWordmark();
+        const args = arguments;
+        const self = this;
+        withTransition(() => {
+            _pushState.apply(self, args);
+            applyAll('pushState');
+            updateWordmark();
+        });
     };
     history.replaceState = function () {
-        _replaceState.apply(this, arguments);
+        const args = arguments;
+        const self = this;
+        // replaceState is often used for state cleanup, not nav — don't transition
+        _replaceState.apply(self, args);
         applyAll('replaceState');
         updateWordmark();
     };
-    window.addEventListener('popstate', () => { applyAll('popstate'); updateWordmark(); });
+    window.addEventListener('popstate', () => {
+        withTransition(() => { applyAll('popstate'); updateWordmark(); });
+    });
 
     // Bail if already initialized — avoids double observers and
     // duplicate setIntervals on subsequent injections.
