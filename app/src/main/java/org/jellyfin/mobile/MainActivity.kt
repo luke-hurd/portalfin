@@ -96,7 +96,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        // Smooth splash exit: instead of the OS's default snap, fade the
+        // splash icon out and slightly scale it up so it dissolves into the
+        // app rather than blinking off.
+        installSplashScreen().setOnExitAnimationListener { provider ->
+            val view = provider.iconView
+            view.animate()
+                .alpha(0f)
+                .scaleX(1.15f)
+                .scaleY(1.15f)
+                .setDuration(280L)
+                .withEndAction { provider.remove() }
+                .start()
+        }
         setupKoinFragmentFactory()
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
