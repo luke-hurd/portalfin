@@ -107,6 +107,23 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
             }
         }
 
+        /**
+         * Called by portalfin-restyle.js when ambient mode engages/disengages.
+         * Keeps the Portal display on during the slideshow so the device's
+         * own ambient/dim doesn't black out our overlay.
+         */
+        @JavascriptInterface
+        fun setAmbientActive(active: Boolean) {
+            requireActivity().runOnUiThread {
+                val window = requireActivity().window
+                if (active) {
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+        }
+
         @JavascriptInterface
         fun getCredentials(): String {
             val user = mainViewModel.userState.value.user ?: return "null"
