@@ -47,6 +47,7 @@ top overlay.
 | Cold-launch transition | OS splash hard-cuts to the activity, then loading container hard-cuts to the WebView | OS splash icon fades + scales (`installSplashScreen().setOnExitAnimationListener`); the loading-container wordmark animates up + scales down while the WebView crossfades in (240ms). ([feature/splash-crossfade](https://github.com/luke-hurd/portalfin/tree/feature/splash-crossfade)) |
 | Idle behavior | Portal dims and goes to its own screensaver | Ambient slideshow at 60s idle: rotating fullscreen Jellyfin backdrop art, oversized clock + date, current item title. Acquires `FLAG_KEEP_SCREEN_ON` so Portal doesn't dim mid-show. Tap to dismiss. ([feature/ambient-mode](https://github.com/luke-hurd/portalfin/tree/feature/ambient-mode)) |
 | Background tint | Flat #1A1A1A all the time | Time-of-day theme: cool morning, neutral day, warm evening, deep night. Shifts the page background tint live (8s ease) so the device feels alive. ([feature/polish-pass](https://github.com/luke-hurd/portalfin/tree/feature/polish-pass)) |
+| Library navigation | Default jellyfin-web sort/filter dialogs | Five sticky quick-filter capsules below the header on library pages: **Recent**, **Favorites**, **Continue**, **Random**, **Unwatched**. One-tap routes to a parametrized list view; Random picks via the REST API. Active capsule highlights in Meta blue. ([feature/sort-capsules](https://github.com/luke-hurd/portalfin/tree/feature/sort-capsules)) |
 
 ## Supported devices
 
