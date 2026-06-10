@@ -14,7 +14,6 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Settings.System.ACCELEROMETER_ROTATION
-import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.getSystemService
 import com.google.android.material.snackbar.Snackbar
@@ -79,33 +78,13 @@ suspend fun MainActivity.requestDownload(itemIds: Collection<UUID>) {
         }
     }
 
-    // First time download, ask for network constraint preference
+    // Portal is a stationary, always-on-WiFi device — there is no mobile/
+    // roaming distinction to make. Skip jellyfin's "Allowed Network Types"
+    // dialog entirely and default to MOBILE_AND_ROAMING, which maps to
+    // WorkManager's NetworkType.CONNECTED (any connected network, no metered
+    // restriction) so the download worker always runs over the Portal's WiFi.
     if (appPreferences.downloadMethod == null) {
-        suspendCancellableCoroutine { continuation ->
-            AlertDialog.Builder(this)
-                .setTitle(R.string.network_title)
-                .setMessage(R.string.network_message)
-                .setPositiveButton(R.string.wifi_only) { _, _ ->
-                    val selectedDownloadMethod = DownloadMethod.WIFI_ONLY
-                    appPreferences.downloadMethod = selectedDownloadMethod
-                    continuation.resume(selectedDownloadMethod)
-                }
-                .setNegativeButton(R.string.mobile_data) { _, _ ->
-                    val selectedDownloadMethod = DownloadMethod.MOBILE_DATA
-                    appPreferences.downloadMethod = selectedDownloadMethod
-                    continuation.resume(selectedDownloadMethod)
-                }
-                .setNeutralButton(R.string.mobile_data_and_roaming) { _, _ ->
-                    val selectedDownloadMethod = DownloadMethod.MOBILE_AND_ROAMING
-                    appPreferences.downloadMethod = selectedDownloadMethod
-                    continuation.resume(selectedDownloadMethod)
-                }
-                .setOnDismissListener {
-                    continuation.cancel(null)
-                }
-                .setCancelable(false)
-                .show()
-        }
+        appPreferences.downloadMethod = DownloadMethod.MOBILE_AND_ROAMING
     }
 
     if (permissionResult) {
