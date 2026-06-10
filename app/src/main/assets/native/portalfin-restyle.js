@@ -639,10 +639,13 @@ try {
                 font-size: 17px !important;
                 font-weight: 500 !important;
             }
-            /* Chevron at the end of each row for affordance. */
+            /* Chevron at the end of each row for affordance. margin-left:auto
+               pushes it to the right; margin-right gives it breathing room from
+               the row edge so it isn't jammed against the side. */
             body.pf-profile-page .listItem::after {
                 content: '' !important;
                 margin-left: auto !important;
+                margin-right: 8px !important;
                 width: 9px !important;
                 height: 9px !important;
                 border-right: 2px solid rgba(255,255,255,0.35) !important;
@@ -1425,9 +1428,23 @@ try {
     // crossfade instead of snap. Portal's Chromium WebView is recent enough
     // to support same-document view transitions.
     const supportsViewTransition = typeof document.startViewTransition === 'function';
+    // Guard against overlapping transitions. jellyfin-web fires a STORM of
+    // history events on back-navigation; stacking startViewTransition calls
+    // freezes the live DOM under a ::view-transition snapshot while jellyfin's
+    // router swaps content asynchronously underneath, which can leave the page
+    // stuck blank (header survives because it's position:fixed). When a
+    // transition is already running, just run the work directly.
+    let _transitionInFlight = false;
     function withTransition(work) {
-        if (supportsViewTransition) {
-            try { document.startViewTransition(work); return; } catch (_) {}
+        if (supportsViewTransition && !_transitionInFlight) {
+            try {
+                _transitionInFlight = true;
+                const t = document.startViewTransition(work);
+                t.finished.finally(() => { _transitionInFlight = false; });
+                return;
+            } catch (_) {
+                _transitionInFlight = false;
+            }
         }
         work();
     }
@@ -1450,8 +1467,13 @@ try {
         applyAll('replaceState');
         updateWordmark();
     };
+    // Back-navigation fires a burst of popstate events and jellyfin swaps
+    // content async — wrapping these in a view transition is what stranded the
+    // page blank. Re-apply styles directly (no transition) so the home content
+    // is never frozen under a snapshot.
     window.addEventListener('popstate', () => {
-        withTransition(() => { applyAll('popstate'); updateWordmark(); });
+        applyAll('popstate');
+        updateWordmark();
     });
 
     // Bail if already initialized — avoids double observers and
