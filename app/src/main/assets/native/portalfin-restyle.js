@@ -114,9 +114,13 @@ try {
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 58px !important;        /* +7 to fit the larger 40px wordmark */
+                height: 68px !important;        /* fits 48px wordmark + 7px bottom pad + breathing */
                 padding: 0 12px 7px 12px !important;
-                background: var(--portalfin-bg, ${BACKGROUND}) !important;
+                /* Frosted glass: translucent base + blur + saturation boost
+                   so scrolled content is fuzzy-visible underneath. */
+                background: var(--portalfin-header-bg, rgba(26, 26, 26, 0.6)) !important;
+                -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+                backdrop-filter: blur(20px) saturate(180%) !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 align-items: center !important;
@@ -145,14 +149,26 @@ try {
             #portalfin-header .pf-btn:hover { background: ${SURFACE} !important; }
             #portalfin-header .pf-btn svg { width: 22px !important; height: 22px !important; }
             #portalfin-header .pf-wordmark {
-                width: 175px !important;        /* +25% from 140 */
-                height: 40px !important;        /* +25% from 32 */
+                width: 210px !important;        /* +20% from 175 */
+                height: 48px !important;        /* +20% from 40 */
                 background-image: url('/native/wordmark.png') !important;
                 background-size: contain !important;
                 background-repeat: no-repeat !important;
                 background-position: left center !important;
-                margin-left: 13px !important;   /* +5px from 8 to align under Portal back button */
+                margin-left: 13px !important;   /* aligns under Portal back button */
             }
+            #portalfin-header .pf-title {
+                color: ${ON_BACKGROUND} !important;
+                font-size: 20px !important;
+                font-weight: 600 !important;
+                margin-left: 8px !important;
+                white-space: nowrap !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                max-width: 600px !important;
+            }
+            /* Title is empty by default — only shows when JS populates it */
+            #portalfin-header .pf-title:empty { display: none !important; }
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
                 display: none !important;
@@ -223,7 +239,7 @@ try {
             html body .pageWithAbsoluteTabs,
             html body .itemDetailPage,
             html body div[data-role="page"] {
-                padding-top: 60px !important;
+                padding-top: 70px !important;   /* matches 68px header + 2px breathing */
                 margin-top: 0 !important;
             }
 
@@ -493,8 +509,11 @@ try {
                 inset: 0 !important;
                 background-size: cover !important;
                 background-position: center !important;
-                opacity: 0 !important;
+                opacity: 0;       /* NOT !important — JS toggles via class below */
                 transition: opacity 1500ms ease-in-out !important;
+            }
+            #portalfin-ambient .pf-ambient-img.is-visible {
+                opacity: 1 !important;
             }
             #portalfin-ambient .pf-ambient-scrim {
                 position: absolute !important;
@@ -777,6 +796,7 @@ try {
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
                 </button>
                 <div class="pf-wordmark"></div>
+                <div class="pf-title"></div>
             </div>
             <div class="pf-right">
                 <button class="pf-btn pf-cast" aria-label="Cast">
@@ -803,11 +823,13 @@ try {
     }
 
     /**
-     * Show/hide the wordmark on home only.
+     * Show/hide the wordmark on home only. Populate the page title
+     * (next to the back arrow) on non-home pages.
      */
     function updateWordmark() {
         const wm = document.querySelector('#portalfin-header .pf-wordmark');
         const bb = document.querySelector('#portalfin-header .pf-back');
+        const tt = document.querySelector('#portalfin-header .pf-title');
         if (!wm) return;
         const hash = window.location.hash || '';
         const isHome = hash === '' || hash === '#' || hash === '#/' ||
@@ -815,6 +837,74 @@ try {
         // Use class so we beat the !important rules in our stylesheet
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
+
+        // Page title — only on non-home pages. The detail-page item name
+        // isn't in the DOM at the moment of route change (jellyfin-web
+        // populates it asynchronously). Schedule a couple of retries.
+        if (tt) {
+            const apply = () => { tt.textContent = isHome ? '' : derivePageTitle(hash); };
+            apply();
+            setTimeout(apply, 250);
+            setTimeout(apply, 1000);
+        }
+    }
+
+    /**
+     * Derive a human-readable page title for the back arrow's right side.
+     * Tries (in order): jellyfin-web's .pageTitle text, the URL collectionType
+     * or path segment, document.title fallback.
+     */
+    function derivePageTitle(hash) {
+        // Detail pages: try a list of selectors that jellyfin-web has used
+        // for the item title in different versions/layouts.
+        if (/^#\/details/i.test(hash)) {
+            const candidates = [
+                'h1.itemName',
+                'h2.itemName',
+                'h3.itemName',
+                '.itemName',
+                '.parentName + .itemName',
+                '.titleNameLink',
+                '.detailPagePrimaryContainer .nameContainer h3',
+                '.detailPagePrimaryContainer h3',
+                '.pageTitle',
+            ];
+            for (const sel of candidates) {
+                const el = document.querySelector(sel);
+                if (el) {
+                    const txt = (el.textContent || '').trim();
+                    if (txt && txt.length < 100 && !/Lukes-iMac/i.test(txt)) return txt;
+                }
+            }
+            // Fallback: document.title (jellyfin sets it to "ItemName | Jellyfin")
+            const dt = (document.title || '').replace(/\s*\|\s*Jellyfin.*$/i, '').trim();
+            if (dt && !/^Jellyfin$/i.test(dt)) return dt;
+            return 'Details';
+        }
+        // Library pages: derive from URL collectionType / path segment
+        const m = hash.match(/^#\/(movies|tvshows|music|livetv|playlists|favorites|search)/i);
+        if (m) {
+            const map = {
+                movies: 'Movies', tvshows: 'TV Shows', music: 'Music',
+                livetv: 'Live TV', playlists: 'Playlists',
+                favorites: 'Favorites', search: 'Search',
+            };
+            return map[m[1].toLowerCase()] || '';
+        }
+        // List pages — try the URL type=Movie param to label
+        const lm = hash.match(/^#\/list[^?]*\?[^#]*[?&]type=(\w+)/i);
+        if (lm) {
+            const t = lm[1].toLowerCase();
+            return t === 'series' ? 'TV Shows' : t === 'movie' ? 'Movies' : 'Library';
+        }
+        if (/^#\/list/i.test(hash)) return 'Library';
+        // Fallback: jellyfin's .pageTitle text (server name etc.)
+        const native = document.querySelector('.pageTitle');
+        if (native) {
+            const txt = (native.textContent || '').trim();
+            if (txt && txt.length < 80) return txt;
+        }
+        return '';
     }
 
     /**
@@ -825,13 +915,14 @@ try {
      */
     function applyTimeOfDayTheme() {
         const h = new Date().getHours();
-        let bg, surf;
-        if (h >= 5 && h < 9)        { bg = '#1A1F22'; surf = '#2B3036'; } // morning, cool
-        else if (h >= 9 && h < 17)  { bg = '#1A1A1A'; surf = '#2B2B2B'; } // day, neutral
-        else if (h >= 17 && h < 21) { bg = '#221A1A'; surf = '#352B2B'; } // evening, warm
-        else                        { bg = '#0E0E12'; surf = '#1F1F26'; } // night, deep
+        let bg, surf, hdr;
+        if (h >= 5 && h < 9)        { bg = '#1A1F22'; surf = '#2B3036'; hdr = 'rgba(26,31,34,0.55)'; }   // morning, cool
+        else if (h >= 9 && h < 17)  { bg = '#1A1A1A'; surf = '#2B2B2B'; hdr = 'rgba(26,26,26,0.55)'; }   // day, neutral
+        else if (h >= 17 && h < 21) { bg = '#221A1A'; surf = '#352B2B'; hdr = 'rgba(34,26,26,0.55)'; }   // evening, warm
+        else                        { bg = '#0E0E12'; surf = '#1F1F26'; hdr = 'rgba(14,14,18,0.6)'; }    // night, deep
         document.documentElement.style.setProperty('--portalfin-bg', bg);
         document.documentElement.style.setProperty('--portalfin-surface', surf);
+        document.documentElement.style.setProperty('--portalfin-header-bg', hdr);
     }
     if (!window.__portalfinThemeTickerStarted) {
         window.__portalfinThemeTickerStarted = true;
@@ -857,10 +948,15 @@ try {
                 d.style.display = 'none';
             });
 
-            // Force-redirect any admin/dashboard hash routes back to /home
-            const hash = window.location.hash || '';
-            if (/(dashboard|configurationpage|metadataNfo|metadataimages|^#\/library$|users\.html|plugins|scheduledtasks|activity|encoder|streaming|networking|notifications|server)/i.test(hash)) {
-                console.log('[portalfin] redirecting from admin route', hash);
+            // Force-redirect any admin/dashboard hash routes back to /home.
+            // Anchor on the path part ONLY (before the query string) so that
+            // detail-page URLs like #/details?id=...&serverId=... aren't
+            // matched on the substring 'server' inside their query.
+            const fullHash = window.location.hash || '';
+            const pathPart = fullHash.split('?')[0]; // e.g. "#/dashboard" or "#/details"
+            const adminRoutes = /^#\/(dashboard|configurationpage|metadataNfo|metadataimages|library|users|plugins|scheduledtasks|activity|encoder|streaming|networking|notifications|server)(\.html)?\/?$/i;
+            if (adminRoutes.test(pathPart)) {
+                console.log('[portalfin] redirecting from admin route', pathPart);
                 window.location.hash = '#/home';
                 window.location.reload();
             }
@@ -1080,12 +1176,13 @@ try {
         preload.onload = () => {
             console.log('[portalfin] ambient img loaded', item.name);
             targetEl.style.backgroundImage = 'url("' + item.url + '")';
-            targetEl.style.opacity = '1';
-            if (previousEl) previousEl.style.opacity = '0';
+            // Class-based toggle so CSS .is-visible (opacity:1!important) wins
+            // over the base .pf-ambient-img (opacity:0) rule.
+            targetEl.classList.add('is-visible');
+            if (previousEl) previousEl.classList.remove('is-visible');
         };
         preload.onerror = (e) => { console.warn('[portalfin] ambient image FAILED', item.url); };
         preload.src = item.url;
-        console.log('[portalfin] ambient preload start', item.url);
         activeImgEl = target;
         const meta = document.getElementById('pf-ambient-meta');
         if (meta) meta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
