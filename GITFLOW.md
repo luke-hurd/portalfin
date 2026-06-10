@@ -162,6 +162,28 @@ Tap each new interactive element. After each tap, sleep at least 5 seconds,
 screenshot, READ it. If the resulting page is in a spinner state, broken
 layout, or wrong content — the feature is not done.
 
+### Step 4a — End-to-end navigation test (mandatory, no exceptions)
+
+Three disconnected screenshots are not enough. The user-facing flow has to
+work as a sequence:
+
+1. Cold launch → see home
+2. Tap Movies tile → see Movies library, posters rendered
+3. Tap a poster → see detail page with backdrop + Play button
+4. Tap Back → see Movies again
+5. Tap Home → see home
+
+Every step has to land on the expected screen. **Do not pass GO if a tap
+"misses" and the screenshot is the same as the previous step** — that is
+NOT a regression-free pass, that is a TEST FAILURE because the test never
+ran. Re-tap with corrected coordinates until you see a different page, or
+fix the code that's blocking the navigation.
+
+Specifically: a "tap missed, still on home" screenshot is the same evidence
+as a "tap was hijacked, redirected back to home" screenshot. You cannot tell
+them apart without verifying the tap actually navigated. Always confirm the
+post-tap page is different from the pre-tap page before accepting the result.
+
 ### Step 5 — Diagnostic logs are an aid, not proof
 
 `console.log("loaded")` confirms code reached a callback. It does not confirm
