@@ -72,9 +72,10 @@ try {
             }
 
             html, body {
-                background: ${BACKGROUND} !important;
+                background: var(--portalfin-bg, ${BACKGROUND}) !important;
                 color: ${ON_BACKGROUND};
                 font-family: -apple-system, "Inter", "Helvetica Neue", Arial, sans-serif;
+                transition: background-color 8s ease;
             }
             /* Preserve Material Icons font for glyph elements */
             .material-icons {
@@ -113,9 +114,9 @@ try {
                 top: 0 !important;
                 left: 0 !important;
                 right: 0 !important;
-                height: 51px !important;
+                height: 58px !important;        /* +7 to fit the larger 40px wordmark */
                 padding: 0 12px 7px 12px !important;
-                background: ${BACKGROUND} !important;
+                background: var(--portalfin-bg, ${BACKGROUND}) !important;
                 box-sizing: border-box !important;
                 display: flex !important;
                 align-items: center !important;
@@ -144,13 +145,13 @@ try {
             #portalfin-header .pf-btn:hover { background: ${SURFACE} !important; }
             #portalfin-header .pf-btn svg { width: 22px !important; height: 22px !important; }
             #portalfin-header .pf-wordmark {
-                width: 140px !important;
-                height: 32px !important;
+                width: 175px !important;        /* +25% from 140 */
+                height: 40px !important;        /* +25% from 32 */
                 background-image: url('/native/wordmark.png') !important;
                 background-size: contain !important;
                 background-repeat: no-repeat !important;
                 background-position: left center !important;
-                margin-left: 8px !important;
+                margin-left: 13px !important;   /* +5px from 8 to align under Portal back button */
             }
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
@@ -222,7 +223,7 @@ try {
             html body .pageWithAbsoluteTabs,
             html body .itemDetailPage,
             html body div[data-role="page"] {
-                padding-top: 52px !important;
+                padding-top: 60px !important;
                 margin-top: 0 !important;
             }
 
@@ -444,6 +445,100 @@ try {
             }
             ::-webkit-scrollbar-track { background: ${BACKGROUND} !important; }
 
+            /* === SPA route transitions ===
+               document.startViewTransition() snapshots old + new state and
+               crossfades between them. Default UA animation is a 250ms
+               opacity fade. We tune to a slightly snappier 180ms with an
+               ease-out curve so navigations feel responsive but smooth. */
+            ::view-transition-old(root),
+            ::view-transition-new(root) {
+                animation-duration: 180ms !important;
+                animation-timing-function: cubic-bezier(0.2, 0, 0, 1) !important;
+            }
+            ::view-transition-old(root) {
+                animation-name: pf-fade-out !important;
+            }
+            ::view-transition-new(root) {
+                animation-name: pf-fade-in !important;
+            }
+            @keyframes pf-fade-out { from { opacity: 1; } to { opacity: 0; } }
+            @keyframes pf-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+            /* The portalfin header should NOT crossfade — it stays put across
+               navigations. Give it a stable view-transition-name so the
+               browser treats it as a continuous element. */
+            #portalfin-header {
+                view-transition-name: portalfin-header;
+            }
+
+            /* === AMBIENT MODE OVERLAY ===
+               Fullscreen rotating gallery activated after 60s of idle.
+               Two crossfading background layers, scrim for legibility,
+               oversized clock, current item title. */
+            #portalfin-ambient {
+                position: fixed !important;
+                inset: 0 !important;
+                z-index: 100000 !important;
+                pointer-events: none !important;
+                opacity: 0 !important;
+                transition: opacity 600ms ease !important;
+                background: ${BACKGROUND} !important;
+            }
+            body.pf-ambient-active #portalfin-ambient {
+                opacity: 1 !important;
+                pointer-events: auto !important;
+            }
+            #portalfin-ambient .pf-ambient-img {
+                position: absolute !important;
+                inset: 0 !important;
+                background-size: cover !important;
+                background-position: center !important;
+                opacity: 0 !important;
+                transition: opacity 1500ms ease-in-out !important;
+            }
+            #portalfin-ambient .pf-ambient-scrim {
+                position: absolute !important;
+                inset: 0 !important;
+                background: linear-gradient(
+                    to bottom,
+                    rgba(0,0,0,0.55) 0%,
+                    rgba(0,0,0,0.15) 35%,
+                    rgba(0,0,0,0.15) 65%,
+                    rgba(0,0,0,0.7) 100%
+                ) !important;
+            }
+            #portalfin-ambient .pf-ambient-clock {
+                position: absolute !important;
+                left: 48px !important;
+                bottom: 48px !important;
+                color: ${ON_BACKGROUND} !important;
+                text-shadow: 0 2px 16px rgba(0,0,0,0.6) !important;
+            }
+            #portalfin-ambient .pf-ambient-time {
+                font-size: 88px !important;
+                font-weight: 200 !important;
+                line-height: 1 !important;
+                letter-spacing: -2px !important;
+            }
+            #portalfin-ambient .pf-ambient-date {
+                font-size: 22px !important;
+                font-weight: 400 !important;
+                opacity: 0.85 !important;
+                margin-top: 8px !important;
+            }
+            #portalfin-ambient .pf-ambient-meta {
+                position: absolute !important;
+                right: 48px !important;
+                bottom: 56px !important;
+                color: ${ON_BACKGROUND} !important;
+                font-size: 18px !important;
+                font-weight: 500 !important;
+                text-shadow: 0 2px 16px rgba(0,0,0,0.6) !important;
+                opacity: 0.85 !important;
+                max-width: 50% !important;
+                text-align: right !important;
+            }
+
             /* Loading spinners → use Meta blue */
             .mdl-spinner__layer-1,
             .mdl-spinner__layer-3 { border-color: ${PRIMARY} !important; }
@@ -654,6 +749,7 @@ try {
         kioskizeChrome();
         buildCustomHeader();
         updateWordmark();
+        applyTimeOfDayTheme();
         // (diagnostic probes removed)
         // Now that <style> is in place, lift the visibility gate.
         // Use rAF so the style has applied before paint.
@@ -716,10 +812,31 @@ try {
         const hash = window.location.hash || '';
         const isHome = hash === '' || hash === '#' || hash === '#/' ||
                        /^#!?\/?(home(\.html)?|index)/i.test(hash);
-        console.log('[portalfin] wordmark hash=', hash, 'isHome=', isHome);
         // Use class so we beat the !important rules in our stylesheet
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
+    }
+
+    /**
+     * Time-of-day theme: subtly shifts the page background tint based on
+     * the local hour. Cool morning -> neutral day -> warm evening ->
+     * deep night. Updates the CSS custom properties that html/body and
+     * the header use, so the shift cascades automatically.
+     */
+    function applyTimeOfDayTheme() {
+        const h = new Date().getHours();
+        let bg, surf;
+        if (h >= 5 && h < 9)        { bg = '#1A1F22'; surf = '#2B3036'; } // morning, cool
+        else if (h >= 9 && h < 17)  { bg = '#1A1A1A'; surf = '#2B2B2B'; } // day, neutral
+        else if (h >= 17 && h < 21) { bg = '#221A1A'; surf = '#352B2B'; } // evening, warm
+        else                        { bg = '#0E0E12'; surf = '#1F1F26'; } // night, deep
+        document.documentElement.style.setProperty('--portalfin-bg', bg);
+        document.documentElement.style.setProperty('--portalfin-surface', surf);
+    }
+    if (!window.__portalfinThemeTickerStarted) {
+        window.__portalfinThemeTickerStarted = true;
+        // Re-tick every minute so the tint shifts as the day progresses
+        setInterval(applyTimeOfDayTheme, 60_000);
     }
 
     function kioskizeChrome() {
@@ -772,8 +889,14 @@ try {
         }
     }
 
-    // Phase 1: hide everything immediately
-    injectVisibilityGate();
+    // Phase 1: hide everything immediately — but ONLY on the first load.
+    // The script gets re-injected via onPageFinished on every nav; gating
+    // on every re-inject would flash the page invisible on each SPA route
+    // change. Per-window guard so re-injections are no-ops for this gate.
+    if (!window.__portalfinGateRanOnce) {
+        window.__portalfinGateRanOnce = true;
+        injectVisibilityGate();
+    }
 
     // Phase 2: apply restyle as soon as DOM is ready
     if (document.readyState === 'loading') {
@@ -783,19 +906,38 @@ try {
     }
 
     // Phase 3: re-apply on SPA navigation. jellyfin-web uses pushState — patch it.
+    // Wrap in document.startViewTransition (where supported) so route changes
+    // crossfade instead of snap. Portal's Chromium WebView is recent enough
+    // to support same-document view transitions.
+    const supportsViewTransition = typeof document.startViewTransition === 'function';
+    function withTransition(work) {
+        if (supportsViewTransition) {
+            try { document.startViewTransition(work); return; } catch (_) {}
+        }
+        work();
+    }
     const _pushState = history.pushState;
     const _replaceState = history.replaceState;
     history.pushState = function () {
-        _pushState.apply(this, arguments);
-        applyAll('pushState');
-        updateWordmark();
+        const args = arguments;
+        const self = this;
+        withTransition(() => {
+            _pushState.apply(self, args);
+            applyAll('pushState');
+            updateWordmark();
+        });
     };
     history.replaceState = function () {
-        _replaceState.apply(this, arguments);
+        const args = arguments;
+        const self = this;
+        // replaceState is often used for state cleanup, not nav — don't transition
+        _replaceState.apply(self, args);
         applyAll('replaceState');
         updateWordmark();
     };
-    window.addEventListener('popstate', () => { applyAll('popstate'); updateWordmark(); });
+    window.addEventListener('popstate', () => {
+        withTransition(() => { applyAll('popstate'); updateWordmark(); });
+    });
 
     // Bail if already initialized — avoids double observers and
     // duplicate setIntervals on subsequent injections.
@@ -838,4 +980,184 @@ try {
     }
     setInterval(checkSignedOut, 1000);
     checkSignedOut(); // seed lastHasToken
+
+    // ===========================================================
+    // Phase 6: Ambient slideshow at idle
+    // ===========================================================
+    // Portal is a stationary device that's on all the time. After 60s of
+    // no user interaction, fade in a fullscreen rotating gallery of
+    // backdrop art from the user's Jellyfin library, with time overlay.
+    // Tap anywhere to dismiss.
+    const AMBIENT_IDLE_MS = 60_000;     // 60s idle before ambient kicks in
+    const AMBIENT_ROTATE_MS = 12_000;   // each backdrop visible 12s
+
+    let ambientItems = [];
+    let ambientTimer = null;
+    let ambientRotateTimer = null;
+    let ambientIndex = 0;
+
+    function buildAmbientOverlay() {
+        if (document.getElementById('portalfin-ambient')) return;
+        const overlay = document.createElement('div');
+        overlay.id = 'portalfin-ambient';
+        overlay.innerHTML = `
+            <div class="pf-ambient-img" id="pf-ambient-img-a"></div>
+            <div class="pf-ambient-img" id="pf-ambient-img-b"></div>
+            <div class="pf-ambient-scrim"></div>
+            <div class="pf-ambient-clock">
+                <div class="pf-ambient-time" id="pf-ambient-time">--:--</div>
+                <div class="pf-ambient-date" id="pf-ambient-date"></div>
+            </div>
+            <div class="pf-ambient-meta" id="pf-ambient-meta"></div>
+        `;
+        // Tap anywhere on the overlay to dismiss
+        overlay.addEventListener('click', exitAmbient, { capture: true });
+        overlay.addEventListener('touchstart', exitAmbient, { capture: true });
+        document.body.appendChild(overlay);
+    }
+
+    function tickClock() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const ampm = h >= 12 ? 'pm' : 'am';
+        const h12 = ((h + 11) % 12) + 1;
+        const timeEl = document.getElementById('pf-ambient-time');
+        const dateEl = document.getElementById('pf-ambient-date');
+        if (timeEl) timeEl.textContent = h12 + ':' + (m < 10 ? '0' + m : m) + ' ' + ampm;
+        if (dateEl) {
+            const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            dateEl.textContent = days[now.getDay()] + ', ' + months[now.getMonth()] + ' ' + now.getDate();
+        }
+    }
+
+    async function fetchAmbientItems() {
+        try {
+            const credsRaw = window.localStorage.getItem('jellyfin_credentials');
+            if (!credsRaw) return [];
+            const creds = JSON.parse(credsRaw);
+            const server = creds.Servers && creds.Servers[0];
+            if (!server || !server.AccessToken) return [];
+            const base = server.ManualAddress || server.LocalAddress;
+            const userId = server.UserId;
+            const url = base + '/Users/' + userId + '/Items?Recursive=true' +
+                '&IncludeItemTypes=Movie,Series' +
+                '&Fields=BackdropImageTags' +
+                '&Filters=IsNotFolder' +
+                '&SortBy=Random&Limit=24';
+            const resp = await fetch(url, {
+                headers: { 'X-MediaBrowser-Token': server.AccessToken },
+            });
+            if (!resp.ok) return [];
+            const data = await resp.json();
+            return (data.Items || [])
+                .filter(it => it.BackdropImageTags && it.BackdropImageTags.length > 0)
+                .map(it => ({
+                    id: it.Id,
+                    name: it.Name,
+                    year: it.ProductionYear,
+                    url: base + '/Items/' + it.Id + '/Images/Backdrop/0?tag=' + it.BackdropImageTags[0] + '&maxWidth=1280',
+                }));
+        } catch (e) {
+            console.warn('[portalfin] ambient fetch failed', e);
+            return [];
+        }
+    }
+
+    let activeImgEl = null; // 'a' or 'b' — which element currently has the visible image
+    function showNextBackdrop() {
+        if (ambientItems.length === 0) return;
+        const item = ambientItems[ambientIndex % ambientItems.length];
+        ambientIndex++;
+        // First call: show on 'a'. Subsequent: alternate.
+        const target = activeImgEl === 'a' ? 'b' : 'a';
+        const targetEl = document.getElementById('pf-ambient-img-' + target);
+        const previousEl = activeImgEl ? document.getElementById('pf-ambient-img-' + activeImgEl) : null;
+        if (!targetEl) return;
+        // Preload the image so the crossfade doesn't flash a blank gap
+        const preload = new Image();
+        preload.onload = () => {
+            console.log('[portalfin] ambient img loaded', item.name);
+            targetEl.style.backgroundImage = 'url("' + item.url + '")';
+            targetEl.style.opacity = '1';
+            if (previousEl) previousEl.style.opacity = '0';
+        };
+        preload.onerror = (e) => { console.warn('[portalfin] ambient image FAILED', item.url); };
+        preload.src = item.url;
+        console.log('[portalfin] ambient preload start', item.url);
+        activeImgEl = target;
+        const meta = document.getElementById('pf-ambient-meta');
+        if (meta) meta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
+    }
+
+    async function enterAmbient() {
+        if (document.body.classList.contains('pf-ambient-active')) return;
+        // Don't go ambient on login screens / pre-auth pages
+        const credsRaw = window.localStorage.getItem('jellyfin_credentials');
+        if (!credsRaw) return;
+        try {
+            const creds = JSON.parse(credsRaw);
+            if (!(creds.Servers && creds.Servers[0] && creds.Servers[0].AccessToken)) return;
+        } catch (_) { return; }
+        // Don't go ambient during playback
+        if (document.querySelector('video:not([paused])')) return;
+
+        if (ambientItems.length === 0) {
+            ambientItems = await fetchAmbientItems();
+            if (ambientItems.length === 0) {
+                console.log('[portalfin] ambient: no items, skipping');
+                return;
+            }
+        }
+        buildAmbientOverlay();
+        document.body.classList.add('pf-ambient-active');
+        // Ask the native side to keep the Portal screen awake while the
+        // slideshow runs (otherwise Portal dims us mid-rotation).
+        try {
+            if (window.PortalFinBridge && window.PortalFinBridge.setAmbientActive) {
+                window.PortalFinBridge.setAmbientActive(true);
+            }
+        } catch (_) {}
+        ambientIndex = 0;
+        tickClock();
+        showNextBackdrop();
+        ambientRotateTimer = setInterval(() => {
+            tickClock();
+            showNextBackdrop();
+        }, AMBIENT_ROTATE_MS);
+    }
+
+    function exitAmbient() {
+        if (!document.body.classList.contains('pf-ambient-active')) return;
+        document.body.classList.remove('pf-ambient-active');
+        if (ambientRotateTimer) {
+            clearInterval(ambientRotateTimer);
+            ambientRotateTimer = null;
+        }
+        // Release the keep-screen-on flag
+        try {
+            if (window.PortalFinBridge && window.PortalFinBridge.setAmbientActive) {
+                window.PortalFinBridge.setAmbientActive(false);
+            }
+        } catch (_) {}
+        // Reset idle timer so we don't immediately re-enter
+        resetAmbientIdle();
+    }
+
+    function resetAmbientIdle() {
+        if (ambientTimer) clearTimeout(ambientTimer);
+        ambientTimer = setTimeout(enterAmbient, AMBIENT_IDLE_MS);
+    }
+
+    ['mousemove', 'pointermove', 'touchstart', 'keydown', 'wheel', 'click'].forEach(evt => {
+        window.addEventListener(evt, () => {
+            if (document.body.classList.contains('pf-ambient-active')) {
+                exitAmbient();
+            } else {
+                resetAmbientIdle();
+            }
+        }, { passive: true });
+    });
+    resetAmbientIdle();
 })();

@@ -107,6 +107,23 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
             }
         }
 
+        /**
+         * Called by portalfin-restyle.js when ambient mode engages/disengages.
+         * Keeps the Portal display on during the slideshow so the device's
+         * own ambient/dim doesn't black out our overlay.
+         */
+        @JavascriptInterface
+        fun setAmbientActive(active: Boolean) {
+            requireActivity().runOnUiThread {
+                val window = requireActivity().window
+                if (active) {
+                    window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                } else {
+                    window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                }
+            }
+        }
+
         @JavascriptInterface
         fun getCredentials(): String {
             val user = mainViewModel.userState.value.user ?: return "null"
@@ -148,8 +165,31 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
         restyleApplied = true
         val binding = webViewBinding ?: return
         binding.webView.removeCallbacks(restyleFallbackRunnable)
-        binding.loadingContainer.isVisible = false
-        binding.webView.fadeIn()
+        // Cross-fade: instead of an instant container hide, animate the
+        // loading-container's wordmark up + slightly smaller (toward the
+        // header position the WebView shows), and fade the WebView in over
+        // the same 240ms. Feels like the splash logo is dissolving into
+        // the running app.
+        val logo = binding.portalfinLogo
+        val container = binding.loadingContainer
+        binding.webView.alpha = 0f
+        binding.webView.isVisible = true
+        logo.animate()
+            .translationY(-(logo.height / 2f))
+            .scaleX(0.45f)
+            .scaleY(0.45f)
+            .alpha(0f)
+            .setDuration(240L)
+            .start()
+        container.animate()
+            .alpha(0f)
+            .setDuration(240L)
+            .withEndAction { container.isVisible = false }
+            .start()
+        binding.webView.animate()
+            .alpha(1f)
+            .setDuration(240L)
+            .start()
     }
 
     // UI
