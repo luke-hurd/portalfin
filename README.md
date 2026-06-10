@@ -44,6 +44,7 @@ top overlay.
 | Restyle | None | `portalfin-restyle.js` is injected on every page — global Portal palette, button shape, Inter font fallback, kiosk chrome hiding, in-session route re-application |
 | Default host | Empty | Empty (the previous v0 builds shipped a hard-coded LAN address — removed in v1.0.0) |
 | SPA route transitions | Hard snap between routes | Native [View Transitions API](https://developer.mozilla.org/docs/Web/API/View_Transitions_API): home → library → detail navigations crossfade in 180ms with an ease-out curve. The portalfin header gets a `view-transition-name` so it stays put across routes. ([feature/view-transitions](https://github.com/luke-hurd/portalfin/tree/feature/view-transitions)) |
+| Cold-launch transition | OS splash hard-cuts to the activity, then loading container hard-cuts to the WebView | OS splash icon fades + scales (`installSplashScreen().setOnExitAnimationListener`); the loading-container wordmark animates up + scales down while the WebView crossfades in (240ms). ([feature/splash-crossfade](https://github.com/luke-hurd/portalfin/tree/feature/splash-crossfade)) |
 
 ## Supported devices
 
