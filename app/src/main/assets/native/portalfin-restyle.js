@@ -545,6 +545,10 @@ try {
                 opacity: 0.85 !important;
                 margin-top: 8px !important;
             }
+            /* Two title layers (a/b) crossfade in lockstep with the backdrop
+               images so the title is always synced to the artwork behind it —
+               no snapping a new title onto the old backdrop. Base = invisible;
+               .is-visible fades in over the same 1500ms as .pf-ambient-img. */
             #portalfin-ambient .pf-ambient-meta {
                 position: absolute !important;
                 right: 48px !important;
@@ -553,9 +557,27 @@ try {
                 font-size: 18px !important;
                 font-weight: 500 !important;
                 text-shadow: 0 2px 16px rgba(0,0,0,0.6) !important;
-                opacity: 0.85 !important;
                 max-width: 50% !important;
                 text-align: right !important;
+                opacity: 0;       /* NOT !important — JS toggles via .is-visible */
+                transition: opacity 1500ms ease-in-out !important;
+            }
+            #portalfin-ambient .pf-ambient-meta.is-visible {
+                opacity: 0.85 !important;
+            }
+            /* When the ambient item has title-art, render it as an image the same
+               size it appears on the detail page (360×90), bottom-right-anchored. */
+            #portalfin-ambient .pf-ambient-meta.pf-ambient-meta-logo {
+                width: 360px !important;
+                height: 90px !important;
+                max-width: 45% !important;
+                background-position: right bottom !important;
+                background-size: contain !important;
+                background-repeat: no-repeat !important;
+                filter: drop-shadow(0 2px 16px rgba(0,0,0,0.6)) !important;
+            }
+            #portalfin-ambient .pf-ambient-meta.pf-ambient-meta-logo.is-visible {
+                opacity: 1 !important;
             }
 
             /* Loading spinners → use Meta blue */
@@ -772,16 +794,32 @@ try {
                 display: inline-flex !important;
             }
 
-            /* (2) Hero gradient: fade ONLY the bottom edge of the backdrop
-                  into the page background. The backdrop should remain
-                  mostly visible — we just want a soft transition into the
-                  synopsis area, not a wall of darkness over the artwork. */
+            /* (2) Hero artwork: tall, anchored to the TOP so faces/heads
+                  are visible (not legs). The gradient fades the bottom
+                  half so the title block (pulled up with negative margin
+                  below) sits ON the artwork as it fades to background. */
             .itemDetailPage .itemBackdrop,
             .detailPagePrimaryContainer .itemBackdrop {
                 position: relative !important;
-                /* Make the backdrop hero taller so we see more artwork */
+                top: 0 !important;       /* jellyfin-web sets top: -179.391px which yanks heads off-screen */
+                left: 0 !important;
+                height: 480px !important;
                 min-height: 480px !important;
+                background-position: center top !important;
+                background-size: cover !important;
+                margin: 0 !important;
             }
+            /* Some jellyfin layouts apply the bg image to a child rather than
+               the .itemBackdrop element itself — handle both. */
+            .itemDetailPage .itemBackdrop > div[style*="background-image"],
+            .itemDetailPage .backdropImage,
+            .detailPagePrimaryContainer .backdropImage {
+                background-position: center top !important;
+                background-size: cover !important;
+            }
+            /* Bottom gradient: starts higher up and runs deeper so the
+               title block (which now overlays the backdrop) reads cleanly
+               against the artwork. */
             .itemDetailPage .itemBackdrop::after,
             .detailPagePrimaryContainer .itemBackdrop::after {
                 content: '' !important;
@@ -789,20 +827,95 @@ try {
                 left: 0 !important;
                 right: 0 !important;
                 bottom: 0 !important;
-                height: 25% !important;          /* was 60% — now just the bottom slice */
+                height: 55% !important;
                 background: linear-gradient(
                     to bottom,
                     rgba(26,26,26,0) 0%,
-                    rgba(26,26,26,0.5) 60%,
+                    rgba(26,26,26,0.55) 45%,
+                    rgba(26,26,26,0.85) 75%,
                     var(--portalfin-bg, ${BACKGROUND}) 100%
                 ) !important;
                 pointer-events: none !important;
             }
+            /* (2b) THE LAYOUT FIX: pull the title/year/runtime/Play-button
+                    block UP so it overlays the bottom of the backdrop.
+                    Probe confirmed structure:
+                      .itemDetailPage
+                        ├── .itemBackdrop
+                        ├── .detailLogo            (movie logo, sometimes empty)
+                        └── .detailPageWrapperContainer  ← title/meta/play/synopsis live in here
+                    Pulling the wrapper up by 240px puts the .nameContainer
+                    on the lower third of the backdrop, behind the gradient. */
+            .itemDetailPage .detailPageWrapperContainer,
+            .detailPagePrimaryContainer + .detailPageWrapperContainer {
+                position: relative !important;
+                z-index: 2 !important;
+                margin-top: -160px !important;
+                background: transparent !important;
+            }
+            /* The detailLogo (movie title-art image) is rendered absolute-positioned
+               inside .itemDetailPage with 'top: 333px' set inline by jellyfin-web,
+               which puts it below the backdrop and off-screen below the wrapper.
+               Override to anchor it bottom-left of the backdrop. The .itemDetailPage
+               is itself position:absolute, so the logo's 'top' value is what we
+               control. Backdrop is 480px tall starting at top:0 of the page,
+               so top:380px puts the logo's top edge 100px above backdrop bottom. */
+            .itemDetailPage .detailLogo {
+                position: absolute !important;
+                top: 380px !important;       /* renders at viewport y≈290; bottom ≈380, ~10px above info row at y=390 */
+                left: 0 !important;          /* left:0 + right:0 + margin auto = horizontally centered */
+                right: 0 !important;
+                bottom: auto !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                width: 360px !important;
+                max-width: 45% !important;
+                height: 90px !important;
+                background-position: center bottom !important;  /* center image within the box */
+                background-size: contain !important;
+                background-repeat: no-repeat !important;
+                z-index: 3 !important;
+            }
+            /* The name/title row: bigger, with a shadow so it reads against
+               varied artwork. */
+            .itemDetailPage .nameContainer,
+            .itemDetailPage .detailPagePrimaryContainer .nameContainer {
+                position: relative !important;
+                z-index: 2 !important;
+                padding: 0 24px !important;
+            }
+            /* Hide the duplicated text title — the .detailLogo image above
+               serves as the page title. (If a particular item lacks logo
+               art, fall back rule below shows the text.) */
+            .itemDetailPage .nameContainer h1,
+            .itemDetailPage .nameContainer .itemName,
+            .itemDetailPage h1.itemName,
+            .itemDetailPage h1.parentName {
+                display: none !important;
+            }
+            /* Year / runtime / RT score / "ends at" pills sit on the artwork too. */
+            .itemDetailPage .itemMiscInfo,
+            .itemDetailPage .mediaInfoItems {
+                position: relative !important;
+                z-index: 2 !important;
+                text-shadow: 0 1px 8px rgba(0,0,0,0.7) !important;
+                padding: 0 24px !important;
+            }
+            /* The action row (Play + secondary buttons) — also overlay. */
+            .itemDetailPage .mainDetailButtons,
+            .itemDetailPage .detailButtons,
+            .nameContainer + div:has(.btnPlay),
+            .nameContainer ~ div:has(.btnPlay) {
+                position: relative !important;
+                z-index: 2 !important;
+                padding: 12px 24px 0 24px !important;
+            }
 
-            /* (3) Action row: Resume / Mark Watched / Favorite as
-                  consistent circular icon buttons. jellyfin-web puts them
-                  in .detailButton; we round them and bump size. */
-            .itemDetailPage .detailButton,
+            /* (3) Action row icon buttons: 52dp circles for the secondary
+                  actions (Watched, Favorite, Download). EXPLICITLY excludes
+                  .btnPlay and .btnReplay — those have text labels and need
+                  to be capsules; their dedicated rule is below this one. */
+            .itemDetailPage .detailButton:not(.btnPlay):not(.btnReplay),
             .itemDetailPage .paper-icon-button-light,
             .nameContainer + div .paper-icon-button-light {
                 width: 52px !important;
@@ -1302,7 +1415,8 @@ try {
                 <div class="pf-ambient-time" id="pf-ambient-time">--:--</div>
                 <div class="pf-ambient-date" id="pf-ambient-date"></div>
             </div>
-            <div class="pf-ambient-meta" id="pf-ambient-meta"></div>
+            <div class="pf-ambient-meta" id="pf-ambient-meta-a"></div>
+            <div class="pf-ambient-meta" id="pf-ambient-meta-b"></div>
         `;
         // Tap anywhere on the overlay to dismiss
         overlay.addEventListener('click', exitAmbient, { capture: true });
@@ -1337,7 +1451,7 @@ try {
             const userId = server.UserId;
             const url = base + '/Users/' + userId + '/Items?Recursive=true' +
                 '&IncludeItemTypes=Movie,Series' +
-                '&Fields=BackdropImageTags' +
+                '&Fields=BackdropImageTags,ImageTags' +
                 '&Filters=IsNotFolder' +
                 '&SortBy=Random&Limit=24';
             const resp = await fetch(url, {
@@ -1352,6 +1466,11 @@ try {
                     name: it.Name,
                     year: it.ProductionYear,
                     url: base + '/Items/' + it.Id + '/Images/Backdrop/0?tag=' + it.BackdropImageTags[0] + '&maxWidth=1280',
+                    // Title-art logo (same image used on the detail page). Present only
+                    // when the item has Logo art uploaded; falls back to text otherwise.
+                    logoUrl: (it.ImageTags && it.ImageTags.Logo)
+                        ? base + '/Items/' + it.Id + '/Images/Logo?tag=' + it.ImageTags.Logo + '&maxHeight=180'
+                        : null,
                 }));
         } catch (e) {
             console.warn('[portalfin] ambient fetch failed', e);
@@ -1369,21 +1488,42 @@ try {
         const targetEl = document.getElementById('pf-ambient-img-' + target);
         const previousEl = activeImgEl ? document.getElementById('pf-ambient-img-' + activeImgEl) : null;
         if (!targetEl) return;
+        // The title layer (a/b) pairs with the same-letter image layer so the
+        // two crossfade together. Prep the OUTGOING title text/logo on the
+        // target layer now (while it's still invisible), then reveal it in
+        // lockstep with the backdrop inside onload — never snap a new title
+        // onto the old artwork.
+        const targetMeta = document.getElementById('pf-ambient-meta-' + target);
+        const previousMeta = activeImgEl ? document.getElementById('pf-ambient-meta-' + activeImgEl) : null;
+        if (targetMeta) {
+            if (item.logoUrl) {
+                // Movie's title-art logo (same image as the detail page,
+                // sized to match: 360×90, bottom-right of the overlay).
+                targetMeta.textContent = '';
+                targetMeta.style.backgroundImage = 'url("' + item.logoUrl + '")';
+                targetMeta.classList.add('pf-ambient-meta-logo');
+            } else {
+                // No logo art — fall back to text title + year.
+                targetMeta.style.backgroundImage = '';
+                targetMeta.classList.remove('pf-ambient-meta-logo');
+                targetMeta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
+            }
+        }
         // Preload the image so the crossfade doesn't flash a blank gap
         const preload = new Image();
         preload.onload = () => {
             console.log('[portalfin] ambient img loaded', item.name);
             targetEl.style.backgroundImage = 'url("' + item.url + '")';
-            // Class-based toggle so CSS .is-visible (opacity:1!important) wins
-            // over the base .pf-ambient-img (opacity:0) rule.
+            // Class-based toggle so CSS .is-visible (opacity wins) over the
+            // base (opacity:0) rule. Image + its title fade in together.
             targetEl.classList.add('is-visible');
+            if (targetMeta) targetMeta.classList.add('is-visible');
             if (previousEl) previousEl.classList.remove('is-visible');
+            if (previousMeta) previousMeta.classList.remove('is-visible');
         };
         preload.onerror = (e) => { console.warn('[portalfin] ambient image FAILED', item.url); };
         preload.src = item.url;
         activeImgEl = target;
-        const meta = document.getElementById('pf-ambient-meta');
-        if (meta) meta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
     }
 
     async function enterAmbient() {
