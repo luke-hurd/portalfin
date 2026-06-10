@@ -37,11 +37,24 @@ fun LayoutInflater.withThemedContext(context: Context, @StyleRes style: Int): La
     return cloneInContext(ContextThemeWrapper(context, style))
 }
 
+// The Portal reserves a fixed band at the top of the screen for its system
+// back/home overlay. We must keep the WebView pushed below it. We used to rely
+// purely on the OS-reported system-bar inset, but the Portal can report
+// insets.top == 0 (the overlay isn't always exposed as a top system bar),
+// which let the WebView ride up under the icons — the recurring "lost top gap"
+// bug. So on Portal we floor the top margin at this known reserve.
+// See CLAUDE.md rule #3.
+private const val PORTAL_TOP_RESERVE_DP = 64
+
 fun View.applyWindowInsetsAsMargins() {
+    val density = resources.displayMetrics.density
+    val isPortal = android.os.Build.DEVICE == "aloha"
+    val portalTopReservePx = (PORTAL_TOP_RESERVE_DP * density).toInt()
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsets ->
         val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+        val topMargin = if (isPortal) maxOf(insets.top, portalTopReservePx) else insets.top
         updateLayoutParams<MarginLayoutParams> {
-            setMargins(insets.left, insets.top, insets.right, insets.bottom)
+            setMargins(insets.left, topMargin, insets.right, insets.bottom)
         }
         windowInsets
     }

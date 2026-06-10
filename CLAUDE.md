@@ -40,17 +40,28 @@ A pre-commit hook (`.git/hooks/pre-commit`, installed via
 `tools/install-git-hooks.sh`) blocks commits when this fails. Never write a
 backtick inside a CSS comment in that file — use single quotes.
 
-## 3. The top inset is sacred. Don't fight it.
+## 3. The top inset is sacred. THE GAP HAS BEEN LOST 5+ TIMES. Read this.
 
 Portal renders fixed system back/home icons in a ~64px band at the top of the
-screen that **adb screencap does NOT capture**. So a screenshot can look fine
-while the real device shows content jammed under those icons — trust the user's
-eyes over the screenshot here.
+screen. **`adb screencap` does NOT capture that overlay** — so a screenshot can
+look perfectly fine while the device shows content jammed under the icons. To
+SEE the gap in a screenshot, compare against a known-good one (e.g. an old
+committed `docs/screenshots/03-home.png`): in the good shot there is dark space
+above the portalfin wordmark; in the broken shot the wordmark rides up to the
+top edge next to the Portal pills.
 
-- Native side: `webView.applyWindowInsetsAsMargins()` pushes the WebView down.
-- CSS side: `PORTAL_TOP_INSET = 64`; pages carry `padding-top: 70px` (header +
-  breathing). `#portalfin-header` is `position: fixed; top: 0` *within* the
-  already-offset WebView.
+ROOT CAUSE of the recurring loss (finally diagnosed): the gap is the WebView's
+top margin set by `View.applyWindowInsetsAsMargins()` in `utils/UIExtensions.kt`.
+It used to use only the OS-reported `insets.top`. **The Portal can report
+`insets.top == 0`** (its overlay isn't always exposed as a top system bar), so
+the WebView rode up under the icons with ZERO code change — which is why every
+git diff came back clean. FIX: on `Build.DEVICE == "aloha"` we now floor the top
+margin at 64dp: `maxOf(insets.top, 64dp)`. This makes the gap structural — it
+cannot vanish again regardless of what the OS reports. DO NOT revert that floor.
+
+- CSS side (separate, also keep): `PORTAL_TOP_INSET = 64`; pages carry
+  `padding-top: 70px`; `#portalfin-header` is `position: fixed; top: 0` *within*
+  the already-offset WebView.
 - Do not add `top:`/`margin-top:` overrides to `.itemBackdrop`,
   `.skinHeader`, `.itemDetailPage`, body, or page containers without checking
   this chain first.
