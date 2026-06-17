@@ -3,7 +3,10 @@ package org.jellyfin.mobile.events
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.ActivityInfo
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.view.View
 import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -20,7 +23,9 @@ import org.jellyfin.mobile.player.ui.PlayerFullscreenHelper
 import org.jellyfin.mobile.settings.SettingsFragment
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.extensions.addFragment
+import org.jellyfin.mobile.utils.portalVideoFullscreen
 import org.jellyfin.mobile.utils.requestDownload
+import org.jellyfin.mobile.webapp.WebViewFragment
 import org.jellyfin.mobile.webapp.WebappFunctionChannel
 import timber.log.Timber
 
@@ -47,16 +52,36 @@ class ActivityEventHandler(
         when (event) {
             is ActivityEvent.ChangeFullscreen -> {
                 val fullscreenHelper = PlayerFullscreenHelper(window)
+                // The web video renders INTO the WebView (no separate SurfaceView
+                // on this device — verified via SurfaceFlinger). The page CSS makes
+                // html/body transparent during video, so the letterbox bars show
+                // whatever is BEHIND the transparent page = the WebView's own
+                // native background + its container. Both default to the gray
+                // theme_background (#1A1A1A) — THAT is the gray bars the user sees
+                // (adb screencap does NOT reveal it; trust the device). So we must
+                // black out the WebView + its parent container, not just the window.
+                val webView = supportFragmentManager.findFragmentById(R.id.fragment_container)
+                    ?.let { it as? WebViewFragment }
+                    ?.view?.findViewById<View>(R.id.web_view)
                 if (event.isFullscreen) {
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                     fullscreenHelper.enableFullscreen()
-                    window.setBackgroundDrawable(null)
+                    window.setBackgroundDrawable(ColorDrawable(Color.BLACK))
+                    webView?.setBackgroundColor(Color.BLACK)
+                    (webView?.parent as? View)?.setBackgroundColor(Color.BLACK)
+                    // Drop the Portal 64px top reserve so the WebView fills the
+                    // screen and the video centers vertically (no gray top gap).
+                    portalVideoFullscreen = true
                 } else {
                     // Reset screen orientation
                     requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                     fullscreenHelper.disableFullscreen()
-                    // Reset window background color
+                    // Restore the Portal top reserve (CLAUDE.md rule #3).
+                    portalVideoFullscreen = false
+                    // Reset window + WebView background color
                     window.setBackgroundDrawableResource(R.color.theme_background)
+                    webView?.setBackgroundColor(Color.TRANSPARENT)
+                    (webView?.parent as? View)?.setBackgroundResource(R.color.theme_background)
                 }
             }
             is ActivityEvent.LaunchNativePlayer -> {
