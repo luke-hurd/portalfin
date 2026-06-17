@@ -31,6 +31,18 @@ top overlay.
 |---|---|
 | ![](docs/screenshots/03-home.png) | ![](docs/screenshots/04-movies.png) |
 
+| Movie detail | Profile / settings |
+|---|---|
+| ![](docs/screenshots/05-detail.png) | ![](docs/screenshots/06-profile.png) |
+
+| Video player | |
+|---|---|
+| ![](docs/screenshots/09-playback.png) | |
+
+| Ambient slideshow | Ambient slideshow |
+|---|---|
+| ![](docs/screenshots/07-ambient-iceage.png) | ![](docs/screenshots/08-ambient-wreckitralph.png) |
+
 ## Why a fork (and what's different from upstream)
 
 | Concern | Upstream behavior | portalfin |
