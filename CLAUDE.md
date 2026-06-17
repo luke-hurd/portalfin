@@ -3,6 +3,26 @@
 These are hard rules, not suggestions. They exist because each one maps to a
 real mistake that wasted the user's time. Follow them every session.
 
+## 0. "Get up to speed" / fresh start? READ THE LAST TRANSCRIPT FIRST.
+
+When a session is killed (not a normal compaction), the new session gets NO
+conversation history — only this file, MEMORY.md, and the working dir. Do NOT
+reconstruct "what we were doing" from `git diff`: the uncommitted tree may be a
+stale, unrelated branch (e.g. the downloads WIP) and will send you down the
+wrong path. The actual record of the morning's work is the prior session
+transcript on disk. Read its TAIL first:
+
+```bash
+ls -t ~/.claude/projects/-Users-luke-Projects-Portal/*.jsonl | head -2
+# the newest is the current session; the 2nd-newest is the killed one — read its tail
+```
+
+Parse the last ~20 user/assistant turns (skip tool noise) to find the live task
+before reporting status. Better still: the user can relaunch with
+`claude --continue` (resumes the most recent session with full context intact)
+or `claude --resume` to pick one — that restores the real conversation instead
+of any reconstruction. Suggest this if context was lost.
+
 ## 1. Regression? `git diff` the last-good commit FIRST.
 
 If something that worked recently is now broken, do NOT start a fresh
