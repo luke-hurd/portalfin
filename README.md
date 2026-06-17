@@ -3,8 +3,7 @@
 </p>
 
 <p align="center">
-  A Jellyfin client built specifically for the <strong>Facebook Portal</strong> family of devices.<br/>
-  Forked from <a href="https://github.com/jellyfin/jellyfin-android">jellyfin/jellyfin-android</a>, re-skinned and re-shelled around Portal's hardware quirks.
+  Turn an old <strong>Facebook Portal</strong> into a proper Jellyfin player.
 </p>
 
 <p align="center">
@@ -14,18 +13,21 @@
 </p>
 
 <p align="center">
-  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY"><strong>Watch the 40-second walkthrough</strong></a> — a Portal (codename <code>aloha</code>) running portalfin: launch → browse → playback.
+  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY"><strong>Watch the Walkthrough</strong></a>
 </p>
 
 ## What this is
 
-The original Facebook Portal (codename **aloha**) shipped with ADB locked. In
-October 2025, Meta enabled ADB on a firmware update, opening the device up for
-sideloaded apps for the first time. portalfin is a pragmatic Jellyfin client
-that takes advantage of that — a **native portalfin shell** wrapping the
-mature jellyfin-web UI, with a real Compose login flow, kiosk-only navigation
-(no admin dashboard), and a custom header that respects Portal's reserved
-top overlay.
+If you've got an old Facebook Portal collecting dust, this turns it into a
+genuinely nice Jellyfin player. Your whole library on that always-on touchscreen
+— browse posters, tap to play, and when you walk away it drifts into an ambient
+slideshow of your cover art with a big clock.
+
+It's a fork of the official [Jellyfin Android app](https://github.com/jellyfin/jellyfin-android),
+rebuilt to feel like it belongs on the Portal instead of a phone app squeezed
+onto a weird screen: a clean native sign-in, a kiosk-style interface with the
+admin clutter stripped out, and a layout that works around the Portal's quirks
+(like the system buttons that float over the top of the screen).
 
 ## Screenshots
 
@@ -49,22 +51,34 @@ top overlay.
 |---|---|
 | ![](docs/screenshots/07-ambient.png) | ![](docs/screenshots/08-ambient.png) |
 
-## Why a fork (and what's different from upstream)
+## What makes it nice
 
-| Concern | Upstream behavior | portalfin |
-|---|---|---|
-| Sign-in | Web client login inside the WebView | **Native Compose `LoginScreen`** that calls the Jellyfin SDK directly, then seeds the WebView's `localStorage` so it lands authenticated on `/home` |
-| Top inset | None | Portal's white system overlay (back/home/wifi) reserves y=0..64; the WebView area starts below it. portalfin's header sits flush at the top of the WebView. |
-| Header chrome | Default jellyfin-web header — drawer, group, sync play, admin shortcuts | Custom 51px `#portalfin-header` with wordmark + cast/search/profile only. Hamburger drawer hidden, admin routes redirect home. |
-| Logo / branding | Jellyfin teal `#00a4dc` everywhere | portalfin "p" mark + wordmark, Meta blue `#0866FF` accents matching Portal's design language |
-| Battery-optim snackbar | "Please disable battery optimizations…" prompt | Suppressed on Portal (`Build.DEVICE == "aloha"`) — Portal doesn't expose battery optimization settings anyway |
-| Sign-out lifecycle | jellyfin-web logs out, you stay in WebView staring at its login | JS detects logout and clears native `UserEntity`, routing back to portalfin's native `LoginFragment` |
-| Restyle | None | `portalfin-restyle.js` is injected on every page — global Portal palette, button shape, Inter font fallback, kiosk chrome hiding, in-session route re-application |
-| Default host | Empty | Empty (the previous v0 builds shipped a hard-coded LAN address — removed in v1.0.0) |
-| SPA route transitions | Hard snap between routes | Native [View Transitions API](https://developer.mozilla.org/docs/Web/API/View_Transitions_API): home → library → detail navigations crossfade in 180ms with an ease-out curve. The portalfin header gets a `view-transition-name` so it stays put across routes. ([feature/view-transitions](https://github.com/luke-hurd/portalfin/tree/feature/view-transitions)) |
-| Cold-launch transition | OS splash hard-cuts to the activity, then loading container hard-cuts to the WebView | OS splash icon fades + scales (`installSplashScreen().setOnExitAnimationListener`); the loading-container wordmark animates up + scales down while the WebView crossfades in (240ms). ([feature/splash-crossfade](https://github.com/luke-hurd/portalfin/tree/feature/splash-crossfade)) |
-| Idle behavior | Portal dims and goes to its own screensaver | Ambient slideshow at 60s idle: rotating fullscreen Jellyfin backdrop art, oversized clock + date, current item title. Acquires `FLAG_KEEP_SCREEN_ON` so Portal doesn't dim mid-show. Tap to dismiss. ([feature/ambient-mode](https://github.com/luke-hurd/portalfin/tree/feature/ambient-mode)) |
-| Background tint | Flat #1A1A1A all the time | Time-of-day theme: cool morning, neutral day, warm evening, deep night. Shifts the page background tint live (8s ease) so the device feels alive. ([feature/polish-pass](https://github.com/luke-hurd/portalfin/tree/feature/polish-pass)) |
+The stock Jellyfin app works on a Portal, but it feels like a phone app running
+on the wrong device. portalfin smooths over all of that:
+
+- **A real sign-in screen.** Native login that talks to your server directly,
+  instead of dumping you into a web login page inside the app.
+- **No clutter.** The admin menus, hamburger drawer, and dashboard shortcuts are
+  gone. What's left is browse, search, cast, and your profile — the stuff you
+  actually touch from the couch.
+- **It fits the screen.** The Portal floats its own back/home buttons over the
+  top of the display; portalfin lays everything out so nothing hides behind them.
+- **It looks like it belongs.** A custom header and a color scheme that matches
+  the Portal's own look, instead of Jellyfin's default teal.
+- **Smooth transitions.** Moving between Home, your library, and a movie's page
+  crossfades instead of hard-cutting, and the app fades in gracefully from the
+  launcher splash.
+- **It comes alive when idle.** After a minute of sitting there it turns into an
+  ambient slideshow — your cover art full-screen with a big clock and date — and
+  the background tint even shifts warmer or cooler with the time of day. Tap to
+  wake it.
+- **A clean video player.** Just a back button, the title, and a cast button up
+  top; proper black bars around the video; controls that fade away while you
+  watch.
+
+If you want the exact, line-by-line breakdown of what changed from upstream,
+it's all in the [commit history](https://github.com/luke-hurd/portalfin/commits/main)
+and the feature branches.
 
 ## Supported devices
 
@@ -77,7 +91,13 @@ Requirements:
 
 ## Sideload instructions
 
-Portal has no app store. You install via ADB.
+The Portal never had an app store, and for years it was locked down tight. That
+changed in October 2025, when Meta pushed a firmware update that quietly enabled
+ADB — Android's developer/sideloading mode. That update is the only reason any
+of this is possible, so step one is making sure your Portal is up to date.
+
+Once it is, you install portalfin over a USB cable using ADB. It's a few
+commands, but it's a one-time thing:
 
 1. Install Android platform-tools: `brew install android-platform-tools` (macOS) or grab from [Google](https://developer.android.com/studio/releases/platform-tools)
 2. Plug your Portal in via USB-C
