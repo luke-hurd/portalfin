@@ -46,12 +46,14 @@ fun LayoutInflater.withThemedContext(context: Context, @StyleRes style: Int): La
 // See CLAUDE.md rule #3.
 private const val PORTAL_TOP_RESERVE_DP = 64
 
-// During fullscreen video the Portal system overlay is hidden (immersive), so
-// the 64px top reserve must NOT apply — otherwise the WebView (and the video
-// inside it) is pushed down 64px, leaving a gray band at the top and preventing
-// the video from centering vertically in the full screen. This flag is toggled
-// by the fullscreen handler; when true we drop the reserve so the WebView fills
-// the screen. Outside fullscreen the reserve is restored (CLAUDE.md rule #3).
+// "Fill the screen, drop the Portal 64px top reserve." Set true in two cases:
+//  1. Fullscreen video — the reserve would push the video down 64px (gray band)
+//     and stop it centering.
+//  2. Ambient slideshow — the overlay is a DOM layer INSIDE the WebView and
+//     can't cover the 64px native gap (gray band + Portal back/home pills show
+//     above it) unless the WebView fills the screen.
+// Toggled by the fullscreen handler and setAmbientActive. Outside those, the
+// reserve is restored (CLAUDE.md rule #3 — the gap is sacred for normal browsing).
 var portalVideoFullscreen: Boolean = false
     set(value) {
         field = value
@@ -65,10 +67,12 @@ fun View.applyWindowInsetsAsMargins() {
     val portalTopReservePx = (PORTAL_TOP_RESERVE_DP * density).toInt()
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsets ->
         val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
-        // In fullscreen video, drop the Portal top reserve so the WebView fills
-        // the screen and the video centers in the full height.
+        // In fullscreen video / ambient, the WebView must fill the WHOLE screen
+        // (top margin 0) so the video centers and the ambient overlay covers the
+        // top band + Portal pills. Using insets.top here would still leave the
+        // OS-reported ~60px gap — force 0.
         val topMargin = when {
-            isPortal && portalVideoFullscreen -> insets.top
+            isPortal && portalVideoFullscreen -> 0
             isPortal -> maxOf(insets.top, portalTopReservePx)
             else -> insets.top
         }

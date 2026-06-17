@@ -41,7 +41,7 @@ top overlay.
 
 | Ambient slideshow | Ambient slideshow |
 |---|---|
-| ![](docs/screenshots/07-ambient-iceage.png) | ![](docs/screenshots/08-ambient-wreckitralph.png) |
+| ![](docs/screenshots/07-ambient.png) | ![](docs/screenshots/08-ambient.png) |
 
 ## Why a fork (and what's different from upstream)
 
