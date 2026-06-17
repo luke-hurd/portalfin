@@ -15,3 +15,6 @@ build
 keystore.jks
 keystore.properties
 **/.DS_Store
+
+# Claude Code scratch dir (CDP client, test scripts)
+.cctmp/
