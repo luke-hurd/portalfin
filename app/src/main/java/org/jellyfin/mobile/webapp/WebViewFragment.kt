@@ -109,6 +109,22 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
         }
 
         /**
+         * Called by the "Close app" button on the profile page. Fully tears the
+         * app down (removes it from recents and ends the process) so the next
+         * launch from the Portal Apps screen is a cold start. The login session
+         * is left intact — this is a clean restart, not a sign-out.
+         */
+        @JavascriptInterface
+        fun closeApp() {
+            requireActivity().runOnUiThread {
+                requireActivity().finishAndRemoveTask()
+                // finishAndRemoveTask alone can leave the process warm; exit so
+                // the relaunch rebuilds everything from scratch.
+                Runtime.getRuntime().exit(0)
+            }
+        }
+
+        /**
          * Called by portalfin-restyle.js when ambient mode engages/disengages.
          * Keeps the Portal display on during the slideshow so the device's
          * own ambient/dim doesn't black out our overlay.

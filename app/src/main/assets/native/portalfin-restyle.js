@@ -69,6 +69,12 @@ try {
                 --portalfin-primary: ${PRIMARY};
                 --portalfin-bg: ${BACKGROUND};
                 --portalfin-surface: ${SURFACE};
+                /* The ElegantFin server theme colors the grid card "mini" play
+                   button green (--btnMiniPlayColor: #299a5d). Retint it portal
+                   blue at the variable source so we don't have to out-specify
+                   the theme's high-specificity .layout-mobile rule. */
+                --btnMiniPlayColor: ${PRIMARY} !important;
+                --btnMiniPlayBorderColor: ${PRIMARY_HOVER} !important;
             }
 
             html, body {
@@ -215,8 +221,10 @@ try {
                 opacity: 0 !important;
                 pointer-events: none !important;
             }
-            /* No wordmark on the player — just back + title. */
-            body.pf-video-page #portalfin-header .pf-wordmark {
+            /* Player top bar is back + title + cast ONLY (hard requirement).
+               No wordmark, and no profile/settings button on the player. */
+            body.pf-video-page #portalfin-header .pf-wordmark,
+            body.pf-video-page #portalfin-header .pf-profile {
                 display: none !important;
             }
             html.pf-video-page,
@@ -734,6 +742,26 @@ try {
                 background: ${SURFACE_HIGH} !important;
                 transform: scale(0.99) !important;
             }
+            /* "Close app" escape hatch — smaller and quieter than the settings
+               rows. Centered below the list, subtle outline rather than a solid
+               fill so it doesn't compete with the real settings actions. */
+            .pf-close-app {
+                display: block !important;
+                margin: 28px auto 40px !important;
+                padding: 9px 26px !important;
+                font-size: 14px !important;
+                font-weight: 500 !important;
+                color: ${ON_SURFACE} !important;
+                background: transparent !important;
+                border: 1px solid rgba(255,255,255,0.22) !important;
+                border-radius: 12px !important;
+                cursor: pointer !important;
+                transition: background 160ms ease !important;
+            }
+            .pf-close-app:hover,
+            .pf-close-app:active {
+                background: ${SURFACE} !important;
+            }
             /* Icon: circular Meta-blue-tinted chip, bigger glyph. */
             body.pf-profile-page .listItem .listItemIcon,
             body.pf-profile-page .listItem .material-icons {
@@ -770,8 +798,14 @@ try {
             }
             /* Hide the server name + version footer (e.g. "ElegantFin v26.06.06").
                The ElegantFin server theme injects it as a ::after pseudo-element
-               on the preferences page container (confirmed via elementFromPoint —
-               there's no DOM node, so JS can't remove it). Suppress the pseudo. */
+               on the page's '.padded-bottom-page' container that sits below the
+               settings buttons (confirmed via CDP: the matching node is
+               div.padded-left.padded-right.padded-bottom-page, content
+               "ElegantFin v26.06.06"). There's no DOM node to remove, so we
+               suppress the pseudo. The other selectors are belt-and-suspenders
+               in case a different server theme attaches it elsewhere. */
+            body.pf-profile-page .padded-bottom-page::after,
+            body.pf-profile-page .padded-bottom-page::before,
             body.pf-profile-page #myPreferencesMenuPage::after,
             body.pf-profile-page #myPreferencesMenuPage::before,
             body.pf-profile-page .userPreferencesPage::after,
@@ -927,6 +961,18 @@ try {
                 overflow: hidden !important;
                 border: none !important;
             }
+            /* Grid play button: keep it permanently visible. jellyfin shows the
+               bottom-right play button only on hover (inline display:none until
+               then), which on a touch device just flashed for a frame on load
+               and then vanished. Force it shown + opaque so it's always there,
+               with no green→blue flash (the blue tint comes from the
+               --btnMiniPlayColor override above, applied from the first paint). */
+            .layout-mobile .card .cardOverlayButton-br[data-action="play"],
+            .card .cardOverlayButton-br[data-action="play"] {
+                display: inline-flex !important;
+                opacity: 1 !important;
+                transition: none !important;
+            }
             .card .cardImage {
                 background-size: cover !important;
                 background-position: center !important;
@@ -1017,8 +1063,17 @@ try {
                positioning; just size it and anchor the artwork to the top. */
             .itemDetailPage .itemBackdrop,
             .detailPagePrimaryContainer .itemBackdrop {
-                height: 480px !important;
-                min-height: 480px !important;
+                /* Pull the artwork UP behind the frosted #portalfin-header so the
+                   header's backdrop-filter has the poster to blur through (it
+                   was sitting on flat background = a dull dark strip). We use a
+                   NEGATIVE MARGIN, not a 'top' override (see note above): the
+                   page's padding-top:70px reserve is untouched, so the title
+                   block / buttons don't move. Height grows by the same 70px so
+                   the backdrop's BOTTOM stays at 550px and the wrapper's
+                   -160px overlay still lands in the same place. */
+                margin-top: -70px !important;
+                height: 550px !important;
+                min-height: 550px !important;
                 background-position: center top !important;
                 background-size: cover !important;
             }
@@ -1314,7 +1369,7 @@ try {
     // .listItem rows distinguished only by text (no class/href hooks). For a
     // viewer-only kiosk we keep just the 5 that matter and hide the section
     // headers, leaving a single clean list.
-    const PROFILE_KEEP = ['playback', 'subtitles', 'downloads', 'select server', 'sign out'];
+    const PROFILE_KEEP = ['playback', 'subtitles', 'select server', 'sign out'];
     function pruneProfileMenu() {
         const onProfile = /mypreferences|preferencesmenu/i.test(window.location.hash || '');
         document.body.classList.toggle('pf-profile-page', onProfile);
@@ -1352,6 +1407,33 @@ try {
                 if (t.length < 40 && verRe.test(t)) el.style.display = 'none';
             }
         });
+        addCloseAppButton();
+    }
+
+    // A small "Close app" button pinned at the bottom of the profile page.
+    // Fully terminates the app (via the native bridge) for a cold restart.
+    // Deliberately smaller/quieter than the settings rows — it's an escape
+    // hatch, not a primary action.
+    function addCloseAppButton() {
+        if (document.querySelector('.pf-close-app')) return;
+        // Anchor it after the last visible settings section so it sits below
+        // the buttons rather than floating mid-page.
+        const sections = [...document.querySelectorAll('.verticalSection')]
+            .filter((s) => s.style.display !== 'none');
+        const anchor = sections[sections.length - 1];
+        if (!anchor) return;
+        const btn = document.createElement('button');
+        btn.className = 'pf-close-app';
+        btn.type = 'button';
+        btn.textContent = 'Close app';
+        btn.addEventListener('click', () => {
+            try {
+                if (window.PortalFinBridge && window.PortalFinBridge.closeApp) {
+                    window.PortalFinBridge.closeApp();
+                }
+            } catch (_) {}
+        });
+        anchor.insertAdjacentElement('afterend', btn);
     }
 
     function applyAll(reason) {
@@ -1401,6 +1483,9 @@ try {
                 <button class="pf-btn pf-cast" aria-label="Cast">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/></svg>
                 </button>
+                <button class="pf-btn pf-profile" aria-label="Settings">
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+                </button>
             </div>
         `;
         // Wire up actions
@@ -1423,10 +1508,41 @@ try {
                 history.back();
             }
         });
-        hdr.querySelector('.pf-cast').addEventListener('click', () => {
+        hdr.querySelector('.pf-cast').addEventListener('click', (e) => {
             // jellyfin-web's cast button logic: trigger their existing button if present
             const existingCast = document.querySelector('.headerCastButton, .castButton');
             if (existingCast) existingCast.click();
+            // jellyfin-web anchors the "Play On" actionSheet to whatever button it
+            // thinks was clicked. Our real cast button is hidden (at the origin),
+            // so the sheet pops up in the top-LEFT corner by the logo. Reposition
+            // it under OUR visible cast button (top-right). The sheet renders
+            // async, so poll briefly until it appears.
+            const btn = e.currentTarget;
+            let tries = 0;
+            const place = () => {
+                const sheet = document.querySelector('.dialog.actionsheet-not-fullscr, .actionSheet');
+                if (sheet) {
+                    const br = btn.getBoundingClientRect();
+                    // Anchor the sheet's RIGHT edge to the button's right edge and
+                    // let it grow leftward. We must NOT compute from the sheet's
+                    // measured width: jellyfin plays a scaleup animation, so an
+                    // early measurement reads a half-width and the sheet then
+                    // animates off the right edge. Anchoring 'right' is immune to
+                    // that — width can change freely without shifting the anchor.
+                    sheet.style.left = 'auto';
+                    sheet.style.right = Math.round(window.innerWidth - br.right) + 'px';
+                    sheet.style.top = Math.round(br.bottom + 6) + 'px';
+                    return;
+                }
+                if (tries++ < 20) setTimeout(place, 25);
+            };
+            place();
+        });
+        // Profile/settings: jellyfin-web's preferences menu (Sign Out, Select
+        // Server, Playback, Subtitles). pruneProfileMenu() trims it to the
+        // kiosk subset once the route loads.
+        hdr.querySelector('.pf-profile').addEventListener('click', () => {
+            window.location.hash = '#/mypreferencesmenu';
         });
         document.body.appendChild(hdr);
     }
@@ -1482,15 +1598,58 @@ try {
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
 
-        // Page title — only on non-home pages. The detail-page item name
-        // isn't in the DOM at the moment of route change (jellyfin-web
-        // populates it asynchronously). Schedule a couple of retries.
-        if (tt) {
-            const apply = () => { tt.textContent = isHome ? '' : derivePageTitle(hash); };
-            apply();
-            setTimeout(apply, 250);
-            setTimeout(apply, 1000);
+        // Page title — only on non-home pages.
+        if (tt) setPageTitle(tt, hash, isHome);
+    }
+
+    // Token to invalidate a pending title-observer when the route changes again.
+    let titleToken = 0;
+
+    /**
+     * Set the header title for the current route.
+     *
+     * Library pages (Movies, TV Shows…) have a title we know immediately from
+     * the URL. Detail pages don't: jellyfin-web populates the item name
+     * asynchronously AFTER the route changes, so the OLD title ("Movies") used
+     * to linger ~1s and then visibly swap to the item name — a clunky glitch.
+     *
+     * Fix: for detail pages, CLEAR the title right away (better blank than
+     * wrong), then watch the DOM and fill it in the instant the item name
+     * appears — no fixed-delay retries, no stale carryover.
+     */
+    function setPageTitle(tt, hash, isHome) {
+        const myToken = ++titleToken; // invalidates any earlier observer
+        if (isHome) { tt.textContent = ''; return; }
+
+        const isDetail = /^#\/details/i.test(hash);
+        const immediate = derivePageTitle(hash);
+
+        if (!isDetail) {
+            // Known synchronously from the URL (Movies, TV Shows, etc.).
+            tt.textContent = immediate;
+            return;
         }
+
+        // Detail page: clear the stale parent title immediately, then resolve
+        // the real item name as soon as it's in the DOM.
+        tt.textContent = '';
+        const tryResolve = () => {
+            if (myToken !== titleToken) return true; // route changed; stop
+            const name = document.querySelector('h1.itemName, h2.itemName, h3.itemName, .itemName');
+            const txt = name && (name.textContent || '').trim();
+            if (txt && txt.length < 100 && !/Lukes-iMac/i.test(txt)) {
+                tt.textContent = txt;
+                return true;
+            }
+            return false;
+        };
+        if (tryResolve()) return;
+        const obs = new MutationObserver(() => {
+            if (myToken !== titleToken || tryResolve()) obs.disconnect();
+        });
+        obs.observe(document.body, { childList: true, subtree: true });
+        // Safety net: stop observing after 5s regardless.
+        setTimeout(() => obs.disconnect(), 5000);
     }
 
     /**
@@ -1895,6 +2054,11 @@ try {
 
     async function enterAmbient() {
         if (document.body.classList.contains('pf-ambient-active')) return;
+        // Don't go ambient while the app is backgrounded. The idle timer can
+        // fire while portalfin is in the background (the WebView keeps running),
+        // which made the slideshow activate behind the user's back — they'd
+        // return to find the screensaver up. Only the foregrounded app screens.
+        if (document.hidden) return;
         // Don't go ambient on login screens / pre-auth pages
         const credsRaw = window.localStorage.getItem('jellyfin_credentials');
         if (!credsRaw) return;
@@ -1960,6 +2124,17 @@ try {
                 resetAmbientIdle();
             }
         }, { passive: true });
+    });
+    // When the app is backgrounded, cancel the pending idle timer so ambient
+    // can't trigger while hidden. When it comes back to the foreground, restart
+    // the countdown from zero (and drop out of ambient if it somehow got in).
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (ambientTimer) clearTimeout(ambientTimer);
+        } else {
+            if (document.body.classList.contains('pf-ambient-active')) exitAmbient();
+            else resetAmbientIdle();
+        }
     });
     resetAmbientIdle();
 

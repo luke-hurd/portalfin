@@ -38,6 +38,7 @@ import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.Constants
+import org.jellyfin.mobile.utils.isPortalDevice
 import org.jellyfin.mobile.utils.Constants.EXTRA_ALBUM
 import org.jellyfin.mobile.utils.Constants.EXTRA_ARTIST
 import org.jellyfin.mobile.utils.Constants.EXTRA_CAN_SEEK
@@ -241,7 +242,14 @@ class RemotePlayerService : Service(), CoroutineScope {
 
             setPlaybackState(!isPaused, position, canSeek)
 
-            if (isLocalPlayer) {
+            // On the Portal the device IS the player, so the hardware volume
+            // keys must always drive the local STREAM_MUSIC. setPlaybackToRemote
+            // hands key events to RemoteVolumeProvider (which only messages the
+            // web player and never moves real volume), so the system shows the
+            // volume OSD but up/down do nothing — and the remote session stays
+            // active app-wide, killing the keys even outside playback. Force
+            // local volume on Portal regardless of the web app's isLocalPlayer.
+            if (isLocalPlayer || isPortalDevice) {
                 mediaSession.applyDefaultLocalAudioAttributes(AudioAttributes.CONTENT_TYPE_MUSIC)
             } else {
                 mediaSession.setPlaybackToRemote(remoteVolumeProvider)
