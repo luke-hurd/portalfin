@@ -41,6 +41,7 @@ import org.jellyfin.mobile.utils.Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER
 import org.jellyfin.mobile.utils.applyDefault
 import org.jellyfin.mobile.utils.applyWindowInsetsAsMargins
 import org.jellyfin.mobile.utils.dip
+import org.jellyfin.mobile.utils.portalVideoFullscreen
 import org.jellyfin.mobile.utils.extensions.getParcelableCompat
 import org.jellyfin.mobile.utils.extensions.replaceFragment
 import org.jellyfin.mobile.utils.fadeIn
@@ -116,10 +117,24 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
         fun setAmbientActive(active: Boolean) {
             requireActivity().runOnUiThread {
                 val window = requireActivity().window
+                val webView = webViewBinding?.webView
                 if (active) {
                     window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    // The ambient slideshow is a DOM overlay INSIDE the WebView,
+                    // which normally sits 64px below the top (Portal top-inset
+                    // margin). That inset leaves a gray band + the Portal back/
+                    // home pills uncovered above the overlay. Drop the inset so
+                    // the WebView fills the screen and the slideshow covers it
+                    // edge-to-edge; black the background behind it.
+                    portalVideoFullscreen = true
+                    window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
+                    webView?.setBackgroundColor(android.graphics.Color.BLACK)
                 } else {
                     window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                    // Restore the Portal top inset (CLAUDE.md rule #3) + theme bg.
+                    portalVideoFullscreen = false
+                    window.setBackgroundDrawableResource(R.color.theme_background)
+                    webView?.setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 }
             }
         }
