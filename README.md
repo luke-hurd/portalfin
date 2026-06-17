@@ -8,11 +8,13 @@
 </p>
 
 <p align="center">
-  <video src="https://github.com/luke-hurd/portalfin/releases/download/v1.1.1/portalfin.mp4" width="640" controls muted playsinline></video>
+  <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY">
+    <img src="https://img.youtube.com/vi/1E4ZBgMRJXY/maxresdefault.jpg" width="640" alt="Watch the portalfin walkthrough on YouTube">
+  </a>
 </p>
 
 <p align="center">
-  <em>40-second walkthrough on a Portal (codename <code>aloha</code>): launch → browse → playback.</em>
+  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY"><strong>Watch the 40-second walkthrough</strong></a> — a Portal (codename <code>aloha</code>) running portalfin: launch → browse → playback.
 </p>
 
 ## What this is
