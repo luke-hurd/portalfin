@@ -96,11 +96,17 @@ adb install -r app/build/outputs/apk/proprietary/debug/portalfin-v*-proprietary-
 
 ## Roadmap
 
-These are the next things on the list. Contributions welcome.
+Shipped:
 
-- [ ] **CSS view transitions** between SPA routes — kill the flat web-app feel on every navigation
-- [ ] **Native splash → home crossfade** using Compose `SharedTransitionLayout` — splash logo morphs into the wordmark in the header
-- [ ] **Ambient slideshow** — after 60s idle, fullscreen rotating gallery of Jellyfin backdrop art with time + weather overlay; tap to wake
+- [x] **CSS view transitions** between SPA routes — kill the flat web-app feel on every navigation
+- [x] **Native splash → home crossfade** — splash logo crossfades into the styled web app
+- [x] **Ambient slideshow** — after 60s idle, fullscreen rotating gallery of Jellyfin backdrop art with oversized clock + date + current item title; tap to wake. Fills the screen edge-to-edge (drops the Portal top inset) and keeps the display awake.
+- [x] **Custom video player chrome** — minimal back/title/cast top bar, black letterbox, enlarged transport controls, all auto-hiding with the OSD
+
+Next up — contributions welcome:
+
+- [ ] **Weather overlay** on the ambient slideshow (clock + date are done; weather is not)
+- [ ] **Transcode-on-download quality picker** (in progress) — pick 1080p/720p and transcode server-side to a phone-sized MP4 instead of the multi-GB remux
 - [ ] **Native Portal home grid** — replace jellyfin-web's React home with native Compose tiles calling the Jellyfin REST API directly. Biggest lift, biggest payoff for "feels native."
 - [ ] **Haptic accents** on tile taps and detail-page actions
 - [ ] **Voice control** via the Portal's built-in mic ("portalfin, play Back to the Future")
