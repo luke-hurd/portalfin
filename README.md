@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  A Jellyfin player I ported to the Facebook Portal.
+  A Jellyfin player made for the Facebook Portal.
 </p>
 
 <p align="center">
@@ -13,24 +13,24 @@
 </p>
 
 <p align="center">
-  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY"><strong>Watch the Walkthrough</strong></a>
+  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY"><strong>See it in action on the Portal</strong></a>
 </p>
 
-## What this is
+## What is portalfin?
 
-portalfin is a Jellyfin client for the Facebook Portal. I had an old Portal sitting
-around and wanted to use it as a Jellyfin player, so I forked the official
+portalfin is a Jellyfin client for the Facebook Portal. I had an old first-gen Portal
+sitting around and wanted to use it as a Jellyfin player, so I forked the official
 [Jellyfin Android app](https://github.com/jellyfin/jellyfin-android) and reworked it
 to run well on the device.
 
-The Portal is an Android device, so the standard Jellyfin APK installs and runs. It
-just isn't built for this screen: it's a phone app on a 1280x800 always-on display,
+The Portal is an Android device, so the standard Jellyfin APK installs and runs, but
+it just isn't built for the device: it's a phone app on a 1280x800 always-on display,
 the system back/home buttons float over the top of the UI, and there's a lot of
-chrome you don't need when the device only ever does one thing. portalfin is my
-attempt to fix that. I kept the Jellyfin web UI that does the heavy lifting and
-replaced the parts around it: a native sign-in, a stripped-down kiosk interface, a
-layout that accounts for the Portal's quirks, and an ambient slideshow when it's
-idle.
+chrome you don't need when the device only ever does one thing. The goal was to make
+it feel native to the Portal rather than a phone app that happens to run on it. I
+kept the Jellyfin web UI that does the heavy lifting and replaced the parts around
+it: a native sign-in, a stripped-down kiosk interface, a layout that accounts for the
+Portal's quirks, and an ambient slideshow when it's idle.
 
 ## Screenshots
 
@@ -56,31 +56,47 @@ idle.
 
 ## What I changed
 
-Here's what I reworked from the stock Jellyfin app, and why:
+I wanted this to feel native to the Portal, not like the stock app running on the
+wrong hardware. Here's what got reworked, and why:
 
-- Sign-in is native. The standard app drops you into a web login page inside the
-  WebView. I replaced it with a native login screen that talks to the server
-  directly and then hands the session off to the web UI.
-- I stripped out the chrome the Portal doesn't need. The admin menus, the
-  hamburger drawer, and the dashboard shortcuts are hidden, so what's left is
-  browse, search, cast, and your profile.
-- I fixed the layout for the screen. The Portal draws its own back/home buttons
-  over the top of the display, so I reserve that space and lay out the header
-  below it instead of letting content hide behind them.
-- I restyled it to match the device. There's a custom header and a color scheme
-  closer to the Portal's own look rather than Jellyfin's default teal.
-- I smoothed out the transitions. Navigating between Home, the library, and a
-  movie page crossfades instead of hard-cutting, and the app fades in from the
-  launcher splash instead of popping in.
-- I added an ambient mode. After about a minute idle it shows a full-screen
-  slideshow of your cover art with a clock and date, and the background tint
-  drifts with the time of day. Tap to wake it.
-- I cleaned up the video player. The top bar is just back, title, and cast, the
-  letterboxing is black, and the controls fade out while you're watching.
+- Native sign-in, instead of being dropped into a web login page inside the WebView.
+- A stripped-down kiosk interface. The admin menus, hamburger drawer, and dashboard
+  shortcuts are hidden, so what's left is browse, search, cast, and your profile.
+- A layout that respects the Portal's screen. Its system back/home buttons float
+  over the top of the display, so that space is reserved and the header sits below
+  it instead of getting covered.
+- A look that matches the device, with a custom header and a color scheme closer to
+  the Portal's own rather than Jellyfin's default teal.
+- Smoother transitions. Navigating between Home, the library, and a movie page
+  crossfades instead of hard-cutting, and the app fades in from the launcher splash.
+- An ambient mode. After about a minute idle it shows a full-screen slideshow of
+  your cover art with a clock and date, and the background tint drifts with the time
+  of day. Tap to wake it.
+- A cleaner video player: a top bar with just back, title, and cast, black
+  letterboxing, and controls that fade out while you're watching.
 
-The full list of changes is in the
-[commit history](https://github.com/luke-hurd/portalfin/commits/main) and the
-feature branches if you want the specifics.
+### How it works under the hood
+
+The app is a native Android shell around the Jellyfin web UI rather than a
+from-scratch rewrite, which keeps it current with upstream Jellyfin for free.
+`MainActivity` runs a small state machine over server and user state: no server
+configured routes to a native Compose `ConnectFragment`, a server but no user routes
+to a native `LoginFragment`, and once you're authenticated it hands off to the
+`WebViewFragment` that hosts jellyfin-web.
+
+The native login calls the Jellyfin SDK's `authenticateUserByName` directly, then
+seeds the WebView's `localStorage` with the resulting credentials so the web app
+loads already signed in on `/home`. A JavaScript bridge (`PortalFinBridge`) runs the
+other direction too: it watches for sign-out and clears the native session, and
+signals when restyling is done so the WebView can fade in cleanly.
+
+Almost everything visual is done by injecting `portalfin-restyle.js` on every page
+load (and re-injecting it on in-app navigation, since jellyfin-web is a single-page
+app). That script reserves the 64px top band the Portal overlays its system buttons
+on, swaps in the custom `#portalfin-header`, hides the kiosk chrome, applies the
+Portal palette and fonts, and drives the ambient slideshow and time-of-day tinting.
+The transitions use the browser's View Transitions API, with a shared
+`view-transition-name` on the header so it stays put across route changes.
 
 ## Supported devices
 
@@ -132,9 +148,7 @@ Next up — contributions welcome:
 - [ ] **Weather overlay** on the ambient slideshow (clock + date are done; weather is not)
 - [ ] **Transcode-on-download quality picker** (in progress) — pick 1080p/720p and transcode server-side to a phone-sized MP4 instead of the multi-GB remux
 - [ ] **Native Portal home grid** — replace jellyfin-web's React home with native Compose tiles calling the Jellyfin REST API directly. Biggest lift, biggest payoff for "feels native."
-- [ ] **Haptic accents** on tile taps and detail-page actions
 - [ ] **Voice control** via the Portal's built-in mic ("portalfin, play Back to the Future")
-- [ ] **Per-user home pages** using the existing Aloha account framework (4 internal user accounts already exist on every Portal)
 
 ## Architecture
 
