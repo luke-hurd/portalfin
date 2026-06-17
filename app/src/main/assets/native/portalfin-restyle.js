@@ -97,8 +97,11 @@ try {
                 transform: translateY(0) !important;
                 background: ${SURFACE} !important;
             }
-            /* === HIDE jellyfin-web's skinHeader entirely.
-                  We replace it with #portalfin-header. */
+            /* === HIDE jellyfin-web's skinHeader entirely, EVERYWHERE including
+                  the video player. We replace it with #portalfin-header (back +
+                  title + cast only). jellyfin's header carries the junk controls
+                  (home/favorites/search/profile/music) the user does NOT want on
+                  the player. */
             .skinHeader { display: none !important; }
 
             /* === PORTALFIN CUSTOM HEADER ===
@@ -172,6 +175,80 @@ try {
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
                 display: none !important;
+            }
+            /* === VIDEO PLAYER PAGE ===
+               THE BLACK-VIDEO RULE — read before touching. The HTML5 <video>
+               composites as a hardware SurfaceView BEHIND the WebView; the
+               WebView shows it through a TRANSPARENT punch-through hole. If ANY
+               page-level layer (html/body/#reactRoot/.videoPlayerContainer/.page)
+               has an OPAQUE background on the video route, it paints over that
+               hole → video shows for a few frames then goes black (audio + OSD
+               survive). So on the video route every page layer MUST be
+               transparent. The black LETTERBOX bars come from the NATIVE window
+               background (set to black on the video route in WebViewFragment),
+               NOT from CSS — see portalfin-video-blackscreen memory.
+               DO NOT set an opaque background here. That is the exact regression
+               that broke playback. */
+            /* Player top bar = our minimal #portalfin-header (back + title +
+               cast ONLY — search/profile were removed; jellyfin's junk header
+               stays globally hidden). It MUST NOT use backdrop-filter on the
+               video route: a backdrop-filter forces the WebView compositor into
+               a framebuffer-readback path that blacks out the whole hardware
+               video layer. Use a plain gradient scrim instead. */
+            body.pf-video-page #portalfin-header {
+                display: flex !important;
+                background: #000 !important;
+                background-color: #000 !important;
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+            }
+            /* No wordmark on the player — just back + title. */
+            body.pf-video-page #portalfin-header .pf-wordmark {
+                display: none !important;
+            }
+            html.pf-video-page,
+            body.pf-video-page,
+            body.pf-video-page #reactRoot,
+            body.pf-video-page .mainAnimatedPages,
+            body.pf-video-page .skinBody,
+            body.pf-video-page .backgroundContainer,
+            body.pf-video-page .videoPlayerContainer,
+            body.pf-video-page .page:not(.hide) {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            /* LETTERBOX BARS = BLACK. The <video> is object-fit:contain (16:9
+               video in a 16:10 viewport => ~40px bars top+bottom). Those bars are
+               painted by the VIDEO ELEMENT'S OWN background — NOT the page, WebView
+               or native window (all of which are behind the transparent page and
+               were the wrong layer). Setting the video element background black is
+               what actually makes the bars black. Verified on-device. */
+            body.pf-video-page video,
+            body.pf-video-page .videoPlayerContainer video,
+            body.pf-video-page .htmlvideoplayer {
+                background: #000 !important;
+                background-color: #000 !important;
+            }
+            /* Transport controls 2x size (user request): the play/pause, skip,
+               and rewind/forward buttons. Base icon is 26px → 52px. */
+            body.pf-video-page .videoOsdBottom .btnRewind .material-icons,
+            body.pf-video-page .videoOsdBottom .btnFastForward .material-icons,
+            body.pf-video-page .videoOsdBottom .btnPreviousChapter .material-icons,
+            body.pf-video-page .videoOsdBottom .btnNextChapter .material-icons,
+            body.pf-video-page .videoOsdBottom .btnPause .material-icons,
+            body.pf-video-page .videoOsdBottom .btnPlay .material-icons {
+                font-size: 52px !important;
+                width: 52px !important;
+                height: 52px !important;
+            }
+            body.pf-video-page .videoOsdBottom .btnRewind,
+            body.pf-video-page .videoOsdBottom .btnFastForward,
+            body.pf-video-page .videoOsdBottom .btnPreviousChapter,
+            body.pf-video-page .videoOsdBottom .btnNextChapter,
+            body.pf-video-page .videoOsdBottom .btnPause,
+            body.pf-video-page .videoOsdBottom .btnPlay {
+                width: 64px !important;
+                height: 64px !important;
             }
             /* Disable headroom auto-hide — keep header visible on scroll */
             .headroom--unpinned, .skinHeader.headroom--unpinned {
@@ -247,9 +324,11 @@ try {
             .mainDrawer-scrollContainer { padding-top: ${PORTAL_TOP_INSET}px !important; }
 
             /* Always show jellyfin's header chrome — even on detail/play pages
-               where jellyfin-web sets the 'hiddenViewMenuBar' class. */
-            .hiddenViewMenuBar .skinHeader,
-            body.hiddenViewMenuBar .skinHeader {
+               where jellyfin-web sets the 'hiddenViewMenuBar' class.
+               NOT on the video player page: there jellyfin's junk header must
+               stay hidden so only our minimal back+title+cast bar shows. */
+            body:not(.pf-video-page).hiddenViewMenuBar .skinHeader,
+            body:not(.pf-video-page) .hiddenViewMenuBar .skinHeader {
                 display: flex !important;
             }
 
@@ -653,6 +732,28 @@ try {
                 transform: rotate(-45deg) !important;
                 flex-shrink: 0 !important;
             }
+            /* Hide the server name + version footer (e.g. "ElegantFin v26.06.06").
+               The ElegantFin server theme injects it as a ::after pseudo-element
+               on the preferences page container (confirmed via elementFromPoint —
+               there's no DOM node, so JS can't remove it). Suppress the pseudo. */
+            body.pf-profile-page #myPreferencesMenuPage::after,
+            body.pf-profile-page #myPreferencesMenuPage::before,
+            body.pf-profile-page .userPreferencesPage::after,
+            body.pf-profile-page .userPreferencesPage::before,
+            body.pf-profile-page .readOnlyContent::after,
+            body.pf-profile-page .readOnlyContent::before,
+            body.pf-profile-page .verticalSection:last-child::after,
+            body.pf-profile-page .settingsContainer::after,
+            body.pf-profile-page .pageContainer::after {
+                content: none !important;
+                display: none !important;
+            }
+            body.pf-profile-page .appfooter,
+            body.pf-profile-page .pageFooter,
+            body.pf-profile-page .footer,
+            body.pf-profile-page .appVersionNumber {
+                display: none !important;
+            }
 
             /* Loading spinners → use Meta blue */
             .mdl-spinner__layer-1,
@@ -1016,6 +1117,31 @@ try {
                 color: ${PRIMARY_TEXT} !important;
             }
 
+            /* Favorite (heart) button state feedback. The server theme renders
+               the filled "favorite" glyph in ALL states, so tapping toggled the
+               favorite server-side but gave no visual change — looked broken.
+               Drive the glyph off the button's title: "Add to favorites" =>
+               NOT favorited => outline heart; otherwise => filled + accent.
+               We zero the original ligature text and paint our own via ::before
+               (Material Icons is a ligature font; ::before inherits it). */
+            .btnUserRating .material-icons {
+                font-size: 0 !important;   /* hide the always-"favorite" ligature */
+            }
+            .btnUserRating .material-icons::before {
+                font-size: 26px !important;
+                line-height: 1 !important;
+            }
+            /* Not favorited (title says "Add to favorites") → outline heart */
+            .btnUserRating[title*="Add to favorite" i] .material-icons::before {
+                content: "favorite_border" !important;
+                color: ${ON_BACKGROUND} !important;
+            }
+            /* Favorited (any other title, e.g. "Remove from favorites") → filled */
+            .btnUserRating:not([title*="Add to favorite" i]) .material-icons::before {
+                content: "favorite" !important;
+                color: #FF4D6D !important;
+            }
+
             /* (4) Hide noisy technical metadata. The "1080p H264 SDR" /
                   "Dolby Digital 5.1" / "Off" rows are <select> dropdowns
                   for choosing video/audio/subtitle track. We hide the
@@ -1175,6 +1301,21 @@ try {
                 .filter((r) => r.style.display !== 'none');
             sec.style.display = visibleRows.length ? '' : 'none';
         });
+        // Hide the server name + version footer (e.g. "ElegantFin v26.06.06").
+        // jellyfin-web's class for it is inconsistent, so match on content:
+        // any small leaf element whose text looks like a "<name> vX.Y.Z" stamp.
+        document.querySelectorAll('.appfooter, .pageFooter, .footer, .appVersionNumber').forEach((el) => {
+            el.style.display = 'none';
+        });
+        // Belt-and-suspenders: also hide any small leaf element that looks like
+        // a version stamp, in case a theme renders it as a real node instead.
+        const verRe = /v\d+\.\d+/i;
+        document.querySelectorAll('div, p, span, small').forEach((el) => {
+            if (el.children.length === 0) {
+                const t = (el.textContent || '').trim();
+                if (t.length < 40 && verRe.test(t)) el.style.display = 'none';
+            }
+        });
     }
 
     function applyAll(reason) {
@@ -1224,24 +1365,65 @@ try {
                 <button class="pf-btn pf-cast" aria-label="Cast">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/></svg>
                 </button>
-                <button class="pf-btn pf-search" aria-label="Search">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                </button>
-                <button class="pf-btn pf-profile" aria-label="Profile">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                </button>
             </div>
         `;
         // Wire up actions
-        hdr.querySelector('.pf-back').addEventListener('click', () => history.back());
-        hdr.querySelector('.pf-search').addEventListener('click', () => { window.location.hash = '#/search.html'; });
-        hdr.querySelector('.pf-profile').addEventListener('click', () => { window.location.hash = '#/mypreferencesmenu.html'; });
+        // Back button: history.back() is unreliable coming out of the
+        // preferences/settings/downloads area — jellyfin-web's SPA router
+        // doesn't always re-render the destination, leaving the page blank.
+        // For those routes, navigate explicitly to home so the router actually
+        // loads + paints it. Everywhere else, normal back.
+        hdr.querySelector('.pf-back').addEventListener('click', () => {
+            const h = (window.location.hash || '').toLowerCase();
+            const fromSettingsArea = /mypreferences|preferencesmenu|settings|downloads|userprofile|playback|subtitles|controls|display|quickconnect|selectserver/.test(h);
+            if (fromSettingsArea) {
+                // Just setting the hash makes jellyfin-web "restore" a cached
+                // (often empty) home view instead of rebuilding it — that's the
+                // dead homescreen. Force a full reload of the home route so the
+                // view is built fresh. The restyle re-injects on page load.
+                window.location.replace(window.location.pathname + '#/home.html');
+                window.location.reload();
+            } else {
+                history.back();
+            }
+        });
         hdr.querySelector('.pf-cast').addEventListener('click', () => {
             // jellyfin-web's cast button logic: trigger their existing button if present
             const existingCast = document.querySelector('.headerCastButton, .castButton');
             if (existingCast) existingCast.click();
         });
         document.body.appendChild(hdr);
+    }
+
+    /**
+     * Toggle the .pf-video-page flag on <html> and <body> based on whether the
+     * HTML5 video player is actually mounted.
+     *
+     * IMPORTANT — why DOM detection, not the URL hash: on this jellyfin-web
+     * build the player opens as an OVERLAY without changing location.hash (it
+     * stays on '#/details...'). The old hash test (/^#\/video/) therefore never
+     * matched.
+     *
+     * SIGNAL = jellyfin-web's OWN '.transparentDocument' class on <html>.
+     * jellyfin adds it to <html> exactly while the video player is foregrounded
+     * (verified via devtools during real playback: html class list contained
+     * 'transparentDocument', and the .videoPlayerContainer was display:flex with
+     * a visible <video>). It removes it when the player closes. This is far more
+     * reliable than '.videoPlayerContainer-onTop' (a transient state that is NOT
+     * present during steady-state playback — keying on it left pf-video-page
+     * false, so the opaque body bg painted over the video = black screen) or
+     * '.videoPlayerContainer' presence (it persists after exit = stuck black).
+     * The MutationObserver re-runs this when the class flips; no route event.
+     */
+    function updateVideoPage() {
+        const playing = document.documentElement.classList.contains('transparentDocument') ||
+            (() => {
+                const c = document.querySelector('.videoPlayerContainer');
+                const v = c && c.querySelector('video');
+                return !!(c && v && getComputedStyle(c).display !== 'none');
+            })();
+        document.body.classList.toggle('pf-video-page', playing);
+        document.documentElement.classList.toggle('pf-video-page', playing);
     }
 
     /**
@@ -1256,6 +1438,10 @@ try {
         const hash = window.location.hash || '';
         const isHome = hash === '' || hash === '#' || hash === '#/' ||
                        /^#!?\/?(home(\.html)?|index)/i.test(hash);
+        // Flag the video-player state — drives the .pf-video-page CSS (hide our
+        // header's backdrop-filter so video isn't black; black letterbox; let
+        // jellyfin's own header own the exit/Back button). See updateVideoPage.
+        updateVideoPage();
         // Use class so we beat the !important rules in our stylesheet
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
@@ -1402,6 +1588,17 @@ try {
                     }
                 }
             });
+            // Hide the per-item "three dots" context menu (Add to favorites,
+            // Edit metadata, Refresh, etc.) on list rows AND card overlays.
+            // These expose admin/library-management actions we don't want in a
+            // viewer-only kiosk. jellyfin-web marks them data-action="menu";
+            // also cover known class names. The download/play buttons use
+            // different data-actions, so they're unaffected.
+            document.querySelectorAll(
+                '[data-action="menu"], ' +
+                '.btnCardOptions, .cardOverlayButton-br, .listViewMoreButton, ' +
+                '.listItemButton[data-action="menu"], .paper-icon-button-light[data-action="menu"]'
+            ).forEach((b) => { b.style.display = 'none'; });
         } catch (e) {
             console.warn('[portalfin] kioskizeChrome failed', e);
         }
@@ -1488,6 +1685,10 @@ try {
     let kioskTimer = 0;
     const observer = new MutationObserver(() => {
         replaceLogos();
+        // The video player mounts/unmounts WITHOUT a route change on this
+        // jellyfin-web build, so the only reliable trigger is the DOM mutation.
+        // Cheap (single querySelector), so run it every time, uncoalesced.
+        updateVideoPage();
         // Coalesce repeated calls within 250ms — DOM-walk for Administration
         // is O(n) so we don't want to run on every keystroke.
         clearTimeout(kioskTimer);
@@ -1725,4 +1926,12 @@ try {
         }, { passive: true });
     });
     resetAmbientIdle();
+
+    // NOTE: a "blank-content watchdog" that auto-reloaded any content route it
+    // judged empty was tried here and REMOVED — it matched the #/video player
+    // route, mis-detected the playing video as "blank", and reloaded mid-play,
+    // bouncing the user back to home on every web-player launch (and flashing
+    // card play-buttons away). The dead-home-from-settings case is handled
+    // directly by the back button's explicit home reload instead. Do not
+    // reintroduce a blanket reload watchdog.
 })();
