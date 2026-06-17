@@ -8,7 +8,11 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/03-home.png" width="640" alt="Home screen">
+  <video src="https://github.com/luke-hurd/portalfin/releases/download/v1.1.1/portalfin.mp4" width="640" controls muted playsinline></video>
+</p>
+
+<p align="center">
+  <em>40-second walkthrough on a Portal (codename <code>aloha</code>): launch → browse → playback.</em>
 </p>
 
 ## What this is
