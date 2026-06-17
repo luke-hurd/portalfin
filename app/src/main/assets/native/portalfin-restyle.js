@@ -201,6 +201,19 @@ try {
                 background-color: #000 !important;
                 -webkit-backdrop-filter: none !important;
                 backdrop-filter: none !important;
+                /* Fade in/out with the OSD instead of snapping. */
+                transition: opacity 0.3s ease !important;
+                opacity: 1 !important;
+            }
+            /* Hide the top header (back/title/cast) IN SYNC WITH THE OSD: when
+               jellyfin marks the bottom OSD hidden ('.videoOsdBottom.hide' on
+               idle), fade our header out too so no UI lingers during playback.
+               Tapping the screen un-hides the OSD (removes .hide) → header
+               returns. Chrome 131 WebView supports :has(). */
+            body.pf-video-page:has(.videoOsdBottom.hide) #portalfin-header,
+            body.pf-video-page:has(.videoOsdBottom-hidden) #portalfin-header {
+                opacity: 0 !important;
+                pointer-events: none !important;
             }
             /* No wordmark on the player — just back + title. */
             body.pf-video-page #portalfin-header .pf-wordmark {
@@ -236,17 +249,28 @@ try {
             body.pf-video-page .videoOsdBottom .btnPreviousChapter .material-icons,
             body.pf-video-page .videoOsdBottom .btnNextChapter .material-icons,
             body.pf-video-page .videoOsdBottom .btnPause .material-icons,
-            body.pf-video-page .videoOsdBottom .btnPlay .material-icons {
+            body.pf-video-page .videoOsdBottom .btnPlay .material-icons,
+            /* Match the secondary controls (CC + settings) to the same 52px. */
+            body.pf-video-page .videoOsdBottom .btnSubtitles .material-icons,
+            body.pf-video-page .videoOsdBottom .btnVideoOsdSettings .material-icons {
                 font-size: 52px !important;
                 width: 52px !important;
                 height: 52px !important;
+            }
+            /* Favorite (heart) uses a ::before pseudo-glyph (its .material-icons
+               is zeroed) — size the ::before to 52px to match. */
+            body.pf-video-page .videoOsdBottom .btnUserRating .material-icons::before {
+                font-size: 52px !important;
             }
             body.pf-video-page .videoOsdBottom .btnRewind,
             body.pf-video-page .videoOsdBottom .btnFastForward,
             body.pf-video-page .videoOsdBottom .btnPreviousChapter,
             body.pf-video-page .videoOsdBottom .btnNextChapter,
             body.pf-video-page .videoOsdBottom .btnPause,
-            body.pf-video-page .videoOsdBottom .btnPlay {
+            body.pf-video-page .videoOsdBottom .btnPlay,
+            body.pf-video-page .videoOsdBottom .btnSubtitles,
+            body.pf-video-page .videoOsdBottom .btnVideoOsdSettings,
+            body.pf-video-page .videoOsdBottom .btnUserRating {
                 width: 64px !important;
                 height: 64px !important;
             }
@@ -582,6 +606,18 @@ try {
             body.pf-ambient-active #portalfin-ambient {
                 opacity: 1 !important;
                 pointer-events: auto !important;
+            }
+            /* When the ambient screensaver is active, KILL the video player OSD
+               and our top header so no player chrome lingers over the slideshow.
+               The ambient overlay is full-screen (inset:0) so it already fills
+               the area the OSD vacates. */
+            body.pf-ambient-active .videoOsdBottom,
+            body.pf-ambient-active .videoOsdTop,
+            body.pf-ambient-active .skinHeader,
+            body.pf-ambient-active #portalfin-header {
+                display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
             }
             #portalfin-ambient .pf-ambient-img {
                 position: absolute !important;
