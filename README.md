@@ -7,13 +7,13 @@
 </p>
 
 <p align="center">
-  <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY">
-    <img src="https://img.youtube.com/vi/1E4ZBgMRJXY/maxresdefault.jpg" width="640" alt="Watch the portalfin walkthrough on YouTube">
+  <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY" target="_blank" rel="noopener noreferrer">
+    <img src="docs/screenshots/03-home.png" width="640" alt="portalfin home screen">
   </a>
 </p>
 
 <p align="center">
-  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY"><strong>See it in action on the Portal</strong></a>
+  ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY" target="_blank" rel="noopener noreferrer"><strong>See it in action on the Portal</strong></a>
 </p>
 
 ## What is portalfin?
@@ -38,17 +38,13 @@ Portal's quirks, and an ambient slideshow when it's idle.
 |---|---|
 | ![](docs/screenshots/01-connect.png) | ![](docs/screenshots/02-login.png) |
 
-| Home | Library |
+| Library | Movie detail |
 |---|---|
-| ![](docs/screenshots/03-home.png) | ![](docs/screenshots/04-movies.png) |
+| ![](docs/screenshots/04-movies.png) | ![](docs/screenshots/05-detail.png) |
 
-| Movie detail | Profile / settings |
+| Profile / settings | Video player |
 |---|---|
-| ![](docs/screenshots/05-detail.png) | ![](docs/screenshots/06-profile.png) |
-
-| Video player | |
-|---|---|
-| ![](docs/screenshots/09-playback.png) | |
+| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/09-playback.png) |
 
 | Ambient slideshow | Ambient slideshow |
 |---|---|
