@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  Turn an old <strong>Facebook Portal</strong> into a proper Jellyfin player.
+  A Jellyfin player I ported to the Facebook Portal.
 </p>
 
 <p align="center">
@@ -18,16 +18,19 @@
 
 ## What this is
 
-If you've got an old Facebook Portal collecting dust, this turns it into a
-genuinely nice Jellyfin player. Your whole library on that always-on touchscreen
-— browse posters, tap to play, and when you walk away it drifts into an ambient
-slideshow of your cover art with a big clock.
+portalfin is a Jellyfin client for the Facebook Portal. I had an old Portal sitting
+around and wanted to use it as a Jellyfin player, so I forked the official
+[Jellyfin Android app](https://github.com/jellyfin/jellyfin-android) and reworked it
+to run well on the device.
 
-It's a fork of the official [Jellyfin Android app](https://github.com/jellyfin/jellyfin-android),
-rebuilt to feel like it belongs on the Portal instead of a phone app squeezed
-onto a weird screen: a clean native sign-in, a kiosk-style interface with the
-admin clutter stripped out, and a layout that works around the Portal's quirks
-(like the system buttons that float over the top of the screen).
+The Portal is an Android device, so the standard Jellyfin APK installs and runs. It
+just isn't built for this screen: it's a phone app on a 1280x800 always-on display,
+the system back/home buttons float over the top of the UI, and there's a lot of
+chrome you don't need when the device only ever does one thing. portalfin is my
+attempt to fix that. I kept the Jellyfin web UI that does the heavy lifting and
+replaced the parts around it: a native sign-in, a stripped-down kiosk interface, a
+layout that accounts for the Portal's quirks, and an ambient slideshow when it's
+idle.
 
 ## Screenshots
 
@@ -51,34 +54,33 @@ admin clutter stripped out, and a layout that works around the Portal's quirks
 |---|---|
 | ![](docs/screenshots/07-ambient.png) | ![](docs/screenshots/08-ambient.png) |
 
-## What makes it nice
+## What I changed
 
-The stock Jellyfin app works on a Portal, but it feels like a phone app running
-on the wrong device. portalfin smooths over all of that:
+Here's what I reworked from the stock Jellyfin app, and why:
 
-- **A real sign-in screen.** Native login that talks to your server directly,
-  instead of dumping you into a web login page inside the app.
-- **No clutter.** The admin menus, hamburger drawer, and dashboard shortcuts are
-  gone. What's left is browse, search, cast, and your profile — the stuff you
-  actually touch from the couch.
-- **It fits the screen.** The Portal floats its own back/home buttons over the
-  top of the display; portalfin lays everything out so nothing hides behind them.
-- **It looks like it belongs.** A custom header and a color scheme that matches
-  the Portal's own look, instead of Jellyfin's default teal.
-- **Smooth transitions.** Moving between Home, your library, and a movie's page
-  crossfades instead of hard-cutting, and the app fades in gracefully from the
-  launcher splash.
-- **It comes alive when idle.** After a minute of sitting there it turns into an
-  ambient slideshow — your cover art full-screen with a big clock and date — and
-  the background tint even shifts warmer or cooler with the time of day. Tap to
-  wake it.
-- **A clean video player.** Just a back button, the title, and a cast button up
-  top; proper black bars around the video; controls that fade away while you
-  watch.
+- Sign-in is native. The standard app drops you into a web login page inside the
+  WebView. I replaced it with a native login screen that talks to the server
+  directly and then hands the session off to the web UI.
+- I stripped out the chrome the Portal doesn't need. The admin menus, the
+  hamburger drawer, and the dashboard shortcuts are hidden, so what's left is
+  browse, search, cast, and your profile.
+- I fixed the layout for the screen. The Portal draws its own back/home buttons
+  over the top of the display, so I reserve that space and lay out the header
+  below it instead of letting content hide behind them.
+- I restyled it to match the device. There's a custom header and a color scheme
+  closer to the Portal's own look rather than Jellyfin's default teal.
+- I smoothed out the transitions. Navigating between Home, the library, and a
+  movie page crossfades instead of hard-cutting, and the app fades in from the
+  launcher splash instead of popping in.
+- I added an ambient mode. After about a minute idle it shows a full-screen
+  slideshow of your cover art with a clock and date, and the background tint
+  drifts with the time of day. Tap to wake it.
+- I cleaned up the video player. The top bar is just back, title, and cast, the
+  letterboxing is black, and the controls fade out while you're watching.
 
-If you want the exact, line-by-line breakdown of what changed from upstream,
-it's all in the [commit history](https://github.com/luke-hurd/portalfin/commits/main)
-and the feature branches.
+The full list of changes is in the
+[commit history](https://github.com/luke-hurd/portalfin/commits/main) and the
+feature branches if you want the specifics.
 
 ## Supported devices
 
@@ -91,13 +93,9 @@ Requirements:
 
 ## Sideload instructions
 
-The Portal never had an app store, and for years it was locked down tight. That
-changed in October 2025, when Meta pushed a firmware update that quietly enabled
-ADB — Android's developer/sideloading mode. That update is the only reason any
-of this is possible, so step one is making sure your Portal is up to date.
-
-Once it is, you install portalfin over a USB cable using ADB. It's a few
-commands, but it's a one-time thing:
+The Portal has no app store, so you install over USB with ADB. ADB was locked on
+the Portal until October 2025, when a Meta firmware update enabled it, so first make
+sure your Portal is up to date. After that it's a one-time setup:
 
 1. Install Android platform-tools: `brew install android-platform-tools` (macOS) or grab from [Google](https://developer.android.com/studio/releases/platform-tools)
 2. Plug your Portal in via USB-C
