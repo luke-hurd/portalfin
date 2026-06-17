@@ -97,8 +97,11 @@ try {
                 transform: translateY(0) !important;
                 background: ${SURFACE} !important;
             }
-            /* === HIDE jellyfin-web's skinHeader entirely.
-                  We replace it with #portalfin-header. */
+            /* === HIDE jellyfin-web's skinHeader entirely, EVERYWHERE including
+                  the video player. We replace it with #portalfin-header (back +
+                  title + cast only). jellyfin's header carries the junk controls
+                  (home/favorites/search/profile/music) the user does NOT want on
+                  the player. */
             .skinHeader { display: none !important; }
 
             /* === PORTALFIN CUSTOM HEADER ===
@@ -172,6 +175,104 @@ try {
             /* class used by JS to hide back-button on home / wordmark off-home */
             #portalfin-header .pf-hidden {
                 display: none !important;
+            }
+            /* === VIDEO PLAYER PAGE ===
+               THE BLACK-VIDEO RULE — read before touching. The HTML5 <video>
+               composites as a hardware SurfaceView BEHIND the WebView; the
+               WebView shows it through a TRANSPARENT punch-through hole. If ANY
+               page-level layer (html/body/#reactRoot/.videoPlayerContainer/.page)
+               has an OPAQUE background on the video route, it paints over that
+               hole → video shows for a few frames then goes black (audio + OSD
+               survive). So on the video route every page layer MUST be
+               transparent. The black LETTERBOX bars come from the NATIVE window
+               background (set to black on the video route in WebViewFragment),
+               NOT from CSS — see portalfin-video-blackscreen memory.
+               DO NOT set an opaque background here. That is the exact regression
+               that broke playback. */
+            /* Player top bar = our minimal #portalfin-header (back + title +
+               cast ONLY — search/profile were removed; jellyfin's junk header
+               stays globally hidden). It MUST NOT use backdrop-filter on the
+               video route: a backdrop-filter forces the WebView compositor into
+               a framebuffer-readback path that blacks out the whole hardware
+               video layer. Use a plain gradient scrim instead. */
+            body.pf-video-page #portalfin-header {
+                display: flex !important;
+                background: #000 !important;
+                background-color: #000 !important;
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+                /* Fade in/out with the OSD instead of snapping. */
+                transition: opacity 0.3s ease !important;
+                opacity: 1 !important;
+            }
+            /* Hide the top header (back/title/cast) IN SYNC WITH THE OSD: when
+               jellyfin marks the bottom OSD hidden ('.videoOsdBottom.hide' on
+               idle), fade our header out too so no UI lingers during playback.
+               Tapping the screen un-hides the OSD (removes .hide) → header
+               returns. Chrome 131 WebView supports :has(). */
+            body.pf-video-page:has(.videoOsdBottom.hide) #portalfin-header,
+            body.pf-video-page:has(.videoOsdBottom-hidden) #portalfin-header {
+                opacity: 0 !important;
+                pointer-events: none !important;
+            }
+            /* No wordmark on the player — just back + title. */
+            body.pf-video-page #portalfin-header .pf-wordmark {
+                display: none !important;
+            }
+            html.pf-video-page,
+            body.pf-video-page,
+            body.pf-video-page #reactRoot,
+            body.pf-video-page .mainAnimatedPages,
+            body.pf-video-page .skinBody,
+            body.pf-video-page .backgroundContainer,
+            body.pf-video-page .videoPlayerContainer,
+            body.pf-video-page .page:not(.hide) {
+                background: transparent !important;
+                background-color: transparent !important;
+            }
+            /* LETTERBOX BARS = BLACK. The <video> is object-fit:contain (16:9
+               video in a 16:10 viewport => ~40px bars top+bottom). Those bars are
+               painted by the VIDEO ELEMENT'S OWN background — NOT the page, WebView
+               or native window (all of which are behind the transparent page and
+               were the wrong layer). Setting the video element background black is
+               what actually makes the bars black. Verified on-device. */
+            body.pf-video-page video,
+            body.pf-video-page .videoPlayerContainer video,
+            body.pf-video-page .htmlvideoplayer {
+                background: #000 !important;
+                background-color: #000 !important;
+            }
+            /* Transport controls 2x size (user request): the play/pause, skip,
+               and rewind/forward buttons. Base icon is 26px → 52px. */
+            body.pf-video-page .videoOsdBottom .btnRewind .material-icons,
+            body.pf-video-page .videoOsdBottom .btnFastForward .material-icons,
+            body.pf-video-page .videoOsdBottom .btnPreviousChapter .material-icons,
+            body.pf-video-page .videoOsdBottom .btnNextChapter .material-icons,
+            body.pf-video-page .videoOsdBottom .btnPause .material-icons,
+            body.pf-video-page .videoOsdBottom .btnPlay .material-icons,
+            /* Match the secondary controls (CC + settings) to the same 52px. */
+            body.pf-video-page .videoOsdBottom .btnSubtitles .material-icons,
+            body.pf-video-page .videoOsdBottom .btnVideoOsdSettings .material-icons {
+                font-size: 52px !important;
+                width: 52px !important;
+                height: 52px !important;
+            }
+            /* Favorite (heart) uses a ::before pseudo-glyph (its .material-icons
+               is zeroed) — size the ::before to 52px to match. */
+            body.pf-video-page .videoOsdBottom .btnUserRating .material-icons::before {
+                font-size: 52px !important;
+            }
+            body.pf-video-page .videoOsdBottom .btnRewind,
+            body.pf-video-page .videoOsdBottom .btnFastForward,
+            body.pf-video-page .videoOsdBottom .btnPreviousChapter,
+            body.pf-video-page .videoOsdBottom .btnNextChapter,
+            body.pf-video-page .videoOsdBottom .btnPause,
+            body.pf-video-page .videoOsdBottom .btnPlay,
+            body.pf-video-page .videoOsdBottom .btnSubtitles,
+            body.pf-video-page .videoOsdBottom .btnVideoOsdSettings,
+            body.pf-video-page .videoOsdBottom .btnUserRating {
+                width: 64px !important;
+                height: 64px !important;
             }
             /* Disable headroom auto-hide — keep header visible on scroll */
             .headroom--unpinned, .skinHeader.headroom--unpinned {
@@ -247,9 +348,11 @@ try {
             .mainDrawer-scrollContainer { padding-top: ${PORTAL_TOP_INSET}px !important; }
 
             /* Always show jellyfin's header chrome — even on detail/play pages
-               where jellyfin-web sets the 'hiddenViewMenuBar' class. */
-            .hiddenViewMenuBar .skinHeader,
-            body.hiddenViewMenuBar .skinHeader {
+               where jellyfin-web sets the 'hiddenViewMenuBar' class.
+               NOT on the video player page: there jellyfin's junk header must
+               stay hidden so only our minimal back+title+cast bar shows. */
+            body:not(.pf-video-page).hiddenViewMenuBar .skinHeader,
+            body:not(.pf-video-page) .hiddenViewMenuBar .skinHeader {
                 display: flex !important;
             }
 
@@ -504,6 +607,18 @@ try {
                 opacity: 1 !important;
                 pointer-events: auto !important;
             }
+            /* When the ambient screensaver is active, KILL the video player OSD
+               and our top header so no player chrome lingers over the slideshow.
+               The ambient overlay is full-screen (inset:0) so it already fills
+               the area the OSD vacates. */
+            body.pf-ambient-active .videoOsdBottom,
+            body.pf-ambient-active .videoOsdTop,
+            body.pf-ambient-active .skinHeader,
+            body.pf-ambient-active #portalfin-header {
+                display: none !important;
+                opacity: 0 !important;
+                visibility: hidden !important;
+            }
             #portalfin-ambient .pf-ambient-img {
                 position: absolute !important;
                 inset: 0 !important;
@@ -545,6 +660,10 @@ try {
                 opacity: 0.85 !important;
                 margin-top: 8px !important;
             }
+            /* Two title layers (a/b) crossfade in lockstep with the backdrop
+               images so the title is always synced to the artwork behind it —
+               no snapping a new title onto the old backdrop. Base = invisible;
+               .is-visible fades in over the same 1500ms as .pf-ambient-img. */
             #portalfin-ambient .pf-ambient-meta {
                 position: absolute !important;
                 right: 48px !important;
@@ -553,9 +672,123 @@ try {
                 font-size: 18px !important;
                 font-weight: 500 !important;
                 text-shadow: 0 2px 16px rgba(0,0,0,0.6) !important;
-                opacity: 0.85 !important;
                 max-width: 50% !important;
                 text-align: right !important;
+                opacity: 0;       /* NOT !important — JS toggles via .is-visible */
+                transition: opacity 1500ms ease-in-out !important;
+            }
+            #portalfin-ambient .pf-ambient-meta.is-visible {
+                opacity: 0.85 !important;
+            }
+            /* When the ambient item has title-art, render it as an image the same
+               size it appears on the detail page (360×90), bottom-right-anchored. */
+            #portalfin-ambient .pf-ambient-meta.pf-ambient-meta-logo {
+                width: 360px !important;
+                height: 90px !important;
+                max-width: 45% !important;
+                background-position: right bottom !important;
+                background-size: contain !important;
+                background-repeat: no-repeat !important;
+                filter: drop-shadow(0 2px 16px rgba(0,0,0,0.6)) !important;
+            }
+            #portalfin-ambient .pf-ambient-meta.pf-ambient-meta-logo.is-visible {
+                opacity: 1 !important;
+            }
+
+            /* === PROFILE / SETTINGS MENU =================================
+               Viewer-only kiosk: JS prunes to 5 rows (Playback, Subtitles,
+               Downloads, Select Server, Sign Out). This makes the remaining
+               list feel native — generous touch rows, clear separation,
+               centered column, larger icons + labels. */
+            body.pf-profile-page .readOnlyContent,
+            body.pf-profile-page .settingsContainer,
+            body.pf-profile-page .verticalSection {
+                max-width: 720px !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+            }
+            /* The row list: stack with real gaps instead of smashed-together.
+               Tight vertical padding + bottom-margin on each section so two
+               sections (per-user + "User") read as one continuous list with
+               no big empty gap where the hidden headers used to be. */
+            body.pf-profile-page .verticalSection {
+                display: flex !important;
+                flex-direction: column !important;
+                gap: 12px !important;
+                padding: 0 24px !important;
+                margin: 0 0 12px 0 !important;
+            }
+            body.pf-profile-page .verticalSection:first-of-type {
+                margin-top: 16px !important;
+            }
+            body.pf-profile-page .listItem {
+                background: ${SURFACE} !important;
+                border-radius: 16px !important;
+                min-height: 64px !important;
+                padding: 0 22px !important;
+                margin: 0 !important;
+                transition: background 160ms ease, transform 120ms ease !important;
+            }
+            body.pf-profile-page .listItem:hover,
+            body.pf-profile-page .listItem:active {
+                background: ${SURFACE_HIGH} !important;
+                transform: scale(0.99) !important;
+            }
+            /* Icon: circular Meta-blue-tinted chip, bigger glyph. */
+            body.pf-profile-page .listItem .listItemIcon,
+            body.pf-profile-page .listItem .material-icons {
+                color: ${PRIMARY_TEXT} !important;
+                font-size: 26px !important;
+                width: 44px !important;
+                height: 44px !important;
+                line-height: 44px !important;
+                margin-right: 8px !important;
+                border-radius: 50% !important;
+                background: rgba(8, 102, 255, 0.14) !important;
+                text-align: center !important;
+                flex-shrink: 0 !important;
+            }
+            /* Label: larger, comfortable weight. */
+            body.pf-profile-page .listItem .listItemBodyText,
+            body.pf-profile-page .listItem .listItemBody {
+                font-size: 17px !important;
+                font-weight: 500 !important;
+            }
+            /* Chevron at the end of each row for affordance. margin-left:auto
+               pushes it to the right; margin-right gives it breathing room from
+               the row edge so it isn't jammed against the side. */
+            body.pf-profile-page .listItem::after {
+                content: '' !important;
+                margin-left: auto !important;
+                margin-right: 8px !important;
+                width: 9px !important;
+                height: 9px !important;
+                border-right: 2px solid rgba(255,255,255,0.35) !important;
+                border-bottom: 2px solid rgba(255,255,255,0.35) !important;
+                transform: rotate(-45deg) !important;
+                flex-shrink: 0 !important;
+            }
+            /* Hide the server name + version footer (e.g. "ElegantFin v26.06.06").
+               The ElegantFin server theme injects it as a ::after pseudo-element
+               on the preferences page container (confirmed via elementFromPoint —
+               there's no DOM node, so JS can't remove it). Suppress the pseudo. */
+            body.pf-profile-page #myPreferencesMenuPage::after,
+            body.pf-profile-page #myPreferencesMenuPage::before,
+            body.pf-profile-page .userPreferencesPage::after,
+            body.pf-profile-page .userPreferencesPage::before,
+            body.pf-profile-page .readOnlyContent::after,
+            body.pf-profile-page .readOnlyContent::before,
+            body.pf-profile-page .verticalSection:last-child::after,
+            body.pf-profile-page .settingsContainer::after,
+            body.pf-profile-page .pageContainer::after {
+                content: none !important;
+                display: none !important;
+            }
+            body.pf-profile-page .appfooter,
+            body.pf-profile-page .pageFooter,
+            body.pf-profile-page .footer,
+            body.pf-profile-page .appVersionNumber {
+                display: none !important;
             }
 
             /* Loading spinners → use Meta blue */
@@ -731,6 +964,322 @@ try {
             .verticalSection {
                 margin-bottom: 16px !important;
             }
+
+            /* === DETAIL PAGE GLOW-UP ===================================== */
+
+            /* (1) Play / Resume / Replay buttons: Meta blue capsule (NOT
+                   a circle — these have text labels, they need to be pill-shaped) */
+            .itemDetailPage .btnPlay,
+            .itemDetailPage .btnReplay {
+                background-color: ${PRIMARY} !important;
+                background-image: none !important;
+                color: ${ON_BACKGROUND} !important;
+                width: auto !important;          /* override the 52px from the icon-button rule */
+                height: 44px !important;
+                min-width: 0 !important;
+                border-radius: 22px !important;  /* capsule, not circle */
+                padding: 0 22px !important;
+                margin: 0 8px !important;
+            }
+            .itemDetailPage .btnPlay .material-icons,
+            .itemDetailPage .btnPlay span,
+            .itemDetailPage .btnReplay .material-icons,
+            .itemDetailPage .btnReplay span {
+                color: ${ON_BACKGROUND} !important;
+            }
+
+            /* (1b) Trim the action row to: Play / Watched / Favorite / Download.
+                    Hide trailer (no YouTube), shuffle, instant mix, split, more menu,
+                    timer cancel buttons (those are admin functions). */
+            .itemDetailPage .btnPlayTrailer,
+            .itemDetailPage .btnInstantMix,
+            .itemDetailPage .btnShuffle,
+            .itemDetailPage .btnSplitVersions,
+            .itemDetailPage .btnCancelSeriesTimer,
+            .itemDetailPage .btnCancelTimer,
+            .itemDetailPage .btnMoreCommands {
+                display: none !important;
+            }
+            /* Force the Download button visible (jellyfin sometimes adds 'hide' class). */
+            .itemDetailPage .btnDownload {
+                display: inline-flex !important;
+            }
+
+            /* (2) Hero artwork: tall, anchored to the TOP so faces/heads
+                  are visible (not legs). The gradient fades the bottom
+                  half so the title block (pulled up with negative margin
+                  below) sits ON the artwork as it fades to background. */
+            /* Do NOT override 'top' here. jellyfin-web positions the backdrop
+               relative to the .itemDetailPage page, which carries
+               padding-top: 70px to clear the Portal system overlay + our
+               header. Forcing top:0 yanked the backdrop (and the title block
+               overlaying it) up under the Portal back/home icons. Keep native
+               positioning; just size it and anchor the artwork to the top. */
+            .itemDetailPage .itemBackdrop,
+            .detailPagePrimaryContainer .itemBackdrop {
+                height: 480px !important;
+                min-height: 480px !important;
+                background-position: center top !important;
+                background-size: cover !important;
+            }
+            /* Some jellyfin layouts apply the bg image to a child rather than
+               the .itemBackdrop element itself — handle both. */
+            .itemDetailPage .itemBackdrop > div[style*="background-image"],
+            .itemDetailPage .backdropImage,
+            .detailPagePrimaryContainer .backdropImage {
+                background-position: center top !important;
+                background-size: cover !important;
+            }
+            /* Bottom gradient: starts higher up and runs deeper so the
+               title block (which now overlays the backdrop) reads cleanly
+               against the artwork. */
+            .itemDetailPage .itemBackdrop::after,
+            .detailPagePrimaryContainer .itemBackdrop::after {
+                content: '' !important;
+                position: absolute !important;
+                left: 0 !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                height: 55% !important;
+                background: linear-gradient(
+                    to bottom,
+                    rgba(26,26,26,0) 0%,
+                    rgba(26,26,26,0.55) 45%,
+                    rgba(26,26,26,0.85) 75%,
+                    var(--portalfin-bg, ${BACKGROUND}) 100%
+                ) !important;
+                pointer-events: none !important;
+            }
+            /* (2b) THE LAYOUT FIX: pull the title/year/runtime/Play-button
+                    block UP so it overlays the bottom of the backdrop.
+                    Probe confirmed structure:
+                      .itemDetailPage
+                        ├── .itemBackdrop
+                        ├── .detailLogo            (movie logo, sometimes empty)
+                        └── .detailPageWrapperContainer  ← title/meta/play/synopsis live in here
+                    Pulling the wrapper up by 240px puts the .nameContainer
+                    on the lower third of the backdrop, behind the gradient. */
+            .itemDetailPage .detailPageWrapperContainer,
+            .detailPagePrimaryContainer + .detailPageWrapperContainer {
+                position: relative !important;
+                z-index: 2 !important;
+                margin-top: -160px !important;
+                background: transparent !important;
+            }
+            /* The detailLogo (movie title-art image) is rendered absolute-positioned
+               inside .itemDetailPage with 'top: 333px' set inline by jellyfin-web,
+               which puts it below the backdrop and off-screen below the wrapper.
+               Override to anchor it bottom-left of the backdrop. The .itemDetailPage
+               is itself position:absolute, so the logo's 'top' value is what we
+               control. Backdrop is 480px tall starting at top:0 of the page,
+               so top:380px puts the logo's top edge 100px above backdrop bottom. */
+            .itemDetailPage .detailLogo {
+                position: absolute !important;
+                top: 380px !important;       /* renders at viewport y≈290; bottom ≈380, ~10px above info row at y=390 */
+                left: 0 !important;          /* left:0 + right:0 + margin auto = horizontally centered */
+                right: 0 !important;
+                bottom: auto !important;
+                margin-left: auto !important;
+                margin-right: auto !important;
+                width: 360px !important;
+                max-width: 45% !important;
+                height: 90px !important;
+                background-position: center bottom !important;  /* center image within the box */
+                background-size: contain !important;
+                background-repeat: no-repeat !important;
+                z-index: 3 !important;
+            }
+            /* The name/title row: bigger, with a shadow so it reads against
+               varied artwork. */
+            .itemDetailPage .nameContainer,
+            .itemDetailPage .detailPagePrimaryContainer .nameContainer {
+                position: relative !important;
+                z-index: 2 !important;
+                padding: 0 24px !important;
+            }
+            /* Hide the duplicated text title — the .detailLogo image above
+               serves as the page title. (If a particular item lacks logo
+               art, fall back rule below shows the text.) */
+            .itemDetailPage .nameContainer h1,
+            .itemDetailPage .nameContainer .itemName,
+            .itemDetailPage h1.itemName,
+            .itemDetailPage h1.parentName {
+                display: none !important;
+            }
+            /* Year / runtime / RT score / "ends at" pills sit on the artwork too. */
+            .itemDetailPage .itemMiscInfo,
+            .itemDetailPage .mediaInfoItems {
+                position: relative !important;
+                z-index: 2 !important;
+                text-shadow: 0 1px 8px rgba(0,0,0,0.7) !important;
+                padding: 0 24px !important;
+            }
+            /* The action row (Play + secondary buttons) — also overlay. */
+            .itemDetailPage .mainDetailButtons,
+            .itemDetailPage .detailButtons,
+            .nameContainer + div:has(.btnPlay),
+            .nameContainer ~ div:has(.btnPlay) {
+                position: relative !important;
+                z-index: 2 !important;
+                padding: 12px 24px 0 24px !important;
+            }
+
+            /* (3) Action row icon buttons: 52dp circles for the secondary
+                  actions (Watched, Favorite, Download). EXPLICITLY excludes
+                  .btnPlay and .btnReplay — those have text labels and need
+                  to be capsules; their dedicated rule is below this one. */
+            .itemDetailPage .detailButton:not(.btnPlay):not(.btnReplay),
+            .itemDetailPage .paper-icon-button-light,
+            .nameContainer + div .paper-icon-button-light {
+                width: 52px !important;
+                height: 52px !important;
+                border-radius: 50% !important;
+                margin: 0 8px !important;
+                background: ${SURFACE} !important;
+                transition: background 200ms ease !important;
+            }
+            .itemDetailPage .detailButton:hover,
+            .itemDetailPage .paper-icon-button-light:hover {
+                background: ${SURFACE_HIGH} !important;
+            }
+            .itemDetailPage .detailButton .material-icons,
+            .itemDetailPage .paper-icon-button-light .material-icons {
+                font-size: 26px !important;
+                color: ${ON_BACKGROUND} !important;
+            }
+            /* Icons that should stay colored when toggled (favorite filled, etc.) */
+            .itemDetailPage .ratingbutton-icon-withrating,
+            .itemDetailPage .playstatebutton-icon-played {
+                color: ${PRIMARY_TEXT} !important;
+            }
+
+            /* Favorite (heart) button state feedback. The server theme renders
+               the filled "favorite" glyph in ALL states, so tapping toggled the
+               favorite server-side but gave no visual change — looked broken.
+               Drive the glyph off the button's title: "Add to favorites" =>
+               NOT favorited => outline heart; otherwise => filled + accent.
+               We zero the original ligature text and paint our own via ::before
+               (Material Icons is a ligature font; ::before inherits it). */
+            .btnUserRating .material-icons {
+                font-size: 0 !important;   /* hide the always-"favorite" ligature */
+            }
+            .btnUserRating .material-icons::before {
+                font-size: 26px !important;
+                line-height: 1 !important;
+            }
+            /* Not favorited (title says "Add to favorites") → outline heart */
+            .btnUserRating[title*="Add to favorite" i] .material-icons::before {
+                content: "favorite_border" !important;
+                color: ${ON_BACKGROUND} !important;
+            }
+            /* Favorited (any other title, e.g. "Remove from favorites") → filled */
+            .btnUserRating:not([title*="Add to favorite" i]) .material-icons::before {
+                content: "favorite" !important;
+                color: #FF4D6D !important;
+            }
+
+            /* (4) Hide noisy technical metadata. The "1080p H264 SDR" /
+                  "Dolby Digital 5.1" / "Off" rows are <select> dropdowns
+                  for choosing video/audio/subtitle track. We hide the
+                  entire selector section because (a) most viewers don't
+                  care, (b) jellyfin defaults to the right track anyway. */
+            .itemDetailPage .selectVideo,
+            .itemDetailPage .selectAudio,
+            .itemDetailPage .selectSubtitles,
+            .itemDetailPage .detailTrackSelect,
+            .itemDetailPage .selectVideoContainer,
+            .itemDetailPage .selectAudioContainer,
+            .itemDetailPage .selectSubtitlesContainer,
+            /* their fieldset-style wrappers */
+            .itemDetailPage .selectContainer-inline:has(.selectVideo),
+            .itemDetailPage .selectContainer-inline:has(.selectAudio),
+            .itemDetailPage .selectContainer-inline:has(.selectSubtitles) {
+                display: none !important;
+            }
+
+            /* (5) Bigger synopsis for living-room readability */
+            .itemDetailPage .overview,
+            .itemDetailPage .detailPageOverview,
+            .itemDetailPage .overview-readabletext,
+            .itemDetailPage p[data-overview] {
+                font-size: 18px !important;
+                line-height: 1.55 !important;
+                max-width: 70ch !important;
+                color: ${ON_BACKGROUND} !important;
+                opacity: 0.92 !important;
+            }
+            /* Tagline above synopsis ("How do I loathe thee?…") */
+            .itemDetailPage .tagline {
+                font-size: 17px !important;
+                font-style: italic !important;
+                color: ${ON_SURFACE} !important;
+                margin-bottom: 16px !important;
+            }
+
+            /* (7) Cast as a horizontal scroll carousel with bigger avatars */
+            .itemDetailPage .castContent,
+            .itemDetailPage .peopleSection .itemsContainer {
+                display: flex !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                gap: 16px !important;
+                padding: 8px 0 !important;
+                white-space: nowrap !important;
+                scrollbar-width: none !important;
+            }
+            .itemDetailPage .castContent::-webkit-scrollbar,
+            .itemDetailPage .peopleSection .itemsContainer::-webkit-scrollbar {
+                display: none !important;
+            }
+            .itemDetailPage .card.personCard,
+            .itemDetailPage .peopleSection .card {
+                flex: 0 0 auto !important;
+                width: 140px !important;
+            }
+            .itemDetailPage .card.personCard .cardImageContainer,
+            .itemDetailPage .peopleSection .cardImageContainer {
+                border-radius: 50% !important;
+                width: 110px !important;
+                height: 110px !important;
+                margin: 0 auto !important;
+            }
+            .itemDetailPage .card.personCard .cardText,
+            .itemDetailPage .peopleSection .cardText {
+                text-align: center !important;
+                font-size: 14px !important;
+                white-space: normal !important;
+            }
+
+            /* (8) Similar movies row — bigger and more prominent */
+            .itemDetailPage .similarSection .sectionTitle,
+            .itemDetailPage .nextUpSection .sectionTitle {
+                font-size: 22px !important;
+                font-weight: 700 !important;
+                margin-bottom: 12px !important;
+                margin-top: 32px !important;
+            }
+            .itemDetailPage .similarSection .card,
+            .itemDetailPage .nextUpSection .card {
+                width: 180px !important;
+            }
+
+            /* (extra) Strip remaining card containers app-wide. We already
+               un-carded home tiles; do the same for any leftover surface
+               panels (formDialogs, paperLists in detail/settings, etc.). */
+            .itemDetailPage .detailSection,
+            .itemDetailPage .verticalSection,
+            .itemDetailPage .listItemMetadata,
+            .itemDetailPage .listItem-border,
+            .listItem-border,
+            .collapseContent,
+            .paperList,
+            .visualCardBox,
+            .formDialogFooter:not(.formDialogFooter-clear),
+            .formDialogHeader:not(.formDialogHeader-clear) {
+                background-color: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
         `;
         (document.head || document.documentElement).appendChild(style);
     }
@@ -761,6 +1310,50 @@ try {
         }
     }
 
+    // Profile/settings menu (#/mypreferencesmenu): jellyfin-web renders ~13
+    // .listItem rows distinguished only by text (no class/href hooks). For a
+    // viewer-only kiosk we keep just the 5 that matter and hide the section
+    // headers, leaving a single clean list.
+    const PROFILE_KEEP = ['playback', 'subtitles', 'downloads', 'select server', 'sign out'];
+    function pruneProfileMenu() {
+        const onProfile = /mypreferences|preferencesmenu/i.test(window.location.hash || '');
+        document.body.classList.toggle('pf-profile-page', onProfile);
+        if (!onProfile) return;
+        const items = document.querySelectorAll('.listItem');
+        if (items.length === 0) return;
+        items.forEach((el) => {
+            const txt = (el.textContent || '').trim().replace(/\s+/g, ' ').toLowerCase();
+            const keep = PROFILE_KEEP.some((k) => txt.startsWith(k));
+            el.style.display = keep ? '' : 'none';
+        });
+        // Hide the per-user / "User" section headers — the trimmed list reads
+        // fine without them.
+        document.querySelectorAll('.verticalSection > h2, .sectionTitle, .verticalSection .sectionTitle')
+            .forEach((h) => { h.style.display = 'none'; });
+        // Collapse any .verticalSection that has no visible rows left after the
+        // prune (otherwise its padding leaves a big empty gap mid-list).
+        document.querySelectorAll('.verticalSection').forEach((sec) => {
+            const visibleRows = Array.from(sec.querySelectorAll('.listItem'))
+                .filter((r) => r.style.display !== 'none');
+            sec.style.display = visibleRows.length ? '' : 'none';
+        });
+        // Hide the server name + version footer (e.g. "ElegantFin v26.06.06").
+        // jellyfin-web's class for it is inconsistent, so match on content:
+        // any small leaf element whose text looks like a "<name> vX.Y.Z" stamp.
+        document.querySelectorAll('.appfooter, .pageFooter, .footer, .appVersionNumber').forEach((el) => {
+            el.style.display = 'none';
+        });
+        // Belt-and-suspenders: also hide any small leaf element that looks like
+        // a version stamp, in case a theme renders it as a real node instead.
+        const verRe = /v\d+\.\d+/i;
+        document.querySelectorAll('div, p, span, small').forEach((el) => {
+            if (el.children.length === 0) {
+                const t = (el.textContent || '').trim();
+                if (t.length < 40 && verRe.test(t)) el.style.display = 'none';
+            }
+        });
+    }
+
     function applyAll(reason) {
         console.log('[portalfin] applyAll:', reason);
         injectStyle();
@@ -769,6 +1362,12 @@ try {
         buildCustomHeader();
         updateWordmark();
         applyTimeOfDayTheme();
+        pruneProfileMenu();
+        // jellyfin-web re-renders the menu async after route change; re-prune.
+        if (/mypreferences|preferencesmenu/i.test(window.location.hash || '')) {
+            setTimeout(pruneProfileMenu, 300);
+            setTimeout(pruneProfileMenu, 900);
+        }
         // (diagnostic probes removed)
         // Now that <style> is in place, lift the visibility gate.
         // Use rAF so the style has applied before paint.
@@ -802,24 +1401,65 @@ try {
                 <button class="pf-btn pf-cast" aria-label="Cast">
                     <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M21 3H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11z"/></svg>
                 </button>
-                <button class="pf-btn pf-search" aria-label="Search">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>
-                </button>
-                <button class="pf-btn pf-profile" aria-label="Profile">
-                    <svg viewBox="0 0 24 24" width="22" height="22" fill="${ON_BACKGROUND}"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
-                </button>
             </div>
         `;
         // Wire up actions
-        hdr.querySelector('.pf-back').addEventListener('click', () => history.back());
-        hdr.querySelector('.pf-search').addEventListener('click', () => { window.location.hash = '#/search.html'; });
-        hdr.querySelector('.pf-profile').addEventListener('click', () => { window.location.hash = '#/mypreferencesmenu.html'; });
+        // Back button: history.back() is unreliable coming out of the
+        // preferences/settings/downloads area — jellyfin-web's SPA router
+        // doesn't always re-render the destination, leaving the page blank.
+        // For those routes, navigate explicitly to home so the router actually
+        // loads + paints it. Everywhere else, normal back.
+        hdr.querySelector('.pf-back').addEventListener('click', () => {
+            const h = (window.location.hash || '').toLowerCase();
+            const fromSettingsArea = /mypreferences|preferencesmenu|settings|downloads|userprofile|playback|subtitles|controls|display|quickconnect|selectserver/.test(h);
+            if (fromSettingsArea) {
+                // Just setting the hash makes jellyfin-web "restore" a cached
+                // (often empty) home view instead of rebuilding it — that's the
+                // dead homescreen. Force a full reload of the home route so the
+                // view is built fresh. The restyle re-injects on page load.
+                window.location.replace(window.location.pathname + '#/home.html');
+                window.location.reload();
+            } else {
+                history.back();
+            }
+        });
         hdr.querySelector('.pf-cast').addEventListener('click', () => {
             // jellyfin-web's cast button logic: trigger their existing button if present
             const existingCast = document.querySelector('.headerCastButton, .castButton');
             if (existingCast) existingCast.click();
         });
         document.body.appendChild(hdr);
+    }
+
+    /**
+     * Toggle the .pf-video-page flag on <html> and <body> based on whether the
+     * HTML5 video player is actually mounted.
+     *
+     * IMPORTANT — why DOM detection, not the URL hash: on this jellyfin-web
+     * build the player opens as an OVERLAY without changing location.hash (it
+     * stays on '#/details...'). The old hash test (/^#\/video/) therefore never
+     * matched.
+     *
+     * SIGNAL = jellyfin-web's OWN '.transparentDocument' class on <html>.
+     * jellyfin adds it to <html> exactly while the video player is foregrounded
+     * (verified via devtools during real playback: html class list contained
+     * 'transparentDocument', and the .videoPlayerContainer was display:flex with
+     * a visible <video>). It removes it when the player closes. This is far more
+     * reliable than '.videoPlayerContainer-onTop' (a transient state that is NOT
+     * present during steady-state playback — keying on it left pf-video-page
+     * false, so the opaque body bg painted over the video = black screen) or
+     * '.videoPlayerContainer' presence (it persists after exit = stuck black).
+     * The MutationObserver re-runs this when the class flips; no route event.
+     */
+    function updateVideoPage() {
+        const playing = document.documentElement.classList.contains('transparentDocument') ||
+            (() => {
+                const c = document.querySelector('.videoPlayerContainer');
+                const v = c && c.querySelector('video');
+                return !!(c && v && getComputedStyle(c).display !== 'none');
+            })();
+        document.body.classList.toggle('pf-video-page', playing);
+        document.documentElement.classList.toggle('pf-video-page', playing);
     }
 
     /**
@@ -834,6 +1474,10 @@ try {
         const hash = window.location.hash || '';
         const isHome = hash === '' || hash === '#' || hash === '#/' ||
                        /^#!?\/?(home(\.html)?|index)/i.test(hash);
+        // Flag the video-player state — drives the .pf-video-page CSS (hide our
+        // header's backdrop-filter so video isn't black; black letterbox; let
+        // jellyfin's own header own the exit/Back button). See updateVideoPage.
+        updateVideoPage();
         // Use class so we beat the !important rules in our stylesheet
         wm.classList.toggle('pf-hidden', !isHome);
         if (bb) bb.classList.toggle('pf-hidden', isHome);
@@ -980,6 +1624,17 @@ try {
                     }
                 }
             });
+            // Hide the per-item "three dots" context menu (Add to favorites,
+            // Edit metadata, Refresh, etc.) on list rows AND card overlays.
+            // These expose admin/library-management actions we don't want in a
+            // viewer-only kiosk. jellyfin-web marks them data-action="menu";
+            // also cover known class names. The download/play buttons use
+            // different data-actions, so they're unaffected.
+            document.querySelectorAll(
+                '[data-action="menu"], ' +
+                '.btnCardOptions, .cardOverlayButton-br, .listViewMoreButton, ' +
+                '.listItemButton[data-action="menu"], .paper-icon-button-light[data-action="menu"]'
+            ).forEach((b) => { b.style.display = 'none'; });
         } catch (e) {
             console.warn('[portalfin] kioskizeChrome failed', e);
         }
@@ -1006,9 +1661,23 @@ try {
     // crossfade instead of snap. Portal's Chromium WebView is recent enough
     // to support same-document view transitions.
     const supportsViewTransition = typeof document.startViewTransition === 'function';
+    // Guard against overlapping transitions. jellyfin-web fires a STORM of
+    // history events on back-navigation; stacking startViewTransition calls
+    // freezes the live DOM under a ::view-transition snapshot while jellyfin's
+    // router swaps content asynchronously underneath, which can leave the page
+    // stuck blank (header survives because it's position:fixed). When a
+    // transition is already running, just run the work directly.
+    let _transitionInFlight = false;
     function withTransition(work) {
-        if (supportsViewTransition) {
-            try { document.startViewTransition(work); return; } catch (_) {}
+        if (supportsViewTransition && !_transitionInFlight) {
+            try {
+                _transitionInFlight = true;
+                const t = document.startViewTransition(work);
+                t.finished.finally(() => { _transitionInFlight = false; });
+                return;
+            } catch (_) {
+                _transitionInFlight = false;
+            }
         }
         work();
     }
@@ -1031,8 +1700,13 @@ try {
         applyAll('replaceState');
         updateWordmark();
     };
+    // Back-navigation fires a burst of popstate events and jellyfin swaps
+    // content async — wrapping these in a view transition is what stranded the
+    // page blank. Re-apply styles directly (no transition) so the home content
+    // is never frozen under a snapshot.
     window.addEventListener('popstate', () => {
-        withTransition(() => { applyAll('popstate'); updateWordmark(); });
+        applyAll('popstate');
+        updateWordmark();
     });
 
     // Bail if already initialized — avoids double observers and
@@ -1047,6 +1721,10 @@ try {
     let kioskTimer = 0;
     const observer = new MutationObserver(() => {
         replaceLogos();
+        // The video player mounts/unmounts WITHOUT a route change on this
+        // jellyfin-web build, so the only reliable trigger is the DOM mutation.
+        // Cheap (single querySelector), so run it every time, uncoalesced.
+        updateVideoPage();
         // Coalesce repeated calls within 250ms — DOM-walk for Administration
         // is O(n) so we don't want to run on every keystroke.
         clearTimeout(kioskTimer);
@@ -1104,7 +1782,8 @@ try {
                 <div class="pf-ambient-time" id="pf-ambient-time">--:--</div>
                 <div class="pf-ambient-date" id="pf-ambient-date"></div>
             </div>
-            <div class="pf-ambient-meta" id="pf-ambient-meta"></div>
+            <div class="pf-ambient-meta" id="pf-ambient-meta-a"></div>
+            <div class="pf-ambient-meta" id="pf-ambient-meta-b"></div>
         `;
         // Tap anywhere on the overlay to dismiss
         overlay.addEventListener('click', exitAmbient, { capture: true });
@@ -1139,7 +1818,7 @@ try {
             const userId = server.UserId;
             const url = base + '/Users/' + userId + '/Items?Recursive=true' +
                 '&IncludeItemTypes=Movie,Series' +
-                '&Fields=BackdropImageTags' +
+                '&Fields=BackdropImageTags,ImageTags' +
                 '&Filters=IsNotFolder' +
                 '&SortBy=Random&Limit=24';
             const resp = await fetch(url, {
@@ -1154,6 +1833,11 @@ try {
                     name: it.Name,
                     year: it.ProductionYear,
                     url: base + '/Items/' + it.Id + '/Images/Backdrop/0?tag=' + it.BackdropImageTags[0] + '&maxWidth=1280',
+                    // Title-art logo (same image used on the detail page). Present only
+                    // when the item has Logo art uploaded; falls back to text otherwise.
+                    logoUrl: (it.ImageTags && it.ImageTags.Logo)
+                        ? base + '/Items/' + it.Id + '/Images/Logo?tag=' + it.ImageTags.Logo + '&maxHeight=180'
+                        : null,
                 }));
         } catch (e) {
             console.warn('[portalfin] ambient fetch failed', e);
@@ -1171,21 +1855,42 @@ try {
         const targetEl = document.getElementById('pf-ambient-img-' + target);
         const previousEl = activeImgEl ? document.getElementById('pf-ambient-img-' + activeImgEl) : null;
         if (!targetEl) return;
+        // The title layer (a/b) pairs with the same-letter image layer so the
+        // two crossfade together. Prep the OUTGOING title text/logo on the
+        // target layer now (while it's still invisible), then reveal it in
+        // lockstep with the backdrop inside onload — never snap a new title
+        // onto the old artwork.
+        const targetMeta = document.getElementById('pf-ambient-meta-' + target);
+        const previousMeta = activeImgEl ? document.getElementById('pf-ambient-meta-' + activeImgEl) : null;
+        if (targetMeta) {
+            if (item.logoUrl) {
+                // Movie's title-art logo (same image as the detail page,
+                // sized to match: 360×90, bottom-right of the overlay).
+                targetMeta.textContent = '';
+                targetMeta.style.backgroundImage = 'url("' + item.logoUrl + '")';
+                targetMeta.classList.add('pf-ambient-meta-logo');
+            } else {
+                // No logo art — fall back to text title + year.
+                targetMeta.style.backgroundImage = '';
+                targetMeta.classList.remove('pf-ambient-meta-logo');
+                targetMeta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
+            }
+        }
         // Preload the image so the crossfade doesn't flash a blank gap
         const preload = new Image();
         preload.onload = () => {
             console.log('[portalfin] ambient img loaded', item.name);
             targetEl.style.backgroundImage = 'url("' + item.url + '")';
-            // Class-based toggle so CSS .is-visible (opacity:1!important) wins
-            // over the base .pf-ambient-img (opacity:0) rule.
+            // Class-based toggle so CSS .is-visible (opacity wins) over the
+            // base (opacity:0) rule. Image + its title fade in together.
             targetEl.classList.add('is-visible');
+            if (targetMeta) targetMeta.classList.add('is-visible');
             if (previousEl) previousEl.classList.remove('is-visible');
+            if (previousMeta) previousMeta.classList.remove('is-visible');
         };
         preload.onerror = (e) => { console.warn('[portalfin] ambient image FAILED', item.url); };
         preload.src = item.url;
         activeImgEl = target;
-        const meta = document.getElementById('pf-ambient-meta');
-        if (meta) meta.textContent = item.name + (item.year ? '  ·  ' + item.year : '');
     }
 
     async function enterAmbient() {
@@ -1257,4 +1962,12 @@ try {
         }, { passive: true });
     });
     resetAmbientIdle();
+
+    // NOTE: a "blank-content watchdog" that auto-reloaded any content route it
+    // judged empty was tried here and REMOVED — it matched the #/video player
+    // route, mis-detected the playing video as "blank", and reloaded mid-play,
+    // bouncing the user back to home on every web-player launch (and flashing
+    // card play-buttons away). The dead-home-from-settings case is handled
+    // directly by the back button's explicit home reload instead. Do not
+    // reintroduce a blanket reload watchdog.
 })();

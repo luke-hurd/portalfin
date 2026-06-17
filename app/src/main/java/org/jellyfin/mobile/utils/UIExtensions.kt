@@ -37,14 +37,48 @@ fun LayoutInflater.withThemedContext(context: Context, @StyleRes style: Int): La
     return cloneInContext(ContextThemeWrapper(context, style))
 }
 
+// The Portal reserves a fixed band at the top of the screen for its system
+// back/home overlay. We must keep the WebView pushed below it. We used to rely
+// purely on the OS-reported system-bar inset, but the Portal can report
+// insets.top == 0 (the overlay isn't always exposed as a top system bar),
+// which let the WebView ride up under the icons — the recurring "lost top gap"
+// bug. So on Portal we floor the top margin at this known reserve.
+// See CLAUDE.md rule #3.
+private const val PORTAL_TOP_RESERVE_DP = 64
+
+// During fullscreen video the Portal system overlay is hidden (immersive), so
+// the 64px top reserve must NOT apply — otherwise the WebView (and the video
+// inside it) is pushed down 64px, leaving a gray band at the top and preventing
+// the video from centering vertically in the full screen. This flag is toggled
+// by the fullscreen handler; when true we drop the reserve so the WebView fills
+// the screen. Outside fullscreen the reserve is restored (CLAUDE.md rule #3).
+var portalVideoFullscreen: Boolean = false
+    set(value) {
+        field = value
+        pendingInsetReapply?.invoke()
+    }
+private var pendingInsetReapply: (() -> Unit)? = null
+
 fun View.applyWindowInsetsAsMargins() {
+    val density = resources.displayMetrics.density
+    val isPortal = android.os.Build.DEVICE == "aloha"
+    val portalTopReservePx = (PORTAL_TOP_RESERVE_DP * density).toInt()
     ViewCompat.setOnApplyWindowInsetsListener(this) { _, windowInsets ->
         val insets = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+        // In fullscreen video, drop the Portal top reserve so the WebView fills
+        // the screen and the video centers in the full height.
+        val topMargin = when {
+            isPortal && portalVideoFullscreen -> insets.top
+            isPortal -> maxOf(insets.top, portalTopReservePx)
+            else -> insets.top
+        }
         updateLayoutParams<MarginLayoutParams> {
-            setMargins(insets.left, insets.top, insets.right, insets.bottom)
+            setMargins(insets.left, topMargin, insets.right, insets.bottom)
         }
         windowInsets
     }
+    // Allow the fullscreen toggle to re-run inset application on this view.
+    pendingInsetReapply = { ViewCompat.requestApplyInsets(this) }
 }
 
 fun View.fadeIn() {

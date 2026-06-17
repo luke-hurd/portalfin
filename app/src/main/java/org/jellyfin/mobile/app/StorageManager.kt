@@ -3,18 +3,23 @@ package org.jellyfin.mobile.app
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import android.os.Environment
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
-import org.jellyfin.mobile.R
 import java.io.File
 
 class StorageManager(
     private val context: Context,
     private val appPreferences: AppPreferences,
 ) {
+    // App-private external files dir (e.g. /storage/emulated/0/Android/data/<pkg>/files).
+    // Requires NO runtime storage permission on any Android version — unlike
+    // Environment.getExternalStorageDirectory(), which on Android 9 (the Portal)
+    // needs WRITE_EXTERNAL_STORAGE granted at runtime. The app never requested
+    // that permission, so createDirectory() returned null and every download
+    // failed with "Unable to find or create folder <name>". Downloads are
+    // app-private anyway, so the private dir is the correct home for them.
     private val defaultStorageLocation
-        get() = Environment.getExternalStorageDirectory().absolutePath + File.separator + context.getString(R.string.app_name_short)
+        get() = (context.getExternalFilesDir(null) ?: context.filesDir).absolutePath
 
     init {
         ensureNoMedia(getStorageLocation())
