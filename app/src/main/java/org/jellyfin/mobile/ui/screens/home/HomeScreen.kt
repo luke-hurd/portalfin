@@ -33,6 +33,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -44,13 +45,13 @@ import org.koin.compose.koinInject
 // Tuned for the Portal's 1280x800 landscape screen. Cards are landscape
 // (16:9-ish) so episode stills and movie backdrops both look right, and the
 // touch targets clear the 52dp Portal minimum comfortably.
-private val CARD_WIDTH = 220.dp
+private val CARD_WIDTH = 264.dp
 private val EDGE_PADDING = 24.dp
 
 // Request/decode images at ~2x card width so they stay crisp on the Portal
 // panel; height follows the 16:9 card.
-private const val CARD_IMAGE_WIDTH_PX = 440
-private const val CARD_IMAGE_HEIGHT_PX = 248
+private const val CARD_IMAGE_WIDTH_PX = 528
+private const val CARD_IMAGE_HEIGHT_PX = 297
 
 @Composable
 fun HomeScreen(
@@ -102,36 +103,15 @@ private fun HomeContent(
             .padding(vertical = EDGE_PADDING),
         verticalArrangement = Arrangement.spacedBy(20.dp),
     ) {
+        // My Media — the libraries as a normal row (server-provided thumbnail per
+        // library). Standard Jellyfin layout; scales when there are many
+        // libraries/playlists. Tapping a card dives into that library.
         if (content.libraries.isNotEmpty()) {
-            CategoryBar(libraries = content.libraries, onLibraryClick = onLibraryClick)
+            HomeRowView(HomeRow("My Media", content.libraries), onLibraryClick)
         }
+        // Continue Watching, Next Up, New Releases (<library>) — see HomeViewModel.
         for (row in content.rows) {
             HomeRowView(row, onItemClick)
-        }
-    }
-}
-
-/** Top-level library chips (Movies, TV Shows, …). Tap to dive into a library. */
-@Composable
-private fun CategoryBar(
-    libraries: List<BaseItemDto>,
-    onLibraryClick: (BaseItemDto) -> Unit,
-) {
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = EDGE_PADDING),
-        horizontalArrangement = Arrangement.spacedBy(10.dp),
-    ) {
-        items(libraries, key = { it.id.toString() }) { library ->
-            Text(
-                text = library.name.orEmpty(),
-                style = MaterialTheme.typography.button,
-                color = PortalColors.OnBackground,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .clickable { onLibraryClick(library) }
-                    .background(PortalColors.Surface)
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-            )
         }
     }
 }
@@ -220,7 +200,8 @@ private fun MediaCard(
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = cardLabel(item),
-            style = MaterialTheme.typography.body2,
+            // body2 is 14sp; +10% for slightly more prominent card titles.
+            style = MaterialTheme.typography.body2.copy(fontSize = 15.4.sp),
             color = PortalColors.OnSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

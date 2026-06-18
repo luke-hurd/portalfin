@@ -85,7 +85,7 @@ class HomeViewModel : ViewModel(), KoinComponent {
                 limit = ROW_LIMIT,
             )
             latest.takeIf { it.isNotEmpty() }?.let { items ->
-                rows.add(HomeRow("Latest ${view.name.orEmpty()}".trim(), items))
+                rows.add(HomeRow("New Releases (${view.name.orEmpty()})", items))
             }
         }
 
