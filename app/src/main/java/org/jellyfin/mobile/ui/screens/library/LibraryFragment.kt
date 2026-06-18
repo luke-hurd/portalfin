@@ -13,6 +13,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jellyfin.mobile.databinding.FragmentComposeBinding
 import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
 import org.jellyfin.mobile.ui.utils.AppTheme
+import org.jellyfin.mobile.utils.extensions.requireMainActivity
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 
@@ -49,7 +50,7 @@ class LibraryFragment : Fragment() {
                     // Header is a STATIC Activity-level overlay (see MainActivity);
                     // we only reserve its space so posters scroll behind it.
                     LibraryScreen(
-                        onItemClick = { /* TODO(native-detail): open native detail screen */ },
+                        onItemClick = { item -> requireMainActivity().openDetail(item) },
                         viewModel = vm,
                         topContentPadding = HEADER_HEIGHT,
                     )

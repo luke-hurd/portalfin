@@ -56,11 +56,8 @@ class HomeFragment : Fragment() {
     }
 
     private fun onItemClick(item: BaseItemDto) {
-        // TODO(native-detail): open a native detail screen here. The earlier
-        // WebView deep-link handoff looped (web re-routed back to home on the
-        // Portal), so until the native detail screen exists a media-card tap is a
-        // no-op — you still get the press-feedback animation, just no navigation.
-        // Library navigation (onLibraryClick) works and is the way to browse.
+        // Open the native detail screen (animated, pushed to the back stack).
+        requireMainActivity().openDetail(item)
     }
 
     private fun onLibraryClick(library: BaseItemDto) {

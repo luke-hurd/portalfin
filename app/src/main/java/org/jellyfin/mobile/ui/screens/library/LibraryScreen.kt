@@ -42,6 +42,7 @@ import org.koin.compose.koinInject
 
 private val EDGE_PADDING = 16.dp
 private const val POSTER_WIDTH_PX = 360
+private const val POSTER_HEIGHT_PX = 540 // 2:3 of width
 
 // Shared grid geometry so the skeleton matches the real grid exactly.
 private val GRID_MIN_CELL = 150.dp
@@ -161,6 +162,10 @@ private fun PosterCard(
         )
         ImageRequest.Builder(context)
             .data(url)
+            // Pin the decode to the poster's pixel size (2:3) so each card holds a
+            // poster-sized bitmap, not a full-res one — same fix as the home cards;
+            // this is what makes the grid scroll smoothly.
+            .size(POSTER_WIDTH_PX, POSTER_HEIGHT_PX)
             .crossfade(true)
             .build()
     }

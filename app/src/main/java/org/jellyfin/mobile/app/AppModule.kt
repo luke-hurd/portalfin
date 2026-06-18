@@ -41,6 +41,7 @@ import org.jellyfin.mobile.player.qualityoptions.QualityOptionsProvider
 import org.jellyfin.mobile.player.source.MediaSourceResolver
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectionHelper
+import org.jellyfin.mobile.ui.screens.detail.DetailViewModel
 import org.jellyfin.mobile.ui.screens.home.HomeViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
 import org.jellyfin.mobile.utils.Constants
@@ -87,6 +88,7 @@ val applicationModule = module {
     viewModel { DownloadsViewModel() }
     viewModel { HomeViewModel() }
     viewModel { LibraryViewModel() }
+    viewModel { DetailViewModel() }
 
     // Fragments
     fragment { WebViewFragment() }
