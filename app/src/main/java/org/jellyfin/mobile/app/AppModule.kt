@@ -41,6 +41,8 @@ import org.jellyfin.mobile.player.qualityoptions.QualityOptionsProvider
 import org.jellyfin.mobile.player.source.MediaSourceResolver
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectionHelper
+import org.jellyfin.mobile.ui.screens.home.HomeViewModel
+import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.extractId
@@ -83,6 +85,8 @@ val applicationModule = module {
     // ViewModels
     viewModel { MainViewModel(get(), get()) }
     viewModel { DownloadsViewModel() }
+    viewModel { HomeViewModel() }
+    viewModel { LibraryViewModel() }
 
     // Fragments
     fragment { WebViewFragment() }
@@ -175,6 +179,6 @@ val applicationModule = module {
     single(createdAtStart = true) { StorageManager(get(), get()) }
     single { DownloadManager(get(), get(), get(), get(), get()) }
     single { DownloadNotificationManager(get()) }
-    single { DownloadQueue(get(), get(), get(), get(), get(), get()) }
+    single { DownloadQueue(get(), get(), get(), get(), get(), get(), get()) }
     single { FileDownloader(get()) }
 }

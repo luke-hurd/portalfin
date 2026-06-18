@@ -5,6 +5,7 @@ import android.content.SharedPreferences
 import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
 import androidx.core.content.edit
 import org.jellyfin.mobile.downloads.DownloadMethod
+import org.jellyfin.mobile.downloads.DownloadQuality
 import org.jellyfin.mobile.player.mediasegments.MediaSegmentAction
 import org.jellyfin.mobile.player.mediasegments.toMediaSegmentActionsString
 import org.jellyfin.mobile.settings.ExternalPlayerPackage
@@ -66,6 +67,18 @@ class AppPreferences(context: Context) {
             }
         }
 
+    // Target quality for transcode-on-download. Set from the download dialog;
+    // read by DownloadQueue when building the server transcode URL.
+    var downloadQuality: DownloadQuality
+        get() = DownloadQuality.fromInt(
+            sharedPreferences.getInt(Constants.PREF_DOWNLOAD_QUALITY, DownloadQuality.DEFAULT.intValue),
+        ) ?: DownloadQuality.DEFAULT
+        set(value) {
+            sharedPreferences.edit {
+                putInt(Constants.PREF_DOWNLOAD_QUALITY, value.intValue)
+            }
+        }
+
     var storageLocation: String?
         get() = sharedPreferences.getString(Constants.PREF_STORAGE_LOCATION, null)
         set(value) {
@@ -93,6 +106,11 @@ class AppPreferences(context: Context) {
 
     val musicNotificationAlwaysDismissible: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_MUSIC_NOTIFICATION_ALWAYS_DISMISSIBLE, false)
+
+    // Native home grid (beta). When on, MainActivity routes the authenticated
+    // state to the native Compose HomeFragment instead of the WebView.
+    val useNativeHome: Boolean
+        get() = sharedPreferences.getBoolean(Constants.PREF_USE_NATIVE_HOME, false)
 
     @VideoPlayerType
     val videoPlayerType: String

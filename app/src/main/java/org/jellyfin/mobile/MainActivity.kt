@@ -22,18 +22,22 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.cast.Chromecast
 import org.jellyfin.mobile.player.cast.IChromecast
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectFragment
 import org.jellyfin.mobile.setup.LoginFragment
+import org.jellyfin.mobile.ui.screens.home.HomeFragment
+import org.jellyfin.mobile.ui.screens.library.LibraryFragment
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.BackPressInterceptor
 import org.jellyfin.mobile.utils.BluetoothPermissionHelper
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.SmartOrientationListener
+import org.jellyfin.mobile.utils.extensions.addFragment
 import org.jellyfin.mobile.utils.extensions.replaceFragment
 import org.jellyfin.mobile.utils.isWebViewSupported
 import org.jellyfin.mobile.webapp.RemotePlayerService
@@ -49,6 +53,7 @@ class MainActivity : AppCompatActivity() {
     val bluetoothPermissionHelper: BluetoothPermissionHelper = BluetoothPermissionHelper(this, get())
     val chromecast: IChromecast = Chromecast()
     private val permissionRequestHelper: PermissionRequestHelper by inject()
+    private val appPreferences: AppPreferences by inject()
 
     var serviceBinder: RemotePlayerService.ServiceBinder? = null
         private set
@@ -189,7 +194,15 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
                     is UserState.Available -> {
-                        if (currentFragment !is WebViewFragment || currentFragment.server != serverState.server) {
+                        // Native home grid (beta, flag-gated). When on, the
+                        // authenticated state shows the native Compose home
+                        // instead of the WebView. WebView stays the default and
+                        // still backs every other route (detail, search, player).
+                        if (appPreferences.useNativeHome) {
+                            if (currentFragment !is HomeFragment) {
+                                replaceFragment<HomeFragment>()
+                            }
+                        } else if (currentFragment !is WebViewFragment || currentFragment.server != serverState.server) {
                             replaceFragment<WebViewFragment>(
                                 Bundle().apply {
                                     putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, serverState.server)
@@ -200,6 +213,27 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * Open the WebView at a deep-link path under the current server. Used by the
+     * native home grid's interim tap handoff (TODO(native-detail): replace with a
+     * native detail screen). Added to the back stack so back returns to the
+     * native home.
+     */
+    fun openWebViewAt(path: String) {
+        val server = mainViewModel.serverState.value.server ?: return
+        supportFragmentManager.addFragment<WebViewFragment>(
+            Bundle().apply {
+                putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, server)
+                putString(Constants.FRAGMENT_WEB_VIEW_EXTRA_START_PATH, path)
+            },
+        )
+    }
+
+    /** Dive into a library — push the native library grid onto the back stack. */
+    fun openLibrary(library: org.jellyfin.sdk.model.api.BaseItemDto) {
+        supportFragmentManager.addFragment<LibraryFragment>(LibraryFragment.args(library))
     }
 
     override fun onRequestPermissionsResult(

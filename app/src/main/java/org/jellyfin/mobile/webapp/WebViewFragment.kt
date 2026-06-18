@@ -63,6 +63,10 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
 
     lateinit var server: ServerEntity
         private set
+
+    // Optional deep-link path (e.g. "/web/#/details?id=…") appended to the
+    // server URL on load. Set by the native home grid's interim tap handoff.
+    private var startPath: String? = null
     private var connected = false
     private var restyleApplied = false
     private val timeoutRunnable = Runnable {
@@ -239,6 +243,7 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
         server = requireNotNull(requireArguments().getParcelableCompat(FRAGMENT_WEB_VIEW_EXTRA_SERVER)) {
             "Server entity has not been supplied!"
         }
+        startPath = requireArguments().getString(Constants.FRAGMENT_WEB_VIEW_EXTRA_START_PATH)
 
         assetsPathHandler = AssetsPathHandler(requireContext())
         jellyfinWebViewClient = object : JellyfinWebViewClient(
@@ -345,7 +350,8 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
         addJavascriptInterface(mediaSegments, "MediaSegments")
         addJavascriptInterface(PortalFinBridge(), "PortalFinBridge")
 
-        loadUrl(server.hostname)
+        val startUrl = startPath?.let { path -> server.hostname.trimEnd('/') + path } ?: server.hostname
+        loadUrl(startUrl)
         postDelayed(timeoutRunnable, Constants.INITIAL_CONNECTION_TIMEOUT)
         postDelayed(showLoadingContainerRunnable, Constants.SHOW_PROGRESS_BAR_DELAY)
     }
