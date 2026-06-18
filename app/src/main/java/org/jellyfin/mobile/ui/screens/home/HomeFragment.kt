@@ -4,30 +4,19 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import org.jellyfin.mobile.databinding.FragmentComposeBinding
+import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
+import org.jellyfin.mobile.ui.screens.PortalHeader
 import org.jellyfin.mobile.ui.utils.AppTheme
 import org.jellyfin.mobile.utils.extensions.requireMainActivity
 import org.jellyfin.sdk.model.api.BaseItemDto
@@ -108,52 +97,9 @@ private fun HomeContainer(
             viewModel = viewModel,
             topContentPadding = HEADER_HEIGHT,
         )
-        HomeHeader(
+        PortalHeader(
             onLogoClick = { /* already home; no-op */ },
             modifier = Modifier.align(Alignment.TopCenter),
-        )
-    }
-}
-
-// Centered wordmark, tappable (returns to home). +20% then +5% from the original
-// 36dp ≈ 45dp. wordmark.png is 1080x358 (~3.017:1) — size by height and match
-// that true aspect ratio so it's a clean downscale, not a blurry fit.
-private val WORDMARK_HEIGHT = 45.dp
-private const val WORDMARK_ASPECT = 1080f / 358f
-private val HEADER_HEIGHT = 64.dp
-
-@Composable
-private fun HomeHeader(onLogoClick: () -> Unit, modifier: Modifier = Modifier) {
-    // Darken the top toward black so the logo + Portal OSD buttons sit on a
-    // slightly darker apron than the page background.
-    val top = lerp(MaterialTheme.colors.background, Color.Black, 0.35f)
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(HEADER_HEIGHT)
-            // Translucent apron: near-solid at the top, holding opacity through the
-            // upper half, then a tall fade to transparent so scrolled content
-            // dissolves under it gradually instead of hitting a hard edge.
-            .background(
-                Brush.verticalGradient(
-                    0f to top.copy(alpha = 0.98f),
-                    0.5f to top.copy(alpha = 0.92f),
-                    0.8f to top.copy(alpha = 0.6f),
-                    1f to top.copy(alpha = 0f),
-                ),
-            ),
-        // Anchor the logo in the darker, opaque upper zone (not the faded bottom).
-        contentAlignment = Alignment.TopCenter,
-    ) {
-        AsyncImage(
-            model = "file:///android_asset/native/wordmark.png",
-            contentDescription = "portalfin — home",
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .padding(top = 10.dp)
-                .height(WORDMARK_HEIGHT)
-                .aspectRatio(WORDMARK_ASPECT)
-                .clickable(onClick = onLogoClick),
         )
     }
 }

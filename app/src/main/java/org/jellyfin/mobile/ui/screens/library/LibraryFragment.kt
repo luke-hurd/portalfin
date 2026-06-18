@@ -1,34 +1,32 @@
 package org.jellyfin.mobile.ui.screens.library
 
-import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jellyfin.mobile.databinding.FragmentComposeBinding
+import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
+import org.jellyfin.mobile.ui.screens.PortalHeader
 import org.jellyfin.mobile.ui.utils.AppTheme
+import org.jellyfin.mobile.utils.extensions.requireMainActivity
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 
 /**
- * Native library grid — the destination when a home category chip is tapped.
- * Added to the back stack by MainActivity, so the system back returns to the
- * native home. Top inset handled inside Compose (same approach as HomeFragment).
+ * Native library/category grid — the destination when a home library card is
+ * tapped. Added to the back stack by MainActivity; the Portal OSD back button
+ * pops it back to home (no on-screen back button or title — same header policy
+ * as the home). Shares [PortalHeader]; the poster grid scrolls behind it.
  */
 class LibraryFragment : Fragment() {
     private var _viewBinding: FragmentComposeBinding? = null
@@ -44,7 +42,6 @@ class LibraryFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val libraryId = requireArguments().getString(ARG_LIBRARY_ID)?.toUUIDOrNull()
-        val libraryName = requireArguments().getString(ARG_LIBRARY_NAME).orEmpty()
         if (libraryId == null) {
             parentFragmentManager.popBackStack()
             return
@@ -54,16 +51,17 @@ class LibraryFragment : Fragment() {
             AppTheme {
                 Surface(color = MaterialTheme.colors.background) {
                     val vm: LibraryViewModel = viewModel()
-                    androidx.compose.runtime.LaunchedEffect(libraryId) { vm.load(libraryId) }
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(top = portalTopReserve()),
-                    ) {
+                    LaunchedEffect(libraryId) { vm.load(libraryId) }
+                    Box(modifier = Modifier.fillMaxSize()) {
                         LibraryScreen(
-                            title = libraryName,
                             onItemClick = { /* TODO(native-detail): open native detail screen */ },
                             viewModel = vm,
+                            topContentPadding = HEADER_HEIGHT,
+                        )
+                        // Logo returns to home: pop straight back to the home fragment.
+                        PortalHeader(
+                            onLogoClick = { requireMainActivity().popToHome() },
+                            modifier = Modifier.align(Alignment.TopCenter),
                         )
                     }
                 }
@@ -85,11 +83,4 @@ class LibraryFragment : Fragment() {
             putString(ARG_LIBRARY_NAME, library.name.orEmpty())
         }
     }
-}
-
-@Composable
-private fun portalTopReserve(): Dp {
-    val isPortal = Build.DEVICE == "aloha"
-    val systemTop = WindowInsets.systemBars.asPaddingValues().calculateTopPadding()
-    return if (isPortal) maxOf(systemTop, 64.dp) else systemTop
 }

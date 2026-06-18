@@ -38,6 +38,7 @@ import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.SmartOrientationListener
 import org.jellyfin.mobile.utils.extensions.addFragment
+import org.jellyfin.mobile.utils.extensions.addFragmentAnimated
 import org.jellyfin.mobile.utils.extensions.replaceFragment
 import org.jellyfin.mobile.utils.isWebViewSupported
 import org.jellyfin.mobile.webapp.RemotePlayerService
@@ -233,7 +234,12 @@ class MainActivity : AppCompatActivity() {
 
     /** Dive into a library — push the native library grid onto the back stack. */
     fun openLibrary(library: org.jellyfin.sdk.model.api.BaseItemDto) {
-        supportFragmentManager.addFragment<LibraryFragment>(LibraryFragment.args(library))
+        supportFragmentManager.addFragmentAnimated<LibraryFragment>(LibraryFragment.args(library))
+    }
+
+    /** Return to the native home — pop everything above it off the back stack. */
+    fun popToHome() {
+        supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
     }
 
     override fun onRequestPermissionsResult(

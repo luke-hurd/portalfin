@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -29,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
@@ -45,36 +45,28 @@ private const val POSTER_WIDTH_PX = 360
 
 @Composable
 fun LibraryScreen(
-    title: String,
     onItemClick: (BaseItemDto) -> Unit,
     viewModel: LibraryViewModel,
+    topContentPadding: Dp = 0.dp,
 ) {
     val state by viewModel.state.collectAsState()
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.h5,
-            color = PortalColors.OnBackground,
-            modifier = Modifier.padding(horizontal = EDGE_PADDING + 8.dp, vertical = 12.dp),
-        )
-        Box(modifier = Modifier.fillMaxSize()) {
-            when (val current = state) {
-                is LibraryState.Loading -> CircularProgressIndicator(
-                    modifier = Modifier.align(Alignment.Center),
-                )
-                is LibraryState.Empty -> Text(
-                    text = "This library is empty",
-                    color = PortalColors.OnSurface,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-                is LibraryState.Error -> Text(
-                    text = current.message,
-                    color = PortalColors.Error,
-                    modifier = Modifier.align(Alignment.Center),
-                )
-                is LibraryState.Content -> PosterGrid(current.items, onItemClick)
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        when (val current = state) {
+            is LibraryState.Loading -> CircularProgressIndicator(
+                modifier = Modifier.align(Alignment.Center),
+            )
+            is LibraryState.Empty -> Text(
+                text = "This library is empty",
+                color = PortalColors.OnSurface,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            is LibraryState.Error -> Text(
+                text = current.message,
+                color = PortalColors.Error,
+                modifier = Modifier.align(Alignment.Center),
+            )
+            is LibraryState.Content -> PosterGrid(current.items, onItemClick, topContentPadding)
         }
     }
 }
@@ -83,11 +75,18 @@ fun LibraryScreen(
 private fun PosterGrid(
     items: List<BaseItemDto>,
     onItemClick: (BaseItemDto) -> Unit,
+    topContentPadding: Dp,
 ) {
     // Fixed poster width → as many columns as fit the Portal's 1280px width.
+    // Top padding clears the shared header (posters scroll behind it).
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = 150.dp),
-        contentPadding = PaddingValues(EDGE_PADDING),
+        contentPadding = PaddingValues(
+            start = EDGE_PADDING,
+            end = EDGE_PADDING,
+            top = topContentPadding + EDGE_PADDING,
+            bottom = EDGE_PADDING,
+        ),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalArrangement = Arrangement.spacedBy(18.dp),
     ) {
