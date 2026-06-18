@@ -66,11 +66,12 @@ import org.jellyfin.sdk.model.api.MediaStreamType
 import org.koin.compose.koinInject
 
 private val EDGE_PADDING = 32.dp
-private val SECTION_SPACING = 16.dp
+// +15dp over the old 16dp so the lower sections breathe.
+private val SECTION_SPACING = 31.dp
 // Where the content layer begins over the fullscreen background image — far
 // enough down that the title sits on the image's faded lower region.
 private val CONTENT_TOP_OFFSET = 320.dp
-private val CAST_PHOTO = 96.dp
+private val CAST_PHOTO = 115.dp // +20%
 private val TITLE_ART_MAX_HEIGHT = 96.dp
 private const val TITLE_ART_WIDTH_FRACTION = 0.35f
 private const val TITLE_ART_WIDTH_PX = 600
@@ -217,8 +218,6 @@ private fun DetailInfo(
 
         MetaRow(item)
 
-        EndsAtLabel(item)
-
         // Play/Resume/Start Over + the subtitle picker on one row.
         PlayActions(item, onPlay = { startTicks -> onPlay(item, startTicks, subtitleIndex) }) {
             if (subtitles.isNotEmpty()) {
@@ -351,7 +350,7 @@ private fun CastRow(people: List<BaseItemPerson>) {
                     Spacer(Modifier.height(6.dp))
                     Text(
                         text = person.name.orEmpty(),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = PortalColors.OnBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -422,7 +421,7 @@ private fun PlayActions(
     }
 }
 
-/** Meta line: year · runtime · age rating · ★ community · 🍅 critic (RT). */
+/** Meta line: year · runtime · age rating · ★ community · 🍅 critic · Ends at ~TIME. */
 @Composable
 private fun MetaRow(item: BaseItemDto) {
     val parts = buildList {
@@ -431,6 +430,7 @@ private fun MetaRow(item: BaseItemDto) {
         item.officialRating?.let { add(it) }
         item.communityRating?.let { add("★ %.1f".format(it)) }
         item.criticRating?.let { add("🍅 ${it.toInt()}%") }
+        endsAtLabel(item)?.let { add(it) }
     }
     if (parts.isNotEmpty()) {
         Text(
@@ -443,19 +443,14 @@ private fun MetaRow(item: BaseItemDto) {
 
 /** "Ends at ~8:42 PM" — now + remaining runtime (accounts for resume position). */
 @Composable
-private fun EndsAtLabel(item: BaseItemDto) {
-    val total = item.runTimeTicks ?: return
+private fun endsAtLabel(item: BaseItemDto): String? {
+    val total = item.runTimeTicks ?: return null
     val remaining = (total - (item.userData?.playbackPositionTicks ?: 0L)).coerceAtLeast(0L)
-    val remainingMs = remaining / 10_000L
-    val endMillis = System.currentTimeMillis() + remainingMs
+    val endMillis = System.currentTimeMillis() + remaining / 10_000L
     val time = remember(endMillis / 60_000L) {
         android.text.format.DateFormat.format("h:mm a", endMillis).toString()
     }
-    Text(
-        text = "Ends at ~$time",
-        style = MaterialTheme.typography.bodySmall,
-        color = PortalColors.OnSurface,
-    )
+    return "Ends at ~$time"
 }
 
 /** Subtitle dropdown — applied at play time via PlayOptions.subtitleStreamIndex. */
