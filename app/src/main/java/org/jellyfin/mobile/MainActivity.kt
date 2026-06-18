@@ -195,29 +195,30 @@ class MainActivity : AppCompatActivity() {
                             replaceFragment<LoginFragment>()
                         }
                     }
-                    is UserState.Available -> {
-                        // Native home grid (beta, flag-gated). When on, the
-                        // authenticated state shows the native Compose home
-                        // instead of the WebView. WebView stays the default and
-                        // still backs every other route (detail, search, player).
-                        if (appPreferences.useNativeHome) {
-                            if (currentFragment !is HomeFragment) {
-                                replaceFragment<HomeFragment>()
-                            }
-                        } else if (currentFragment !is WebViewFragment || currentFragment.server != serverState.server) {
-                            replaceFragment<WebViewFragment>(
-                                Bundle().apply {
-                                    putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, serverState.server)
-                                },
-                            )
-                        }
-                    }
+                    is UserState.Available -> routeAuthenticated(currentFragment, serverState.server)
                 }
             }
         }
         // replaceFragment isn't a back-stack op, so sync the header here too.
         supportFragmentManager.executePendingTransactions()
         updatePortalHeaderVisibility()
+    }
+
+    /**
+     * Authenticated landing route. Native home grid (beta, flag-gated): when on,
+     * show the native Compose home; otherwise the WebView, which still backs
+     * every other route (detail, search, player).
+     */
+    private fun routeAuthenticated(currentFragment: Fragment?, server: org.jellyfin.mobile.data.entity.ServerEntity) {
+        if (appPreferences.useNativeHome) {
+            if (currentFragment !is HomeFragment) {
+                supportFragmentManager.replaceFragment<HomeFragment>()
+            }
+        } else if (currentFragment !is WebViewFragment || currentFragment.server != server) {
+            supportFragmentManager.replaceFragment<WebViewFragment>(
+                Bundle().apply { putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, server) },
+            )
+        }
     }
 
     /**

@@ -1,5 +1,10 @@
 package org.jellyfin.mobile.ui.screens.library
 
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -15,7 +20,6 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +47,14 @@ import org.koin.compose.koinInject
 private val EDGE_PADDING = 16.dp
 private const val POSTER_WIDTH_PX = 360
 
+// Shared grid geometry so the skeleton matches the real grid exactly.
+private val GRID_MIN_CELL = 150.dp
+private val GRID_H_SPACING = 14.dp
+private val GRID_V_SPACING = 18.dp
+private val POSTER_CORNER = 10.dp
+private const val POSTER_ASPECT = 2f / 3f
+private const val SKELETON_COUNT = 24
+
 @Composable
 fun LibraryScreen(
     onItemClick: (BaseItemDto) -> Unit,
@@ -53,9 +65,7 @@ fun LibraryScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (val current = state) {
-            is LibraryState.Loading -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-            )
+            is LibraryState.Loading -> PosterGridSkeleton(topContentPadding)
             is LibraryState.Empty -> Text(
                 text = "This library is empty",
                 color = PortalColors.OnSurface,
@@ -80,18 +90,68 @@ private fun PosterGrid(
     // Fixed poster width → as many columns as fit the Portal's 1280px width.
     // Top padding clears the shared header (posters scroll behind it).
     LazyVerticalGrid(
-        columns = GridCells.Adaptive(minSize = 150.dp),
+        columns = GridCells.Adaptive(minSize = GRID_MIN_CELL),
         contentPadding = PaddingValues(
             start = EDGE_PADDING,
             end = EDGE_PADDING,
             top = topContentPadding + EDGE_PADDING,
             bottom = EDGE_PADDING,
         ),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        horizontalArrangement = Arrangement.spacedBy(GRID_H_SPACING),
+        verticalArrangement = Arrangement.spacedBy(GRID_V_SPACING),
     ) {
         items(items, key = { it.id.toString() }, contentType = { "poster" }) { item ->
             PosterCard(item = item, onClick = { onItemClick(item) })
+        }
+    }
+}
+
+/**
+ * Loading skeleton: the SAME grid geometry as [PosterGrid] (cell size, spacing,
+ * poster aspect/corner) filled with gently-pulsing placeholders, so the wait
+ * reads as the page laying out rather than a bare spinner. No scroll while loading.
+ */
+@Composable
+private fun PosterGridSkeleton(topContentPadding: Dp) {
+    val transition = rememberInfiniteTransition(label = "librarySkeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        label = "librarySkeletonAlpha",
+    )
+
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = GRID_MIN_CELL),
+        contentPadding = PaddingValues(
+            start = EDGE_PADDING,
+            end = EDGE_PADDING,
+            top = topContentPadding + EDGE_PADDING,
+            bottom = EDGE_PADDING,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(GRID_H_SPACING),
+        verticalArrangement = Arrangement.spacedBy(GRID_V_SPACING),
+        userScrollEnabled = false,
+    ) {
+        items(SKELETON_COUNT, contentType = { "poster-skeleton" }) {
+            Column {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(POSTER_ASPECT)
+                        .clip(RoundedCornerShape(POSTER_CORNER))
+                        .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                // Placeholder label line.
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.7f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                )
+            }
         }
     }
 }
@@ -119,14 +179,14 @@ private fun PosterCard(
 
     Column(
         modifier = Modifier
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(POSTER_CORNER))
             .clickable(onClick = onClick),
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(2f / 3f)
-                .clip(RoundedCornerShape(10.dp))
+                .aspectRatio(POSTER_ASPECT)
+                .clip(RoundedCornerShape(POSTER_CORNER))
                 .background(PortalColors.SurfaceVariant),
         ) {
             AsyncImage(
