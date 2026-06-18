@@ -1,7 +1,15 @@
 package org.jellyfin.mobile.ui.screens.home
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,20 +26,25 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.MaterialTheme
+import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
@@ -46,7 +59,13 @@ import org.koin.compose.koinInject
 // (16:9-ish) so episode stills and movie backdrops both look right, and the
 // touch targets clear the 52dp Portal minimum comfortably.
 private val CARD_WIDTH = 264.dp
-private val EDGE_PADDING = 24.dp
+private val EDGE_PADDING = 28.dp
+private val ROW_SPACING = 26.dp
+private val CARD_SPACING = 16.dp
+private val CARD_CORNER = 12.dp
+private const val PRESS_SCALE = 0.94f
+private const val PRESS_DOWN_MS = 90
+private const val PRESS_UP_MS = 120
 
 // Request/decode images at ~2x card width so they stay crisp on the Portal
 // panel; height follows the 16:9 card.
@@ -58,14 +77,13 @@ fun HomeScreen(
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
     viewModel: HomeViewModel,
+    topContentPadding: Dp = 0.dp,
 ) {
     val state by viewModel.state.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (val current = state) {
-            is HomeState.Loading -> CircularProgressIndicator(
-                modifier = Modifier.align(Alignment.Center),
-            )
+            is HomeState.Loading -> HomeSkeleton(topContentPadding)
             is HomeState.Empty -> Text(
                 text = "Nothing to continue watching yet",
                 color = PortalColors.OnSurface,
@@ -78,7 +96,7 @@ fun HomeScreen(
                     .align(Alignment.Center)
                     .padding(EDGE_PADDING),
             )
-            is HomeState.Content -> HomeContent(current, onItemClick, onLibraryClick)
+            is HomeState.Content -> HomeContent(current, onItemClick, onLibraryClick, topContentPadding)
         }
     }
 }
@@ -88,6 +106,7 @@ private fun HomeContent(
     content: HomeState.Content,
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
+    topContentPadding: Dp,
 ) {
     // A plain scrolling Column, NOT a LazyColumn. The home has only a handful of
     // rows; the expensive part is each row's LazyRow. In a LazyColumn, a whole
@@ -100,14 +119,14 @@ private fun HomeContent(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(vertical = EDGE_PADDING),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
+            .padding(top = topContentPadding + EDGE_PADDING, bottom = EDGE_PADDING),
+        verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
     ) {
         // My Media — the libraries as a normal row (server-provided thumbnail per
-        // library). Standard Jellyfin layout; scales when there are many
-        // libraries/playlists. Tapping a card dives into that library.
+        // library), but with the library-card style so it reads as navigation.
+        // Standard Jellyfin layout; scales when there are many libraries.
         if (content.libraries.isNotEmpty()) {
-            HomeRowView(HomeRow("My Media", content.libraries), onLibraryClick)
+            HomeRowView(HomeRow("My Media", content.libraries), onLibraryClick, isLibraryRow = true)
         }
         // Continue Watching, Next Up, New Releases (<library>) — see HomeViewModel.
         for (row in content.rows) {
@@ -120,27 +139,37 @@ private fun HomeContent(
 private fun HomeRowView(
     row: HomeRow,
     onItemClick: (BaseItemDto) -> Unit,
+    isLibraryRow: Boolean = false,
 ) {
     Column {
-        Text(
-            text = row.title,
-            style = MaterialTheme.typography.h6,
-            color = PortalColors.OnBackground,
-            modifier = Modifier.padding(start = EDGE_PADDING, bottom = 10.dp),
-        )
+        RowTitle(row.title)
         LazyRow(
             contentPadding = PaddingValues(horizontal = EDGE_PADDING),
-            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            horizontalArrangement = Arrangement.spacedBy(CARD_SPACING),
         ) {
             items(
                 row.items,
                 key = { item -> item.id.toString() },
-                contentType = { "media-card" },
+                contentType = { if (isLibraryRow) "library-card" else "media-card" },
             ) { item ->
-                MediaCard(item = item, onClick = { onItemClick(item) })
+                if (isLibraryRow) {
+                    LibraryCard(item = item, onClick = { onItemClick(item) })
+                } else {
+                    MediaCard(item = item, onClick = { onItemClick(item) })
+                }
             }
         }
     }
+}
+
+@Composable
+private fun RowTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.SemiBold),
+        color = PortalColors.OnBackground,
+        modifier = Modifier.padding(start = EDGE_PADDING, bottom = 12.dp),
+    )
 }
 
 @Composable
@@ -163,17 +192,12 @@ private fun MediaCard(
             .build()
     }
 
-    Column(
-        modifier = Modifier
-            .width(CARD_WIDTH)
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-    ) {
+    Column(modifier = Modifier.width(CARD_WIDTH).pressable(onClick)) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 9f)
-                .clip(RoundedCornerShape(12.dp))
+                .clip(RoundedCornerShape(CARD_CORNER))
                 .background(PortalColors.SurfaceVariant),
         ) {
             AsyncImage(
@@ -207,6 +231,125 @@ private fun MediaCard(
             overflow = TextOverflow.Ellipsis,
         )
     }
+}
+
+/**
+ * Library ("My Media") card. Jellyfin's library images already have the library
+ * name rendered into the artwork (just like jellyfin-web's library cards), so we
+ * show the image alone — no separate label, which would duplicate the name.
+ */
+@Composable
+private fun LibraryCard(
+    item: BaseItemDto,
+    onClick: () -> Unit,
+) {
+    val apiClient: ApiClient = koinInject()
+    val context = LocalContext.current
+
+    val imageRequest = remember(apiClient, item.id, context) {
+        val url = item.cardImageUrl(apiClient, maxWidth = CARD_IMAGE_WIDTH_PX)
+        ImageRequest.Builder(context)
+            .data(url)
+            .size(CARD_IMAGE_WIDTH_PX, CARD_IMAGE_HEIGHT_PX)
+            .crossfade(true)
+            .build()
+    }
+
+    Box(
+        modifier = Modifier
+            .width(CARD_WIDTH)
+            .pressable(onClick)
+            .aspectRatio(16f / 9f)
+            .clip(RoundedCornerShape(CARD_CORNER))
+            .background(PortalColors.SurfaceVariant),
+    ) {
+        AsyncImage(
+            model = imageRequest,
+            contentDescription = item.name,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+/** Loading skeleton: a couple of placeholder rows that gently pulse. */
+@Composable
+private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.35f,
+        targetValue = 0.7f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
+        label = "skeletonAlpha",
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = topContentPadding + EDGE_PADDING, bottom = EDGE_PADDING),
+        verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
+    ) {
+        repeat(3) {
+            Column {
+                // Placeholder row title.
+                Box(
+                    modifier = Modifier
+                        .padding(start = EDGE_PADDING, bottom = 12.dp)
+                        .width(180.dp)
+                        .height(20.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                )
+                LazyRow(
+                    contentPadding = PaddingValues(horizontal = EDGE_PADDING),
+                    horizontalArrangement = Arrangement.spacedBy(CARD_SPACING),
+                    userScrollEnabled = false,
+                ) {
+                    items(5) {
+                        Box(
+                            modifier = Modifier
+                                .width(CARD_WIDTH)
+                                .aspectRatio(16f / 9f)
+                                .clip(RoundedCornerShape(CARD_CORNER))
+                                .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Tap feedback: on a tap (not long-press), play a quick squish (scale down then
+ * back), and only fire [onClick] AFTER the animation finishes — so navigation
+ * doesn't cut the animation off. The card also tracks the finger while held.
+ */
+@Composable
+private fun Modifier.pressable(onClick: () -> Unit): Modifier {
+    val scope = rememberCoroutineScope()
+    val scale = remember { Animatable(1f) }
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+
+    // While the finger is down, hold the scaled-down state for live feedback.
+    LaunchedEffect(pressed) {
+        if (pressed) scale.animateTo(PRESS_SCALE, tween(PRESS_DOWN_MS))
+    }
+
+    return this
+        .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+        .clickable(
+            interactionSource = interactionSource,
+            indication = null,
+        ) {
+            // Tap: finish the squish, spring back, THEN navigate.
+            scope.launch {
+                scale.animateTo(PRESS_SCALE, tween(PRESS_DOWN_MS))
+                scale.animateTo(1f, tween(PRESS_UP_MS))
+                onClick()
+            }
+        }
 }
 
 /** Episodes read better as "Series · S1:E2"; everything else uses its name. */
