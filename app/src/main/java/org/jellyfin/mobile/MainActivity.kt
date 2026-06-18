@@ -244,6 +244,11 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
     }
 
+    /** Open the settings screen (from the home Settings card). */
+    fun openSettings() {
+        activityEventHandler.emit(ActivityEvent.OpenSettings)
+    }
+
     /**
      * The portalfin header is an Activity-level overlay (above the fragment
      * container) so it stays STATIC while fragments animate beneath it. Native
@@ -253,10 +258,7 @@ class MainActivity : AppCompatActivity() {
         val header = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header)
         header.setContent {
             org.jellyfin.mobile.ui.utils.AppTheme {
-                org.jellyfin.mobile.ui.screens.PortalHeader(
-                    onLogoClick = { popToHome() },
-                    onSettingsClick = { activityEventHandler.emit(ActivityEvent.OpenSettings) },
-                )
+                org.jellyfin.mobile.ui.screens.PortalHeader(onLogoClick = { popToHome() })
             }
         }
         // Keep header visibility in sync with whatever fragment is on top —

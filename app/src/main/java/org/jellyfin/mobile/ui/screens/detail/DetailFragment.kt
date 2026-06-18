@@ -15,6 +15,7 @@ import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.interaction.PlayOptions
 import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
+import org.jellyfin.mobile.utils.extensions.requireMainActivity
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.extensions.ticks
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
@@ -57,6 +58,7 @@ class DetailFragment : Fragment() {
                     // the apron on this screen). Just reserve its height.
                     DetailScreen(
                         onPlay = ::play,
+                        onItemClick = { related -> requireMainActivity().openDetail(related) },
                         viewModel = vm,
                         topContentPadding = HEADER_HEIGHT,
                     )
@@ -65,7 +67,7 @@ class DetailFragment : Fragment() {
         }
     }
 
-    private fun play(item: BaseItemDto, startTicks: Long) {
+    private fun play(item: BaseItemDto, startTicks: Long, subtitleIndex: Int?) {
         activityEventHandler.emit(
             ActivityEvent.LaunchNativePlayer(
                 PlayOptions(
@@ -75,7 +77,7 @@ class DetailFragment : Fragment() {
                     // Resume from the saved position; "Start Over" passes 0.
                     startPosition = startTicks.takeIf { it > 0 }?.ticks,
                     audioStreamIndex = null,
-                    subtitleStreamIndex = null,
+                    subtitleStreamIndex = subtitleIndex,
                     playFromDownloads = false,
                 ),
             ),

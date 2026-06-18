@@ -7,15 +7,10 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
@@ -41,12 +36,9 @@ val HEADER_HEIGHT: Dp = 64.dp
 // Simple square white logo (no wordmark). 43dp then -10% → ~39dp.
 private val LOGO_SIZE = 39.dp
 
-private val GEAR_SIZE = 40.dp
-
 @Composable
 fun PortalHeader(
     onLogoClick: () -> Unit,
-    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // Slightly darken the apron toward black so the white logo + Portal OSD
@@ -68,29 +60,18 @@ fun PortalHeader(
         contentAlignment = Alignment.TopCenter,
     ) {
         // Small white-mark PNG, sized for the header slot (no big-image downscale).
+        // NOTE: this sits in the Portal OSD band (top ~64px) which eats touches, so
+        // it's branding only — taps don't register (the OSD overlay consumes them).
+        // Settings/home navigation lives in tappable content below the band (the
+        // home Settings card). onLogoClick kept for non-Portal devices.
         AsyncImage(
             model = "file:///android_asset/native/white-logo.png",
-            contentDescription = "portalfin — home",
+            contentDescription = "portalfin",
             contentScale = ContentScale.Fit,
             modifier = Modifier
                 .padding(top = 8.dp)
                 .size(LOGO_SIZE)
                 .clickable(onClick = onLogoClick),
-        )
-
-        // Settings gear, top-right. Sits to the LEFT of the Portal OSD wifi icon
-        // (which lives in the far-right corner) via the right padding.
-        Icon(
-            imageVector = Icons.Filled.Settings,
-            contentDescription = "Settings",
-            tint = Color.White,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(top = 8.dp, end = 64.dp)
-                .clip(CircleShape)
-                .clickable(onClick = onSettingsClick)
-                .padding(6.dp)
-                .size(GEAR_SIZE),
         )
     }
 }

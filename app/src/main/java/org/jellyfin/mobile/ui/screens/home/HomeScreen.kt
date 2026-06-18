@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -60,6 +64,7 @@ private const val CARD_IMAGE_HEIGHT_PX = 297
 fun HomeScreen(
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: HomeViewModel,
     topContentPadding: Dp = 0.dp,
 ) {
@@ -80,7 +85,13 @@ fun HomeScreen(
                     .align(Alignment.Center)
                     .padding(EDGE_PADDING),
             )
-            is HomeState.Content -> HomeContent(current, onItemClick, onLibraryClick, topContentPadding)
+            is HomeState.Content -> HomeContent(
+                content = current,
+                onItemClick = onItemClick,
+                onLibraryClick = onLibraryClick,
+                onSettingsClick = onSettingsClick,
+                topContentPadding = topContentPadding,
+            )
         }
     }
 }
@@ -90,6 +101,7 @@ private fun HomeContent(
     content: HomeState.Content,
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
+    onSettingsClick: () -> Unit,
     topContentPadding: Dp,
 ) {
     // A plain scrolling Column, NOT a LazyColumn. The home has only a handful of
@@ -110,7 +122,12 @@ private fun HomeContent(
         // library), but with the library-card style so it reads as navigation.
         // Standard Jellyfin layout; scales when there are many libraries.
         if (content.libraries.isNotEmpty()) {
-            HomeRowView(HomeRow("My Media", content.libraries), onLibraryClick, isLibraryRow = true)
+            HomeRowView(
+                row = HomeRow("My Media", content.libraries),
+                onItemClick = onLibraryClick,
+                isLibraryRow = true,
+                onSettingsClick = onSettingsClick,
+            )
         }
         // Continue Watching, Next Up, New Releases (<library>) — see HomeViewModel.
         for (row in content.rows) {
@@ -124,6 +141,7 @@ private fun HomeRowView(
     row: HomeRow,
     onItemClick: (BaseItemDto) -> Unit,
     isLibraryRow: Boolean = false,
+    onSettingsClick: (() -> Unit)? = null,
 ) {
     Column {
         RowTitle(row.title)
@@ -142,7 +160,38 @@ private fun HomeRowView(
                     MediaCard(item = item, onClick = { onItemClick(item) })
                 }
             }
+            // Settings card trails the My Media libraries — half width, big gear.
+            // Lives in scroll content (below the OSD band) so it's actually tappable,
+            // unlike the dead header.
+            if (onSettingsClick != null) {
+                item(contentType = "settings-card") {
+                    SettingsCard(onClick = onSettingsClick)
+                }
+            }
         }
+    }
+}
+
+/** Half-width card (same height as a library card) with a large gear; opens Settings. */
+@Composable
+private fun SettingsCard(onClick: () -> Unit) {
+    // Library cards are CARD_WIDTH wide at 16:9 → this is half the width, same height.
+    val cardHeight = CARD_WIDTH * 9f / 16f
+    Box(
+        modifier = Modifier
+            .width(CARD_WIDTH / 2)
+            .height(cardHeight)
+            .clip(RoundedCornerShape(CARD_CORNER))
+            .background(PortalColors.Surface)
+            .pressable(onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Settings,
+            contentDescription = "Settings",
+            tint = PortalColors.OnBackground,
+            modifier = Modifier.size(48.dp),
+        )
     }
 }
 

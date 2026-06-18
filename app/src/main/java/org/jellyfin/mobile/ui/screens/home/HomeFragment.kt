@@ -49,6 +49,7 @@ class HomeFragment : Fragment() {
                     HomeContainer(
                         onItemClick = ::onItemClick,
                         onLibraryClick = ::onLibraryClick,
+                        onSettingsClick = ::onSettingsClick,
                     )
                 }
             }
@@ -65,6 +66,10 @@ class HomeFragment : Fragment() {
         requireMainActivity().openLibrary(library)
     }
 
+    private fun onSettingsClick() {
+        requireMainActivity().openSettings()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _viewBinding = null
@@ -75,6 +80,7 @@ class HomeFragment : Fragment() {
 private fun HomeContainer(
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
+    onSettingsClick: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
 ) {
     // The portalfin header is a STATIC Activity-level overlay (see MainActivity)
@@ -83,6 +89,7 @@ private fun HomeContainer(
     HomeScreen(
         onItemClick = onItemClick,
         onLibraryClick = onLibraryClick,
+        onSettingsClick = onSettingsClick,
         viewModel = viewModel,
         topContentPadding = HEADER_HEIGHT,
     )
