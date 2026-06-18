@@ -3,9 +3,10 @@ package org.jellyfin.mobile.ui.screens.detail
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -18,6 +19,7 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -42,16 +44,14 @@ import org.jellyfin.sdk.model.api.ImageType
 import org.koin.compose.koinInject
 
 private val EDGE_PADDING = 32.dp
-private val BACKDROP_HEIGHT = 420.dp
-private val CONTENT_TOP_OFFSET = 260.dp
 private val SECTION_SPACING = 16.dp
 private const val BACKDROP_WIDTH_PX = 1280
-private const val SCRIM_START = 0.4f
+private const val HERO_ASPECT = 16f / 9f
 private const val TICKS_PER_MINUTE = 600_000_000L
 
 @Composable
 fun DetailScreen(
-    onPlay: (BaseItemDto) -> Unit,
+    onPlay: (BaseItemDto, startTicks: Long) -> Unit,
     viewModel: DetailViewModel,
     topContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
@@ -75,13 +75,15 @@ fun DetailScreen(
 @Composable
 private fun DetailContent(
     item: BaseItemDto,
-    onPlay: (BaseItemDto) -> Unit,
+    onPlay: (BaseItemDto, Long) -> Unit,
     topContentPadding: androidx.compose.ui.unit.Dp,
 ) {
     val apiClient: ApiClient = koinInject()
     val context = LocalContext.current
 
-    val backdrop = remember(apiClient, item.id, context) {
+    // Prefer the wide BACKDROP (cinematic, what jellyfin-web shows up top); fall
+    // back to PRIMARY only when there's no backdrop.
+    val hero = remember(apiClient, item.id, context) {
         val type = if (!item.backdropImageTags.isNullOrEmpty()) ImageType.BACKDROP else ImageType.PRIMARY
         val url = apiClient.imageApi.getItemImageUrl(
             itemId = item.id,
@@ -91,50 +93,53 @@ private fun DetailContent(
         ImageRequest.Builder(context).data(url).crossfade(true).build()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        // Hero backdrop, top-aligned, with a scrim fading into the page so text
-        // below it stays legible.
-        AsyncImage(
-            model = backdrop,
-            contentDescription = item.name,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(BACKDROP_HEIGHT)
-                .align(Alignment.TopCenter),
-        )
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(BACKDROP_HEIGHT)
-                .align(Alignment.TopCenter)
-                .drawWithCache {
-                    val brush = Brush.verticalGradient(
-                        SCRIM_START to Color.Transparent,
-                        1f to PortalColors.Background,
-                    )
-                    onDrawWithContent {
-                        drawContent()
-                        drawRect(brush)
-                    }
-                },
-        )
+    // The hero scrolls WITH the content (it's the first item in the scroll
+    // column), sits behind nothing, shows the WHOLE image (Fit, full 16:9), and
+    // fades into the page background at its lower edge.
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState()),
+    ) {
+        Box(modifier = Modifier.fillMaxWidth().aspectRatio(HERO_ASPECT)) {
+            AsyncImage(
+                model = hero,
+                contentDescription = item.name,
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.fillMaxSize(),
+            )
+            // Fade only the bottom strip into the background so the content below
+            // blends in — keep most of the image clear.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .drawWithCache {
+                        val brush = Brush.verticalGradient(
+                            0.7f to Color.Transparent,
+                            1f to PortalColors.Background,
+                        )
+                        onDrawWithContent {
+                            drawContent()
+                            drawRect(brush)
+                        }
+                    },
+            )
+        }
 
-        DetailInfo(item, onPlay, topContentPadding)
+        DetailInfo(item, onPlay)
     }
 }
 
 @Composable
 private fun DetailInfo(
     item: BaseItemDto,
-    onPlay: (BaseItemDto) -> Unit,
-    topContentPadding: androidx.compose.ui.unit.Dp,
+    onPlay: (BaseItemDto, Long) -> Unit,
 ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(top = topContentPadding + CONTENT_TOP_OFFSET, bottom = EDGE_PADDING)
+            .fillMaxWidth()
+            // Pull up so the content overlaps the hero's faded bottom edge.
+            .padding(top = 0.dp, bottom = EDGE_PADDING)
             .padding(horizontal = EDGE_PADDING),
         verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
     ) {
@@ -149,7 +154,7 @@ private fun DetailInfo(
             Text(text = meta, style = MaterialTheme.typography.bodyMedium, color = PortalColors.OnSurface)
         }
 
-        PlayButton(onClick = { onPlay(item) })
+        PlayActions(item, onPlay)
 
         item.overview?.takeIf { it.isNotBlank() }?.let { overview ->
             Text(
@@ -169,17 +174,52 @@ private fun DetailInfo(
     }
 }
 
+/**
+ * Play actions. With saved progress: "Resume HH:MM" (primary) + "Start Over"
+ * (outlined). Otherwise a single "Play". All M3, heightIn(min=52dp) per guide.
+ */
 @Composable
-private fun PlayButton(onClick: () -> Unit) {
-    // M3 Button (pill), Meta blue. heightIn(min=52dp) per the Portal style guide.
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = PortalColors.MetaBlue),
-        modifier = Modifier.heightIn(min = 52.dp).widthIn(min = 160.dp),
-    ) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = null)
-        Text(text = "  Play", style = MaterialTheme.typography.labelLarge)
+private fun PlayActions(
+    item: BaseItemDto,
+    onPlay: (BaseItemDto, Long) -> Unit,
+) {
+    val resumeTicks = item.userData?.playbackPositionTicks ?: 0L
+    Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+        if (resumeTicks > 0) {
+            Button(
+                onClick = { onPlay(item, resumeTicks) },
+                colors = ButtonDefaults.buttonColors(containerColor = PortalColors.MetaBlue),
+                modifier = Modifier.heightIn(min = 52.dp).widthIn(min = 160.dp),
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Text(text = "  Resume ${formatTicks(resumeTicks)}", style = MaterialTheme.typography.labelLarge)
+            }
+            OutlinedButton(
+                onClick = { onPlay(item, 0L) },
+                modifier = Modifier.heightIn(min = 52.dp),
+            ) {
+                Text(text = "Start Over", style = MaterialTheme.typography.labelLarge)
+            }
+        } else {
+            Button(
+                onClick = { onPlay(item, 0L) },
+                colors = ButtonDefaults.buttonColors(containerColor = PortalColors.MetaBlue),
+                modifier = Modifier.heightIn(min = 52.dp).widthIn(min = 160.dp),
+            ) {
+                Icon(Icons.Filled.PlayArrow, contentDescription = null)
+                Text(text = "  Play", style = MaterialTheme.typography.labelLarge)
+            }
+        }
     }
+}
+
+/** Ticks → "1:23:45" or "4:05". */
+private fun formatTicks(ticks: Long): String {
+    val totalSeconds = (ticks / 10_000_000L).toInt()
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = totalSeconds % 60
+    return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
 /** "2024 · 2h 14m · PG-13 · ★ 8.1" — only the parts the item actually has. */
