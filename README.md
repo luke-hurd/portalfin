@@ -134,16 +134,26 @@ adb install -r app/build/outputs/apk/proprietary/debug/portalfin-v*-proprietary-
 
 Shipped:
 
-- [x] **CSS view transitions** between SPA routes — kill the flat web-app feel on every navigation
-- [x] **Native splash → home crossfade** — splash logo crossfades into the styled web app
-- [x] **Ambient slideshow** — after 60s idle, fullscreen rotating gallery of Jellyfin backdrop art with oversized clock + date + current item title; tap to wake. Fills the screen edge-to-edge (drops the Portal top inset) and keeps the display awake.
-- [x] **Custom video player chrome** — minimal back/title/cast top bar, black letterbox, enlarged transport controls, all auto-hiding with the OSD
+- [x] **Native UI rebuild (v2.0)** — native Jetpack Compose home, library, and
+  detail screens calling the Jellyfin REST API directly, on Meta's Portal design
+  system (Material 3 + Inter + Meta blue). See [v2.0.0 release notes](docs/releases/v2.0.0.md).
+- [x] **Native Portal home grid** — My Media + Continue Watching + Next Up + New
+  Releases rails, replacing jellyfin-web's React home.
+- [x] **Native library pages** — pagination, quick-filter pills (All / Favorites /
+  Genres / Collections), grouped genre & collection grids.
+- [x] **Native detail page** — fullscreen backdrop, title art, Play/Resume,
+  cast & crew, scenes (chapters), more-like-this, RT score, subtitle picker.
+- [x] **CSS view transitions** between SPA routes (v1.1)
+- [x] **Native splash → home crossfade** (v1.1)
+- [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)
+- [x] **Custom video player chrome** — minimal back/title/cast bar, black letterbox (v1.1)
 
 Next up — contributions welcome:
 
+- [ ] **Migrate the remaining screens to M3** — Connect / Login / Downloads /
+  Settings are still Material 2.
 - [ ] **Weather overlay** on the ambient slideshow (clock + date are done; weather is not)
 - [ ] **Transcode-on-download quality picker** (in progress) — pick 1080p/720p and transcode server-side to a phone-sized MP4 instead of the multi-GB remux
-- [ ] **Native Portal home grid** — replace jellyfin-web's React home with native Compose tiles calling the Jellyfin REST API directly. Biggest lift, biggest payoff for "feels native."
 - [ ] **Voice control** via the Portal's built-in mic ("portalfin, play Back to the Future")
 
 ## Architecture
