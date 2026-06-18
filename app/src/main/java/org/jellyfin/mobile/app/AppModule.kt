@@ -43,6 +43,7 @@ import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectionHelper
 import org.jellyfin.mobile.ui.screens.detail.DetailViewModel
 import org.jellyfin.mobile.ui.screens.home.HomeViewModel
+import org.jellyfin.mobile.ui.screens.library.LibraryGroupViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
@@ -88,6 +89,7 @@ val applicationModule = module {
     viewModel { DownloadsViewModel() }
     viewModel { HomeViewModel() }
     viewModel { LibraryViewModel() }
+    viewModel { LibraryGroupViewModel() }
     viewModel { DetailViewModel() }
 
     // Fragments

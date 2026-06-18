@@ -37,6 +37,7 @@ class LibraryFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         val libraryId = requireArguments().getString(ARG_LIBRARY_ID)?.toUUIDOrNull()
+        val libraryName = requireArguments().getString(ARG_LIBRARY_NAME).orEmpty()
         if (libraryId == null) {
             parentFragmentManager.popBackStack()
             return
@@ -45,13 +46,15 @@ class LibraryFragment : Fragment() {
         composeView.setContent {
             AppTheme {
                 Surface(color = MaterialTheme.colorScheme.background) {
-                    val vm: LibraryViewModel = viewModel()
-                    LaunchedEffect(libraryId) { vm.load(libraryId) }
                     // Header is a STATIC Activity-level overlay (see MainActivity);
-                    // we only reserve its space so posters scroll behind it.
+                    // we only reserve its space so posters scroll behind it. The
+                    // screen owns the filter state and drives the right ViewModel.
                     LibraryScreen(
+                        title = libraryName,
+                        libraryId = libraryId,
                         onItemClick = { item -> requireMainActivity().openDetail(item) },
-                        viewModel = vm,
+                        viewModel = viewModel(),
+                        groupViewModel = viewModel(),
                         topContentPadding = HEADER_HEIGHT,
                     )
                 }
