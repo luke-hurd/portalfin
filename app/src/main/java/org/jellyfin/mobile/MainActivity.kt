@@ -22,7 +22,6 @@ import androidx.lifecycle.withStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jellyfin.mobile.app.AppPreferences
-import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.cast.Chromecast
 import org.jellyfin.mobile.player.cast.IChromecast
@@ -32,6 +31,7 @@ import org.jellyfin.mobile.setup.LoginFragment
 import org.jellyfin.mobile.ui.screens.detail.DetailFragment
 import org.jellyfin.mobile.ui.screens.home.HomeFragment
 import org.jellyfin.mobile.ui.screens.library.LibraryFragment
+import org.jellyfin.mobile.ui.screens.profile.ProfileFragment
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.BackPressInterceptor
 import org.jellyfin.mobile.utils.BluetoothPermissionHelper
@@ -244,9 +244,9 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
     }
 
-    /** Open the settings screen (from the home Settings card). */
+    /** Open the native profile/settings screen (from the home Settings card). */
     fun openSettings() {
-        activityEventHandler.emit(ActivityEvent.OpenSettings)
+        supportFragmentManager.addFragmentAnimated<ProfileFragment>()
     }
 
     /**
@@ -269,7 +269,8 @@ class MainActivity : AppCompatActivity() {
     /** Header is shown only on the native home/library screens. */
     fun updatePortalHeaderVisibility() {
         val top = supportFragmentManager.findFragmentById(R.id.fragment_container)
-        val show = top is HomeFragment || top is LibraryFragment || top is DetailFragment
+        val show = top is HomeFragment || top is LibraryFragment ||
+            top is DetailFragment || top is ProfileFragment
         findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header).visibility =
             if (show) android.view.View.VISIBLE else android.view.View.GONE
     }

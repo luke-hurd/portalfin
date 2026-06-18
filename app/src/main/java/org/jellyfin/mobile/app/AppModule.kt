@@ -45,6 +45,7 @@ import org.jellyfin.mobile.ui.screens.detail.DetailViewModel
 import org.jellyfin.mobile.ui.screens.home.HomeViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryGroupViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
+import org.jellyfin.mobile.ui.screens.profile.ProfileViewModel
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.extractId
@@ -91,6 +92,7 @@ val applicationModule = module {
     viewModel { LibraryViewModel() }
     viewModel { LibraryGroupViewModel() }
     viewModel { DetailViewModel() }
+    viewModel { ProfileViewModel() }
 
     // Fragments
     fragment { WebViewFragment() }

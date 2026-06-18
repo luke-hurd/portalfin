@@ -109,8 +109,9 @@ class AppPreferences(context: Context) {
 
     // Native home grid (beta). When on, MainActivity routes the authenticated
     // state to the native Compose HomeFragment instead of the WebView.
-    val useNativeHome: Boolean
+    var useNativeHome: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_USE_NATIVE_HOME, false)
+        set(value) = sharedPreferences.edit { putBoolean(Constants.PREF_USE_NATIVE_HOME, value) }
 
     @VideoPlayerType
     val videoPlayerType: String
