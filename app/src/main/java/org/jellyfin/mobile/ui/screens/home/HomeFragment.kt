@@ -120,7 +120,7 @@ private fun HomeContainer(
 // that true aspect ratio so it's a clean downscale, not a blurry fit.
 private val WORDMARK_HEIGHT = 45.dp
 private const val WORDMARK_ASPECT = 1080f / 358f
-private val HEADER_HEIGHT = 96.dp
+private val HEADER_HEIGHT = 64.dp
 
 @Composable
 private fun HomeHeader(onLogoClick: () -> Unit, modifier: Modifier = Modifier) {
