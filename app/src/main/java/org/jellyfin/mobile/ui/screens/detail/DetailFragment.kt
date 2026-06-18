@@ -6,8 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
@@ -52,7 +52,7 @@ class DetailFragment : Fragment() {
 
         composeView.setContent {
             org.jellyfin.mobile.ui.utils.AppTheme {
-                Surface(color = MaterialTheme.colors.background) {
+                Surface(color = MaterialTheme.colorScheme.background) {
                     val vm: DetailViewModel = viewModel()
                     LaunchedEffect(itemId) { vm.load(itemId) }
                     Box(modifier = Modifier.fillMaxSize()) {

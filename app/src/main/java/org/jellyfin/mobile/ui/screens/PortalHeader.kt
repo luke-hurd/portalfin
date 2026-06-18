@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.MaterialTheme
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,7 +40,7 @@ private const val WORDMARK_ASPECT = 1080f / 358f
 fun PortalHeader(onLogoClick: () -> Unit, modifier: Modifier = Modifier) {
     // Darken the apron toward black so the logo + Portal OSD buttons sit on a
     // slightly darker band than the page background.
-    val tint = lerp(MaterialTheme.colors.background, Color.Black, 0.35f)
+    val tint = lerp(MaterialTheme.colorScheme.background, Color.Black, 0.35f)
     Box(
         modifier = modifier
             .fillMaxWidth()

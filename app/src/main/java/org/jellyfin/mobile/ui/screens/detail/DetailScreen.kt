@@ -6,18 +6,19 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Icon
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,9 +30,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -141,13 +140,13 @@ private fun DetailInfo(
     ) {
         Text(
             text = item.name.orEmpty(),
-            style = MaterialTheme.typography.h4.copy(fontWeight = FontWeight.Bold),
+            style = MaterialTheme.typography.headlineSmall,
             color = Color.White,
         )
 
         val meta = metaLine(item)
         if (meta.isNotEmpty()) {
-            Text(text = meta, style = MaterialTheme.typography.body2, color = PortalColors.OnSurface)
+            Text(text = meta, style = MaterialTheme.typography.bodyMedium, color = PortalColors.OnSurface)
         }
 
         PlayButton(onClick = { onPlay(item) })
@@ -155,7 +154,7 @@ private fun DetailInfo(
         item.overview?.takeIf { it.isNotBlank() }?.let { overview ->
             Text(
                 text = overview,
-                style = MaterialTheme.typography.body1,
+                style = MaterialTheme.typography.bodyLarge,
                 color = PortalColors.OnBackground,
             )
         }
@@ -163,7 +162,7 @@ private fun DetailInfo(
         item.genres?.takeIf { it.isNotEmpty() }?.let { genres ->
             Text(
                 text = genres.joinToString(" · "),
-                style = MaterialTheme.typography.body2,
+                style = MaterialTheme.typography.bodyMedium,
                 color = PortalColors.OnSurface,
             )
         }
@@ -172,18 +171,14 @@ private fun DetailInfo(
 
 @Composable
 private fun PlayButton(onClick: () -> Unit) {
+    // M3 Button (pill), Meta blue. heightIn(min=52dp) per the Portal style guide.
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(backgroundColor = PortalColors.MetaBlue),
-        modifier = Modifier.height(52.dp).widthIn(min = 160.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = PortalColors.MetaBlue),
+        modifier = Modifier.heightIn(min = 52.dp).widthIn(min = 160.dp),
     ) {
-        Icon(Icons.Filled.PlayArrow, contentDescription = null, tint = Color.White)
-        Text(
-            text = "  Play",
-            color = Color.White,
-            fontSize = 16.sp,
-            fontWeight = FontWeight.SemiBold,
-        )
+        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+        Text(text = "  Play", style = MaterialTheme.typography.labelLarge)
     }
 }
 

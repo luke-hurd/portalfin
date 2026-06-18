@@ -17,9 +17,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.LinearProgressIndicator
-import androidx.compose.material.Text
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,11 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
@@ -152,7 +150,7 @@ private fun HomeRowView(
 private fun RowTitle(title: String) {
     Text(
         text = title,
-        style = MaterialTheme.typography.h6.copy(fontWeight = FontWeight.SemiBold),
+        style = MaterialTheme.typography.titleMedium,
         color = PortalColors.OnBackground,
         modifier = Modifier.padding(start = EDGE_PADDING, bottom = 12.dp),
     )
@@ -197,9 +195,9 @@ private fun MediaCard(
             val played = item.userData?.playedPercentage
             if (played != null && played > 0.0) {
                 LinearProgressIndicator(
-                    progress = (played / 100.0).toFloat().coerceIn(0f, 1f),
+                    progress = { (played / 100.0).toFloat().coerceIn(0f, 1f) },
                     color = PortalColors.MetaBlue,
-                    backgroundColor = PortalColors.Background,
+                    trackColor = PortalColors.Background,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .fillMaxWidth()
@@ -210,8 +208,7 @@ private fun MediaCard(
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = cardLabel(item),
-            // body2 is 14sp; +10% for slightly more prominent card titles.
-            style = MaterialTheme.typography.body2.copy(fontSize = 15.4.sp),
+            style = MaterialTheme.typography.bodyMedium,
             color = PortalColors.OnSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,

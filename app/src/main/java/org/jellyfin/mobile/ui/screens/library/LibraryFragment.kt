@@ -4,8 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
@@ -44,7 +44,7 @@ class LibraryFragment : Fragment() {
 
         composeView.setContent {
             AppTheme {
-                Surface(color = MaterialTheme.colors.background) {
+                Surface(color = MaterialTheme.colorScheme.background) {
                     val vm: LibraryViewModel = viewModel()
                     LaunchedEffect(libraryId) { vm.load(libraryId) }
                     // Header is a STATIC Activity-level overlay (see MainActivity);
