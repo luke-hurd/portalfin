@@ -11,6 +11,7 @@ import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.ItemSortBy
 import org.jellyfin.sdk.model.api.SortOrder
 import org.koin.core.component.KoinComponent
@@ -37,6 +38,9 @@ class LibraryViewModel : ViewModel(), KoinComponent {
                     val result by apiClient.itemsApi.getItems(
                         parentId = libraryId,
                         recursive = true,
+                        // Only real, browsable content — recursive otherwise returns
+                        // folders, collections, trailers and sample clips too.
+                        includeItemTypes = BROWSABLE_TYPES,
                         sortBy = listOf(ItemSortBy.SORT_NAME),
                         sortOrder = listOf(SortOrder.ASCENDING),
                         limit = PAGE_LIMIT,
@@ -54,6 +58,16 @@ class LibraryViewModel : ViewModel(), KoinComponent {
     companion object {
         // First-page cap. Paging can come later; this keeps the initial grid snappy.
         private const val PAGE_LIMIT = 200
+
+        // Top-level browsable content for a category grid. A series shows as one
+        // tile (not its episodes); folders/trailers/samples are excluded.
+        private val BROWSABLE_TYPES = listOf(
+            BaseItemKind.MOVIE,
+            BaseItemKind.SERIES,
+            BaseItemKind.BOX_SET,
+            BaseItemKind.VIDEO,
+            BaseItemKind.MUSIC_VIDEO,
+        )
     }
 }
 

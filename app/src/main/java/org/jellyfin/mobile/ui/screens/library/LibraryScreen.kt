@@ -1,7 +1,6 @@
 package org.jellyfin.mobile.ui.screens.library
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.jellyfin.mobile.ui.screens.pressable
 import org.jellyfin.mobile.ui.screens.shimmer
 import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.sdk.api.client.ApiClient
@@ -168,7 +168,7 @@ private fun PosterCard(
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(POSTER_CORNER))
-            .clickable(onClick = onClick),
+            .pressable(onClick),
     ) {
         Box(
             modifier = Modifier

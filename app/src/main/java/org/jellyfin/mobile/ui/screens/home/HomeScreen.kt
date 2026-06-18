@@ -1,11 +1,6 @@
 package org.jellyfin.mobile.ui.screens.home
 
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,16 +21,12 @@ import androidx.compose.material.MaterialTheme
 import androidx.compose.material.LinearProgressIndicator
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +37,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.jellyfin.mobile.ui.screens.pressable
 import org.jellyfin.mobile.ui.screens.shimmer
 import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.sdk.api.client.ApiClient
@@ -60,9 +52,6 @@ private val EDGE_PADDING = 28.dp
 private val ROW_SPACING = 26.dp
 private val CARD_SPACING = 16.dp
 private val CARD_CORNER = 12.dp
-private const val PRESS_SCALE = 0.94f
-private const val PRESS_DOWN_MS = 90
-private const val PRESS_UP_MS = 120
 
 // Request/decode images at ~2x card width so they stay crisp on the Portal
 // panel; height follows the 16:9 card.
@@ -307,41 +296,6 @@ private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
             }
         }
     }
-}
-
-/**
- * Tap feedback: on a tap (not long-press), play a quick squish (scale down then
- * back), and only fire [onClick] AFTER the animation finishes — so navigation
- * doesn't cut the animation off. The card also tracks the finger while held.
- */
-@Composable
-private fun Modifier.pressable(onClick: () -> Unit): Modifier {
-    val scope = rememberCoroutineScope()
-    val scale = remember { Animatable(1f) }
-    val interactionSource = remember { MutableInteractionSource() }
-    val pressed by interactionSource.collectIsPressedAsState()
-
-    // While the finger is down, hold the scaled-down state for live feedback.
-    LaunchedEffect(pressed) {
-        if (pressed) scale.animateTo(PRESS_SCALE, tween(PRESS_DOWN_MS))
-    }
-
-    return this
-        .graphicsLayer {
-            scaleX = scale.value
-            scaleY = scale.value
-        }
-        .clickable(
-            interactionSource = interactionSource,
-            indication = null,
-        ) {
-            // Tap: finish the squish, spring back, THEN navigate.
-            scope.launch {
-                scale.animateTo(PRESS_SCALE, tween(PRESS_DOWN_MS))
-                scale.animateTo(1f, tween(PRESS_UP_MS))
-                onClick()
-            }
-        }
 }
 
 /** Episodes read better as "Series · S1:E2"; everything else uses its name. */
