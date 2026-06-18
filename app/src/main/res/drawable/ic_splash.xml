@@ -2,6 +2,6 @@
 <!-- Wrap the splash bitmap with insets so Android 12+ splash safe-zone never crops the logo. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:drawable="@drawable/ic_splash_image"
+        android:drawable="@drawable/splash_wordmark"
         android:gravity="center" />
 </layer-list>

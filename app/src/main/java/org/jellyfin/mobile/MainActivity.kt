@@ -16,13 +16,13 @@ import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.jellyfin.mobile.app.AppPreferences
+import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.cast.Chromecast
 import org.jellyfin.mobile.player.cast.IChromecast
@@ -103,19 +103,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Smooth splash exit: instead of the OS's default snap, fade the
-        // splash icon out and slightly scale it up so it dissolves into the
-        // app rather than blinking off.
-        installSplashScreen().setOnExitAnimationListener { provider ->
-            val view = provider.iconView
-            view.animate()
-                .alpha(0f)
-                .scaleX(1.15f)
-                .scaleY(1.15f)
-                .setDuration(280L)
-                .withEndAction { provider.remove() }
-                .start()
-        }
+        // Classic launch splash: the launch theme's windowBackground (dark +
+        // centered wordmark) is shown by the system for the whole cold start.
+        // Switch to the real theme now that the activity is starting.
+        setTheme(R.style.AppTheme)
         setupKoinFragmentFactory()
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
@@ -262,7 +253,10 @@ class MainActivity : AppCompatActivity() {
         val header = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header)
         header.setContent {
             org.jellyfin.mobile.ui.utils.AppTheme {
-                org.jellyfin.mobile.ui.screens.PortalHeader(onLogoClick = { popToHome() })
+                org.jellyfin.mobile.ui.screens.PortalHeader(
+                    onLogoClick = { popToHome() },
+                    onSettingsClick = { activityEventHandler.emit(ActivityEvent.OpenSettings) },
+                )
             }
         }
         // Keep header visibility in sync with whatever fragment is on top —
