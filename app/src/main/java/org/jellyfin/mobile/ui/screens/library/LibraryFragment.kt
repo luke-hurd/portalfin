@@ -4,21 +4,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Surface
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.viewmodel.compose.viewModel
 import org.jellyfin.mobile.databinding.FragmentComposeBinding
 import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
-import org.jellyfin.mobile.ui.screens.PortalHeader
 import org.jellyfin.mobile.ui.utils.AppTheme
-import org.jellyfin.mobile.utils.extensions.requireMainActivity
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 
@@ -52,18 +46,13 @@ class LibraryFragment : Fragment() {
                 Surface(color = MaterialTheme.colors.background) {
                     val vm: LibraryViewModel = viewModel()
                     LaunchedEffect(libraryId) { vm.load(libraryId) }
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        LibraryScreen(
-                            onItemClick = { /* TODO(native-detail): open native detail screen */ },
-                            viewModel = vm,
-                            topContentPadding = HEADER_HEIGHT,
-                        )
-                        // Logo returns to home: pop straight back to the home fragment.
-                        PortalHeader(
-                            onLogoClick = { requireMainActivity().popToHome() },
-                            modifier = Modifier.align(Alignment.TopCenter),
-                        )
-                    }
+                    // Header is a STATIC Activity-level overlay (see MainActivity);
+                    // we only reserve its space so posters scroll behind it.
+                    LibraryScreen(
+                        onItemClick = { /* TODO(native-detail): open native detail screen */ },
+                        viewModel = vm,
+                        topContentPadding = HEADER_HEIGHT,
+                    )
                 }
             }
         }

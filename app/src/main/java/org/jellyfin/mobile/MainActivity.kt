@@ -121,6 +121,7 @@ class MainActivity : AppCompatActivity() {
         )
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setupPortalHeader()
 
         // Check WebView support
         if (!isWebViewSupported()) {
@@ -214,6 +215,9 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+        // replaceFragment isn't a back-stack op, so sync the header here too.
+        supportFragmentManager.executePendingTransactions()
+        updatePortalHeaderVisibility()
     }
 
     /**
@@ -240,6 +244,31 @@ class MainActivity : AppCompatActivity() {
     /** Return to the native home — pop everything above it off the back stack. */
     fun popToHome() {
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+    }
+
+    /**
+     * The portalfin header is an Activity-level overlay (above the fragment
+     * container) so it stays STATIC while fragments animate beneath it. Native
+     * screens call [showPortalHeader] to reveal it.
+     */
+    private fun setupPortalHeader() {
+        val header = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header)
+        header.setContent {
+            org.jellyfin.mobile.ui.utils.AppTheme {
+                org.jellyfin.mobile.ui.screens.PortalHeader(onLogoClick = { popToHome() })
+            }
+        }
+        // Keep header visibility in sync with whatever fragment is on top —
+        // covers routing, openLibrary, and back/pop in one place.
+        supportFragmentManager.addOnBackStackChangedListener { updatePortalHeaderVisibility() }
+    }
+
+    /** Header is shown only on the native home/library screens. */
+    fun updatePortalHeaderVisibility() {
+        val top = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        val show = top is HomeFragment || top is LibraryFragment
+        findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header).visibility =
+            if (show) android.view.View.VISIBLE else android.view.View.GONE
     }
 
     override fun onRequestPermissionsResult(
