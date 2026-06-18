@@ -1,10 +1,5 @@
 package org.jellyfin.mobile.ui.screens.library
 
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.jellyfin.mobile.ui.screens.shimmer
 import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
@@ -113,14 +109,6 @@ private fun PosterGrid(
  */
 @Composable
 private fun PosterGridSkeleton(topContentPadding: Dp) {
-    val transition = rememberInfiniteTransition(label = "librarySkeleton")
-    val alpha by transition.animateFloat(
-        initialValue = 0.3f,
-        targetValue = 0.6f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "librarySkeletonAlpha",
-    )
-
     LazyVerticalGrid(
         columns = GridCells.Adaptive(minSize = GRID_MIN_CELL),
         contentPadding = PaddingValues(
@@ -140,7 +128,7 @@ private fun PosterGridSkeleton(topContentPadding: Dp) {
                         .fillMaxWidth()
                         .aspectRatio(POSTER_ASPECT)
                         .clip(RoundedCornerShape(POSTER_CORNER))
-                        .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                        .shimmer(),
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 // Placeholder label line.
@@ -149,7 +137,7 @@ private fun PosterGridSkeleton(topContentPadding: Dp) {
                         .fillMaxWidth(0.7f)
                         .height(12.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                        .shimmer(),
                 )
             }
         }

@@ -1,10 +1,6 @@
 package org.jellyfin.mobile.ui.screens.home
 
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.jellyfin.mobile.ui.screens.shimmer
 import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.model.api.BaseItemDto
@@ -272,17 +269,9 @@ private fun LibraryCard(
     }
 }
 
-/** Loading skeleton: a couple of placeholder rows that gently pulse. */
+/** Loading skeleton: placeholder rows with a sweeping shimmer (see Modifier.shimmer). */
 @Composable
 private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
-    val transition = rememberInfiniteTransition(label = "skeleton")
-    val alpha by transition.animateFloat(
-        initialValue = 0.35f,
-        targetValue = 0.7f,
-        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse),
-        label = "skeletonAlpha",
-    )
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -298,7 +287,7 @@ private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
                         .width(180.dp)
                         .height(20.dp)
                         .clip(RoundedCornerShape(4.dp))
-                        .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                        .shimmer(),
                 )
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = EDGE_PADDING),
@@ -311,7 +300,7 @@ private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
                                 .width(CARD_WIDTH)
                                 .aspectRatio(16f / 9f)
                                 .clip(RoundedCornerShape(CARD_CORNER))
-                                .background(PortalColors.SurfaceVariant.copy(alpha = alpha)),
+                                .shimmer(),
                         )
                     }
                 }
@@ -338,7 +327,10 @@ private fun Modifier.pressable(onClick: () -> Unit): Modifier {
     }
 
     return this
-        .graphicsLayer { scaleX = scale.value; scaleY = scale.value }
+        .graphicsLayer {
+            scaleX = scale.value
+            scaleY = scale.value
+        }
         .clickable(
             interactionSource = interactionSource,
             indication = null,
