@@ -37,7 +37,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
-import org.jellyfin.mobile.ui.screens.connect.LogoHeader
+import org.jellyfin.mobile.ui.screens.connect.EDGE_PADDING
 import org.jellyfin.mobile.ui.screens.connect.StyledTextButton
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.userApi
@@ -67,9 +67,9 @@ fun LoginScreen(
                 // under-reports systemBars top on "aloha", so use the fixed reserve).
                 .padding(top = HEADER_HEIGHT)
                 .systemBarsPadding()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = EDGE_PADDING),
         ) {
-            LogoHeader()
+            Spacer(modifier = Modifier.height(EDGE_PADDING))
 
             Text(
                 text = stringResource(R.string.login_title),

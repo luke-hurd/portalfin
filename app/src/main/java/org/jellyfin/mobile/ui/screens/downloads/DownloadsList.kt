@@ -6,16 +6,22 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.AlertDialog
-import androidx.compose.material.Checkbox
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.LinearProgressIndicator
-import androidx.compose.material.ListItem
-import androidx.compose.material.Text
-import androidx.compose.material.TextButton
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -25,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
@@ -41,6 +48,7 @@ import org.jellyfin.mobile.app.StorageManager
 import org.jellyfin.mobile.data.entity.DownloadEntity
 import org.jellyfin.mobile.downloads.DownloadStatus
 import org.jellyfin.mobile.downloads.DownloadsViewModel
+import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.mobile.utils.lengthRecursive
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
@@ -101,7 +109,12 @@ fun DownloadsList(
     }
 
     LazyColumn(
-        contentPadding = contentPadding,
+        contentPadding = PaddingValues(
+            start = 16.dp,
+            end = 16.dp,
+            top = contentPadding.calculateTopPadding(),
+            bottom = contentPadding.calculateBottomPadding(),
+        ),
     ) {
         items(
             downloads,
@@ -117,7 +130,6 @@ fun DownloadsList(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DownloadItem(
     download: DownloadEntity,
@@ -139,6 +151,7 @@ fun DownloadItem(
 
     ListItem(
         modifier = modifier
+            .heightIn(min = 52.dp)
             .combinedClickable(
                 onClick = {
                     if (fileSize == null) {
@@ -149,15 +162,18 @@ fun DownloadItem(
                 },
                 onLongClick = { onRemove() },
             ),
-        text = {
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+        headlineContent = {
             val name = remember(download.item, context) { download.item.getDownloadName(context) }
             Text(
                 text = name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = PortalColors.OnBackground,
                 overflow = TextOverflow.Ellipsis,
                 maxLines = 1,
             )
         },
-        icon = {
+        leadingContent = {
             val maxSize = LocalResources.current.getDimensionPixelSize(R.dimen.movie_thumbnail_list_size)
             val url = remember(apiClient, download.itemId, maxSize) {
                 apiClient.imageApi.getItemImageUrl(
@@ -173,27 +189,43 @@ fun DownloadItem(
                 placeholder = painterResource(R.drawable.ic_local_movies_white_64),
                 fallback = painterResource(R.drawable.ic_local_movies_white_64),
                 contentDescription = null,
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(6.dp)),
             )
         },
-        secondaryText = {
+        supportingContent = {
             if (download.status == DownloadStatus.DOWNLOADING || download.status == DownloadStatus.QUEUED) {
-                LinearProgressIndicator()
+                LinearProgressIndicator(color = PortalColors.MetaBlue)
             } else if (fileSize != null) {
                 Text(
                     text = Formatter.formatShortFileSize(context, fileSize!!),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PortalColors.OnSurface,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
                 )
             } else {
                 Text(
                     text = stringResource(R.string.download_incomplete),
-                    color = Color.Yellow,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PortalColors.Warning,
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
                 )
             }
         },
-        singleLineSecondaryText = true,
+        // Visible delete affordance. Long-press still works, but a tappable
+        // trash button is discoverable on the Portal's touch-only UI.
+        trailingContent = {
+            IconButton(onClick = onRemove) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_delete_white_24dp),
+                    contentDescription = stringResource(R.string.download_remove),
+                    tint = PortalColors.OnSurface,
+                )
+            }
+        },
     )
 }
 

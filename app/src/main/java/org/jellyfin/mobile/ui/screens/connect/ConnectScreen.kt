@@ -1,7 +1,6 @@
 package org.jellyfin.mobile.ui.screens.connect
 
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,7 +18,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Stable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -30,7 +28,6 @@ import org.jellyfin.mobile.R
 import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
-import org.jellyfin.mobile.ui.utils.CenterRow
 import org.koin.compose.koinInject
 
 @Composable
@@ -47,9 +44,9 @@ fun ConnectScreen(
                 // under-reports systemBars top on "aloha", so use the fixed reserve).
                 .padding(top = HEADER_HEIGHT)
                 .systemBarsPadding()
-                .padding(horizontal = 16.dp),
+                .padding(horizontal = EDGE_PADDING),
         ) {
-            LogoHeader()
+            Spacer(modifier = Modifier.height(EDGE_PADDING))
             ServerSelection(
                 showExternalConnectionError = showExternalConnectionError,
                 onConnected = { hostname ->
@@ -65,20 +62,9 @@ fun ConnectScreen(
     }
 }
 
-@Stable
-@Composable
-fun LogoHeader() {
-    CenterRow(
-        modifier = Modifier.padding(vertical = 25.dp),
-    ) {
-        Image(
-            painter = painterResource(R.drawable.app_logo),
-            modifier = Modifier
-                .height(72.dp),
-            contentDescription = null,
-        )
-    }
-}
+// Shared edge padding so the auth screens line up with the rest of the app
+// (home/library/profile all use 28dp).
+internal val EDGE_PADDING = 28.dp
 
 @Stable
 @Composable

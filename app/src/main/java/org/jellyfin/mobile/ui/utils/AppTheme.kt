@@ -27,6 +27,7 @@ object PortalColors {
     val OnBackground = Color(0xFFF0F0F0)
     val OnSurface = Color(0xFFDADADA)
     val Error = Color(0xFFCF6679)
+    val Warning = Color(0xFFE3B341)
 }
 
 // Meta blue palette + dark surfaces, matching portal-samples Color.kt.
