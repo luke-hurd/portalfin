@@ -28,7 +28,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.AssistChip
+import androidx.compose.material3.SuggestionChip
+import androidx.compose.material3.SuggestionChipDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -523,15 +524,24 @@ private fun EpisodeStripRow(
     }
 }
 
-/** Genres as M3 chips. */
+/**
+ * Genres as display-only M3 chips. Not clickable yet (diving into a genre is a
+ * roadmap item) — so they're SuggestionChips with interaction disabled rather
+ * than buttons that look tappable but do nothing.
+ */
 @Composable
 private fun GenreChips(genres: List<String>) {
     FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         genres.forEach { genre ->
-            AssistChip(
-                onClick = { /* TODO: dive into genre */ },
+            SuggestionChip(
+                onClick = {},
+                enabled = false,
                 label = { Text(genre) },
-                modifier = Modifier.heightIn(min = 52.dp),
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    disabledLabelColor = PortalColors.OnSurface,
+                ),
+                border = SuggestionChipDefaults.suggestionChipBorder(enabled = false),
+                modifier = Modifier.heightIn(min = 44.dp),
             )
         }
     }
