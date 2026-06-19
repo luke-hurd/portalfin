@@ -16,6 +16,24 @@ inline fun <reified T : Fragment> FragmentManager.addFragment(args: Bundle? = nu
     }.commit()
 }
 
+/**
+ * Like [addFragment] but with a fade/slide transition (enter, exit, and their
+ * pop counterparts) so navigating between native screens animates instead of
+ * hard-cutting. Animations live in res/anim/fragment_*.xml.
+ */
+inline fun <reified T : Fragment> FragmentManager.addFragmentAnimated(args: Bundle? = null) {
+    beginTransaction().apply {
+        setCustomAnimations(
+            R.anim.fragment_enter,
+            R.anim.fragment_exit,
+            R.anim.fragment_pop_enter,
+            R.anim.fragment_pop_exit,
+        )
+        add<T>(R.id.fragment_container, args = args)
+        addToBackStack(null)
+    }.commit()
+}
+
 inline fun <reified T : Fragment> FragmentManager.replaceFragment(args: Bundle? = null) {
     beginTransaction().replace<T>(R.id.fragment_container, args = args).commit()
 }

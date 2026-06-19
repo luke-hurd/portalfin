@@ -22,6 +22,11 @@ object Constants {
     const val FRAGMENT_CONNECT_EXTRA_ERROR = "org.jellyfin.mobile.intent.extra.ERROR"
     const val FRAGMENT_WEB_VIEW_EXTRA_SERVER = "org.jellyfin.mobile.intent.extra.SERVER"
 
+    // Optional deep-link path appended to the server URL when the WebView opens
+    // (e.g. "/web/#/details?id=<itemId>"). Used by the native home grid's interim
+    // tap handoff; null/absent loads the server root as usual.
+    const val FRAGMENT_WEB_VIEW_EXTRA_START_PATH = "org.jellyfin.mobile.intent.extra.START_PATH"
+
     // Preference keys
     const val PREF_SERVER_ID = "pref_server_id"
     const val PREF_USER_ID = "pref_user_id"
@@ -30,6 +35,7 @@ object Constants {
     const val PREF_IGNORE_WEBVIEW_CHECKS = "pref_ignore_webview_checks"
     const val PREF_IGNORE_BLUETOOTH_PERMISSION = "pref_ignore_bluetooth_permission"
     const val PREF_DOWNLOAD_METHOD = "pref_download_method"
+    const val PREF_DOWNLOAD_QUALITY = "pref_download_quality"
     const val PREF_MUSIC_NOTIFICATION_ALWAYS_DISMISSIBLE = "pref_music_notification_always_dismissible"
     const val PREF_VIDEO_PLAYER_TYPE = "pref_video_player_type"
     const val PREF_EXOPLAYER_START_LANDSCAPE_VIDEO_IN_LANDSCAPE = "pref_exoplayer_start_landscape_video_in_landscape"
@@ -47,6 +53,10 @@ object Constants {
     const val PREF_SUBTITLE_STYLE = "pref_subtitle_style"
     const val PREF_STORAGE_LOCATION = "pref_storage_location"
     const val PREF_MEDIA_SEGMENT_ACTIONS = "pref_media_segment_actions"
+
+    // Native home grid (roadmap: replace jellyfin-web's React home with native Compose).
+    // Behind a flag so the WebView home stays the default while we build it out.
+    const val PREF_USE_NATIVE_HOME = "pref_use_native_home"
 
     // InputManager commands
     const val PLAYBACK_MANAGER_COMMAND_PLAY = "unpause"

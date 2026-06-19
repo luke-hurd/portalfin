@@ -35,6 +35,7 @@ modernandroidpreferences = "2.4.0-beta2"
 compose = "1.9.4"
 compose-foundation = "1.9.4"
 compose-material = "1.9.4"
+compose-material3 = "1.4.0"
 compose-material-icons = "1.7.8"
 
 # Network
@@ -110,6 +111,7 @@ compose-ui = { group = "androidx.compose.ui", name = "ui", version.ref = "compos
 compose-animation = { group = "androidx.compose.animation", name = "animation", version.ref = "compose" }
 compose-foundation = { group = "androidx.compose.foundation", name = "foundation", version.ref = "compose-foundation" }
 compose-material = { group = "androidx.compose.material", name = "material", version.ref = "compose-material" }
+compose-material3 = { group = "androidx.compose.material3", name = "material3", version.ref = "compose-material3" }
 compose-material-icons = { group = "androidx.compose.material", name = "material-icons-core", version.ref = "compose-material-icons" }
 compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended", version.ref = "compose-material-icons" }
 
@@ -171,6 +173,7 @@ compose = [
     "compose-foundation",
     "compose-animation",
     "compose-material",
+    "compose-material3",
     "compose-material-icons",
     "compose-material-icons-extended",
 ]

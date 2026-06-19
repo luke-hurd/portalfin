@@ -16,24 +16,33 @@ import androidx.activity.addCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.withStarted
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.cast.Chromecast
 import org.jellyfin.mobile.player.cast.IChromecast
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectFragment
 import org.jellyfin.mobile.setup.LoginFragment
+import org.jellyfin.mobile.ui.screens.detail.DetailFragment
+import org.jellyfin.mobile.ui.screens.home.HomeFragment
+import org.jellyfin.mobile.ui.screens.library.LibraryFragment
+import org.jellyfin.mobile.downloads.DownloadsFragment
+import org.jellyfin.mobile.ui.screens.profile.ProfileFragment
+import org.jellyfin.mobile.ui.screens.search.SearchFragment
+import org.jellyfin.mobile.ui.screens.season.SeasonFragment
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.BackPressInterceptor
 import org.jellyfin.mobile.utils.BluetoothPermissionHelper
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.SmartOrientationListener
+import org.jellyfin.mobile.utils.extensions.addFragment
+import org.jellyfin.mobile.utils.extensions.addFragmentAnimated
 import org.jellyfin.mobile.utils.extensions.replaceFragment
 import org.jellyfin.mobile.utils.isWebViewSupported
 import org.jellyfin.mobile.webapp.RemotePlayerService
@@ -49,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     val bluetoothPermissionHelper: BluetoothPermissionHelper = BluetoothPermissionHelper(this, get())
     val chromecast: IChromecast = Chromecast()
     private val permissionRequestHelper: PermissionRequestHelper by inject()
+    private val appPreferences: AppPreferences by inject()
 
     var serviceBinder: RemotePlayerService.ServiceBinder? = null
         private set
@@ -96,25 +106,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Smooth splash exit: instead of the OS's default snap, fade the
-        // splash icon out and slightly scale it up so it dissolves into the
-        // app rather than blinking off.
-        installSplashScreen().setOnExitAnimationListener { provider ->
-            val view = provider.iconView
-            view.animate()
-                .alpha(0f)
-                .scaleX(1.15f)
-                .scaleY(1.15f)
-                .setDuration(280L)
-                .withEndAction { provider.remove() }
-                .start()
-        }
+        // Classic launch splash: the launch theme's windowBackground (dark +
+        // centered wordmark) is shown by the system for the whole cold start.
+        // Switch to the real theme now that the activity is starting.
+        setTheme(R.style.AppTheme)
         setupKoinFragmentFactory()
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        setupPortalHeader()
 
         // Check WebView support
         if (!isWebViewSupported()) {
@@ -188,18 +190,103 @@ class MainActivity : AppCompatActivity() {
                             replaceFragment<LoginFragment>()
                         }
                     }
-                    is UserState.Available -> {
-                        if (currentFragment !is WebViewFragment || currentFragment.server != serverState.server) {
-                            replaceFragment<WebViewFragment>(
-                                Bundle().apply {
-                                    putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, serverState.server)
-                                },
-                            )
-                        }
-                    }
+                    is UserState.Available -> routeAuthenticated(currentFragment, serverState.server)
                 }
             }
         }
+        // replaceFragment isn't a back-stack op, so sync the header here too.
+        supportFragmentManager.executePendingTransactions()
+        updatePortalHeaderVisibility()
+    }
+
+    /**
+     * Authenticated landing route — always the native Compose home now. (The old
+     * WebView home + its toggle were removed; the WebView only backs the few
+     * un-ported deep-link routes via [openWebViewAt].)
+     */
+    private fun routeAuthenticated(currentFragment: Fragment?, server: org.jellyfin.mobile.data.entity.ServerEntity) {
+        if (currentFragment !is HomeFragment) {
+            supportFragmentManager.replaceFragment<HomeFragment>()
+        }
+    }
+
+    /**
+     * Open the WebView at a deep-link path under the current server. Used by the
+     * native home grid's interim tap handoff (TODO(native-detail): replace with a
+     * native detail screen). Added to the back stack so back returns to the
+     * native home.
+     */
+    fun openWebViewAt(path: String) {
+        val server = mainViewModel.serverState.value.server ?: return
+        supportFragmentManager.addFragment<WebViewFragment>(
+            Bundle().apply {
+                putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, server)
+                putString(Constants.FRAGMENT_WEB_VIEW_EXTRA_START_PATH, path)
+            },
+        )
+    }
+
+    /** Dive into a library — push the native library grid onto the back stack. */
+    fun openLibrary(library: org.jellyfin.sdk.model.api.BaseItemDto) {
+        supportFragmentManager.addFragmentAnimated<LibraryFragment>(LibraryFragment.args(library))
+    }
+
+    /** Open an item's native detail screen — pushed onto the back stack. */
+    fun openDetail(item: org.jellyfin.sdk.model.api.BaseItemDto) {
+        supportFragmentManager.addFragmentAnimated<DetailFragment>(DetailFragment.args(item))
+    }
+
+    /** Open a season's episode list — pushed onto the back stack. */
+    fun openSeason(season: org.jellyfin.sdk.model.api.BaseItemDto) {
+        supportFragmentManager.addFragmentAnimated<SeasonFragment>(SeasonFragment.args(season))
+    }
+
+    /** Return to the native home — pop everything above it off the back stack. */
+    fun popToHome() {
+        supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
+    }
+
+    /** Open the native profile/settings screen (from the home Settings card). */
+    fun openSettings() {
+        supportFragmentManager.addFragmentAnimated<ProfileFragment>()
+    }
+
+    /** Open the native search screen (REST API search, no WebView). */
+    fun openSearch() {
+        supportFragmentManager.addFragmentAnimated<SearchFragment>()
+    }
+
+    /** Open the native Downloads screen (from the home Downloads icon). */
+    fun openDownloads() {
+        supportFragmentManager.addFragmentAnimated<DownloadsFragment>()
+    }
+
+    /**
+     * The portalfin header is an Activity-level overlay (above the fragment
+     * container) so it stays STATIC while fragments animate beneath it. Native
+     * screens call [showPortalHeader] to reveal it.
+     */
+    private fun setupPortalHeader() {
+        val header = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header)
+        header.setContent {
+            org.jellyfin.mobile.ui.utils.AppTheme {
+                org.jellyfin.mobile.ui.screens.PortalHeader(onLogoClick = { popToHome() })
+            }
+        }
+        // Keep header visibility in sync with whatever fragment is on top —
+        // covers routing, openLibrary, and back/pop in one place.
+        supportFragmentManager.addOnBackStackChangedListener { updatePortalHeaderVisibility() }
+    }
+
+    /** Header is shown only on the native home/library screens. */
+    fun updatePortalHeaderVisibility() {
+        val top = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        val show = top is HomeFragment || top is LibraryFragment ||
+            top is DetailFragment || top is ProfileFragment || top is SeasonFragment ||
+            top is SearchFragment || top is DownloadsFragment ||
+            top is ConnectFragment || top is LoginFragment
+        findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header).visibility =
+            if (show) android.view.View.VISIBLE else android.view.View.GONE
     }
 
     override fun onRequestPermissionsResult(

@@ -10,10 +10,12 @@
 
     <style name="AppTheme" parent="AppTheme.V21" />
 
-    <style name="AppTheme.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/theme_background</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash</item>
-        <item name="postSplashScreenTheme">@style/AppTheme</item>
+    <!-- Classic launch splash: the windowBackground (dark + centered wordmark) is
+         shown by the system for the ENTIRE cold start, then onCreate switches to
+         the real AppTheme. No Android-12 SplashScreen icon slot (circle mask), no
+         separate in-app fade. -->
+    <style name="AppTheme.Starting" parent="AppTheme.V21">
+        <item name="android:windowBackground">@drawable/splash_background</item>
     </style>
 
     <!-- Settings theme -->

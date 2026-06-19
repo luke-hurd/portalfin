@@ -281,6 +281,20 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         playerView.controllerShowTimeoutMs = if (suppress) -1 else DEFAULT_CONTROLS_TIMEOUT_MS
     }
 
+    /**
+     * Re-assert immersive fullscreen. A [android.widget.PopupMenu] (audio/speed/etc.)
+     * opens in its own window that steals focus from the decor view; on API 28
+     * (the Portal) that drops the immersive system-UI flags and the Portal's
+     * system OSD band slides back in. Posting to the decor view runs this after
+     * the popup's window has settled, so the bars stay hidden while it's open.
+     */
+    fun reassertFullscreen() {
+        if (isLandscape()) {
+            val decor = requireActivity().window.decorView
+            decor.post { playerFullscreenHelper.enableFullscreen() }
+        }
+    }
+
     fun isLandscape(configuration: Configuration = resources.configuration) =
         configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
 

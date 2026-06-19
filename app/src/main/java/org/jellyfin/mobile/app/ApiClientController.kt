@@ -48,9 +48,21 @@ class ApiClientController(
         return server
     }
 
-    suspend fun loadSavedUser(): UserEntity? = withContext(Dispatchers.IO) {
-        val userId = appPreferences.currentUserId ?: return@withContext null
-        userDao.getUser(userId)
+    suspend fun loadSavedUser(): UserEntity? {
+        val user = withContext(Dispatchers.IO) {
+            val userId = appPreferences.currentUserId ?: return@withContext null
+            userDao.getUser(userId)
+        }
+        // Configure the shared ApiClient with the saved access token so native
+        // screens (e.g. the home grid) can call the REST API authenticated. The
+        // WebView path authenticates itself via seeded localStorage and doesn't
+        // rely on this, so setting it here is safe.
+        if (user?.accessToken != null) {
+            configureApiClientUser(user.userId, user.accessToken)
+        } else {
+            resetApiClientUser()
+        }
+        return user
     }
 
     suspend fun loadSavedServerUser(): ServerUser? {

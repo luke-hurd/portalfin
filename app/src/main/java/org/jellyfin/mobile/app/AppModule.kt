@@ -41,6 +41,12 @@ import org.jellyfin.mobile.player.qualityoptions.QualityOptionsProvider
 import org.jellyfin.mobile.player.source.MediaSourceResolver
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectionHelper
+import org.jellyfin.mobile.ui.screens.detail.DetailViewModel
+import org.jellyfin.mobile.ui.screens.home.HomeViewModel
+import org.jellyfin.mobile.ui.screens.library.LibraryGroupViewModel
+import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
+import org.jellyfin.mobile.ui.screens.profile.ProfileViewModel
+import org.jellyfin.mobile.ui.screens.season.SeasonViewModel
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.extractId
@@ -83,6 +89,12 @@ val applicationModule = module {
     // ViewModels
     viewModel { MainViewModel(get(), get()) }
     viewModel { DownloadsViewModel() }
+    viewModel { HomeViewModel() }
+    viewModel { LibraryViewModel() }
+    viewModel { LibraryGroupViewModel() }
+    viewModel { DetailViewModel() }
+    viewModel { ProfileViewModel() }
+    viewModel { SeasonViewModel() }
 
     // Fragments
     fragment { WebViewFragment() }
@@ -169,12 +181,19 @@ val applicationModule = module {
         DefaultMediaSourceFactory(get<CacheDataSource.Factory>(), extractorsFactory)
     }
     single { ProgressiveMediaSource.Factory(get<CacheDataSource.Factory>()) }
+    // Dedicated factory for downloaded files. Downloads are MPEG-TS (see
+    // DownloadQueue) — enabling constant-bitrate seeking lets the player scrub a
+    // .ts file, which a plain progressive factory can't do reliably.
+    single(named("downloadMediaSourceFactory")) {
+        val extractorsFactory = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
+        ProgressiveMediaSource.Factory(get<CacheDataSource.Factory>(), extractorsFactory)
+    }
     single { HlsMediaSource.Factory(get<CacheDataSource.Factory>()) }
     single { SingleSampleMediaSource.Factory(get<CacheDataSource.Factory>()) }
 
     single(createdAtStart = true) { StorageManager(get(), get()) }
     single { DownloadManager(get(), get(), get(), get(), get()) }
     single { DownloadNotificationManager(get()) }
-    single { DownloadQueue(get(), get(), get(), get(), get(), get()) }
+    single { DownloadQueue(get(), get(), get(), get(), get(), get(), get()) }
     single { FileDownloader(get()) }
 }
