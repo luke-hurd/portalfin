@@ -86,8 +86,11 @@ fun StyledTextButton(
             colors = ButtonDefaults.buttonColors(
                 containerColor = PortalColors.MetaBlue,
                 contentColor = PortalColors.OnBackground,
-                disabledContainerColor = PortalColors.Surface,
-                disabledContentColor = PortalColors.OnSurface,
+                // Stay blue (dimmed) when disabled so the primary action reads the
+                // same on every screen — Connect is enabled (server prefilled) and
+                // blue, so Sign In should look like the same button, not grey.
+                disabledContainerColor = PortalColors.MetaBlue.copy(alpha = 0.4f),
+                disabledContentColor = PortalColors.OnBackground.copy(alpha = 0.6f),
             ),
             elevation = ButtonDefaults.buttonElevation(0.dp, 0.dp, 0.dp, 0.dp, 0.dp),
         ) {

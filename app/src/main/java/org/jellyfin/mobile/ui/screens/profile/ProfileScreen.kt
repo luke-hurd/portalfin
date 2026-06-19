@@ -1,5 +1,6 @@
 package org.jellyfin.mobile.ui.screens.profile
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -82,8 +84,10 @@ fun ProfileScreen(
         }
 
         SectionCard(title = "Account") {
-            ActionButton(text = "Sign Out", onClick = onSignOut)
-            ActionButton(text = "Switch Server", onClick = onSwitchServer)
+            // Switch Server is the routine action (neutral outline); Sign Out is
+            // destructive (red) — only one emphasized button, not two bright ones.
+            OutlinedActionButton(text = "Switch Server", onClick = onSwitchServer)
+            ActionButton(text = "Sign Out", onClick = onSignOut, containerColor = PortalColors.Error)
         }
     }
 }
@@ -164,10 +168,30 @@ private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean
 }
 
 @Composable
-private fun ActionButton(text: String, onClick: () -> Unit) {
+private fun ActionButton(
+    text: String,
+    onClick: () -> Unit,
+    containerColor: androidx.compose.ui.graphics.Color = PortalColors.MetaBlue,
+) {
     Button(
         onClick = onClick,
-        colors = ButtonDefaults.buttonColors(containerColor = PortalColors.MetaBlue),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = containerColor,
+            contentColor = PortalColors.OnBackground,
+        ),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
+    ) {
+        Text(text = text, style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** Neutral, lower-emphasis action (outlined) for routine choices like Switch Server. */
+@Composable
+private fun OutlinedActionButton(text: String, onClick: () -> Unit) {
+    OutlinedButton(
+        onClick = onClick,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = PortalColors.OnBackground),
+        border = BorderStroke(1.dp, PortalColors.SurfaceVariant),
         modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
     ) {
         Text(text = text, style = MaterialTheme.typography.labelLarge)

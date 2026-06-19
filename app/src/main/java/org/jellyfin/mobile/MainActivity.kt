@@ -256,6 +256,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
+     * Open jellyfin-web's search (predictive/fuzzy) in the WebView, deep-linked
+     * onto the back stack so back returns to the native home. No native search
+     * screen yet — the web search is genuinely good, so we reuse it.
+     */
+    fun openSearch() {
+        openWebViewAt("/web/#/search.html")
+    }
+
+    /**
      * The portalfin header is an Activity-level overlay (above the fragment
      * container) so it stays STATIC while fragments animate beneath it. Native
      * screens call [showPortalHeader] to reveal it.

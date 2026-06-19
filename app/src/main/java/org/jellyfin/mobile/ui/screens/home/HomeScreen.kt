@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -65,6 +66,7 @@ fun HomeScreen(
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
     onSettingsClick: () -> Unit,
+    onSearchClick: () -> Unit,
     viewModel: HomeViewModel,
     topContentPadding: Dp = 0.dp,
 ) {
@@ -90,6 +92,7 @@ fun HomeScreen(
                 onItemClick = onItemClick,
                 onLibraryClick = onLibraryClick,
                 onSettingsClick = onSettingsClick,
+                onSearchClick = onSearchClick,
                 topContentPadding = topContentPadding,
             )
         }
@@ -102,6 +105,7 @@ private fun HomeContent(
     onItemClick: (BaseItemDto) -> Unit,
     onLibraryClick: (BaseItemDto) -> Unit,
     onSettingsClick: () -> Unit,
+    onSearchClick: () -> Unit,
     topContentPadding: Dp,
 ) {
     // A plain scrolling Column, NOT a LazyColumn. The home has only a handful of
@@ -127,6 +131,7 @@ private fun HomeContent(
                 onItemClick = onLibraryClick,
                 isLibraryRow = true,
                 onSettingsClick = onSettingsClick,
+                onSearchClick = onSearchClick,
             )
         }
         // Continue Watching, Next Up, New Releases (<library>) — see HomeViewModel.
@@ -142,6 +147,7 @@ private fun HomeRowView(
     onItemClick: (BaseItemDto) -> Unit,
     isLibraryRow: Boolean = false,
     onSettingsClick: (() -> Unit)? = null,
+    onSearchClick: (() -> Unit)? = null,
 ) {
     Column {
         RowTitle(row.title)
@@ -160,21 +166,31 @@ private fun HomeRowView(
                     MediaCard(item = item, onClick = { onItemClick(item) })
                 }
             }
-            // Settings card trails the My Media libraries — half width, big gear.
-            // Lives in scroll content (below the OSD band) so it's actually tappable,
-            // unlike the dead header.
+            // Search + Settings cards trail the My Media libraries — half width,
+            // big glyph. Search goes first (magnifying glass), then the gear. Both
+            // live in scroll content (below the OSD band) so they're actually
+            // tappable, unlike the dead header.
+            if (onSearchClick != null) {
+                item(contentType = "search-card") {
+                    IconCard(icon = Icons.Filled.Search, contentDescription = "Search", onClick = onSearchClick)
+                }
+            }
             if (onSettingsClick != null) {
                 item(contentType = "settings-card") {
-                    SettingsCard(onClick = onSettingsClick)
+                    IconCard(icon = Icons.Filled.Settings, contentDescription = "Settings", onClick = onSettingsClick)
                 }
             }
         }
     }
 }
 
-/** Half-width card (same height as a library card) with a large gear; opens Settings. */
+/** Half-width card (same height as a library card) with a large glyph; used for Search & Settings. */
 @Composable
-private fun SettingsCard(onClick: () -> Unit) {
+private fun IconCard(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
     // Library cards are CARD_WIDTH wide at 16:9 → this is half the width, same height.
     val cardHeight = CARD_WIDTH * 9f / 16f
     Box(
@@ -187,8 +203,8 @@ private fun SettingsCard(onClick: () -> Unit) {
         contentAlignment = Alignment.Center,
     ) {
         Icon(
-            imageVector = Icons.Filled.Settings,
-            contentDescription = "Settings",
+            imageVector = icon,
+            contentDescription = contentDescription,
             tint = PortalColors.OnBackground,
             modifier = Modifier.size(48.dp),
         )
