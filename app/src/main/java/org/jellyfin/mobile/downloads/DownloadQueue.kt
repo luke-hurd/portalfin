@@ -123,6 +123,11 @@ class DownloadQueue(
      * forces the server to transcode rather than serve the original file.
      */
     private fun buildTranscodeUrl(api: ApiClient, itemId: java.util.UUID, quality: DownloadQuality): String {
+        // A fresh play session per request so the server doesn't reuse a cached
+        // transcode from a previous quality (Jellyfin keys transcode reuse on the
+        // play session; without this, requesting 480p after 720p served the
+        // cached 720p file and the maxHeight/bitRate caps were ignored).
+        val sessionId = java.util.UUID.randomUUID().toString().replace("-", "")
         val params = linkedMapOf(
             "static" to "false",
             "container" to "mp4",
@@ -132,11 +137,19 @@ class DownloadQueue(
             "videoBitRate" to quality.videoBitRate.toString(),
             "audioBitRate" to quality.audioBitRate.toString(),
             "audioChannels" to "2",
+            "playSessionId" to sessionId,
+            "deviceId" to "pf-dl-$sessionId",
             "api_key" to (api.accessToken ?: ""),
         )
         val query = params.entries.joinToString("&") { (k, v) ->
             "$k=${java.net.URLEncoder.encode(v, "UTF-8")}"
         }
+        // Log the transcode params (not the api_key) so download issues are
+        // diagnosable without leaking the access token.
+        timber.log.Timber.tag("PFDL").i(
+            "transcode ${quality.label}: item=$itemId maxHeight=${quality.maxHeight} " +
+                "vBitRate=${quality.videoBitRate} session=$sessionId",
+        )
         return api.createUrl("/Videos/$itemId/stream.mp4?$query")
     }
 }
