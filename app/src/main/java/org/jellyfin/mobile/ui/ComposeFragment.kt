@@ -2,8 +2,8 @@ package org.jellyfin.mobile.ui
 
 import android.os.Bundle
 import android.view.View
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
@@ -20,7 +20,7 @@ abstract class ComposeFragment : Fragment(R.layout.fragment_compose) {
 
         composeView.setContent {
             AppTheme {
-                Surface(color = MaterialTheme.colors.background) {
+                Surface(color = MaterialTheme.colorScheme.background) {
                     Content()
                 }
             }

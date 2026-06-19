@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fully transparent splash icon. The AndroidX splash slot always circle-masks
+     its icon AND defaults to the launcher icon when none is set, so we give it a
+     transparent drawable: the system splash then shows ONLY the dark background
+     (no robot, no circle). The branded logo is faded in-app afterwards
+     (MainActivity.playSplashLogo). -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@android:color/transparent" />
+</shape>

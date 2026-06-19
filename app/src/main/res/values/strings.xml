@@ -98,6 +98,10 @@
     <string name="external_player_unknown_error">Unknown error in external player. Playback tracking disabled.</string>
 
     <string name="activity_name_settings">Jellyfin Settings</string>
+    <string name="pref_category_interface">Interface</string>
+    <string name="pref_use_native_home_title">Native home screen (beta)</string>
+    <string name="pref_use_native_home_summary_off">Home uses the Jellyfin web interface</string>
+    <string name="pref_use_native_home_summary_on">Home uses the native Portal grid</string>
     <string name="pref_category_music_player">Music player</string>
     <string name="pref_music_notification_always_dismissible_title">Dismissible player notification</string>
     <string name="pref_music_notification_always_dismissible_summary_off">The notification can only be dismissed when playback is paused</string>
@@ -169,4 +173,9 @@
     <string name="download_remove_keep_local">Keep local file(s)</string>
     <string name="download_remove_description">Do you want to remove "%1$s" from your downloads?</string>
     <string name="download_incomplete">Download incomplete</string>
+    <string name="download_quality_title">Download quality</string>
+    <string name="download_quality_1080p">1080p · smaller (~1.5 GB)</string>
+    <string name="download_quality_720p">720p · smallest (~1 GB)</string>
+    <string name="download_started_title">Download started</string>
+    <string name="download_started_message">Your movie is downloading in the background. Find it under Profile · Downloads. You can keep browsing while it finishes.</string>
 </resources>

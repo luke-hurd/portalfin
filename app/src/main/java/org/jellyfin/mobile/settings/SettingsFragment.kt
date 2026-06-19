@@ -92,6 +92,14 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     @Suppress("LongMethod")
     private fun buildSettingsScreen() = screen(requireContext()) {
         collapseIcon = true
+        categoryHeader(PREF_CATEGORY_INTERFACE) {
+            titleRes = R.string.pref_category_interface
+        }
+        checkBox(Constants.PREF_USE_NATIVE_HOME) {
+            titleRes = R.string.pref_use_native_home_title
+            summaryRes = R.string.pref_use_native_home_summary_off
+            summaryOnRes = R.string.pref_use_native_home_summary_on
+        }
         categoryHeader(PREF_CATEGORY_MUSIC_PLAYER) {
             titleRes = R.string.pref_category_music_player
         }
@@ -283,6 +291,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     }
 
     companion object {
+        const val PREF_CATEGORY_INTERFACE = "pref_category_interface"
         const val PREF_CATEGORY_MUSIC_PLAYER = "pref_category_music"
         const val PREF_CATEGORY_VIDEO_PLAYER = "pref_category_video"
         const val PREF_CATEGORY_DOWNLOADS = "pref_category_downloads"

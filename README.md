@@ -3,7 +3,13 @@
 </p>
 
 <p align="center">
-  A Jellyfin player made for the Facebook Portal.
+  A native Jellyfin player made for the Facebook Portal.
+</p>
+
+<p align="center">
+  <strong>v2.0 — a ground-up native rebuild.</strong> The browsing experience is now
+  native Jetpack Compose talking to the Jellyfin REST API directly, instead of a
+  styled WebView — noticeably snappier on the Portal's modest hardware.
 </p>
 
 <p align="center">
@@ -26,73 +32,109 @@ to run well on the device.
 The Portal is an Android device, so the standard Jellyfin APK installs and runs, but
 it just isn't built for the device: it's a phone app on a 1280x800 always-on display,
 the system back/home buttons float over the top of the UI, and there's a lot of
-chrome you don't need when the device only ever does one thing. The goal was to make
-it feel native to the Portal rather than a phone app that happens to run on it. I
-kept the Jellyfin web UI that does the heavy lifting and replaced the parts around
-it: a native sign-in, a stripped-down kiosk interface, a layout that accounts for the
-Portal's quirks, and an ambient slideshow when it's idle.
+chrome you don't need when the device only ever does one thing.
+
+**v1.x** got there by wrapping the Jellyfin web UI in a native shell and restyling
+it with injected CSS. It looked the part, but jellyfin-web is a heavy React SPA and
+the Portal's hardware felt every bit of it — scrolling hitched and pages were slow
+to settle.
+
+**v2.0** rebuilds the core experience as **native Jetpack Compose** screens that call
+the Jellyfin REST API directly (via the Jellyfin Kotlin SDK). Home, library, detail,
+TV/season browsing, search, sign-in, and the profile/settings screen are all native
+now and built to Meta's Portal design system (Material 3 + the Inter typeface + Meta
+blue `#0866FF` + 52dp touch targets). It is *much* snappier than the WebView versions.
+The WebView still ships as a flag-gated fallback for anything not yet ported (person
+pages, the admin dashboard), so nothing is lost.
 
 ## Screenshots
 
-| Connect to server | Native sign-in |
+| On the Portal | Splash |
 |---|---|
-| ![](docs/screenshots/01-connect.png) | ![](docs/screenshots/02-login.png) |
+| ![](docs/screenshots/01-portal-home.png) | ![](docs/screenshots/02-splash.png) |
 
-| Library | Movie detail |
+| Home | Library grid |
 |---|---|
-| ![](docs/screenshots/04-movies.png) | ![](docs/screenshots/05-detail.png) |
+| ![](docs/screenshots/03-home.png) | ![](docs/screenshots/05-movie-grid.png) |
 
-| Profile / settings | Video player |
+| Search | Movie detail |
 |---|---|
-| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/09-playback.png) |
+| ![](docs/screenshots/06-search.png) | ![](docs/screenshots/07-movie-detail.png) |
 
-| Ambient slideshow | Ambient slideshow |
+| Series detail | Season detail |
 |---|---|
-| ![](docs/screenshots/07-ambient.png) | ![](docs/screenshots/08-ambient.png) |
+| ![](docs/screenshots/08-series-detail.png) | ![](docs/screenshots/09-season-detail.png) |
 
-## What I changed
+| Downloads | Connect to server |
+|---|---|
+| ![](docs/screenshots/10-downloads.png) | ![](docs/screenshots/12-connect.png) |
 
-I wanted this to feel native to the Portal, not like the stock app running on the
-wrong hardware. Here's what got reworked, and why:
+| Profile / settings | Sign in |
+|---|---|
+| ![](docs/screenshots/11-profile.png) | ![](docs/screenshots/13-login.png) |
 
-- Native sign-in, instead of being dropped into a web login page inside the WebView.
-- A stripped-down kiosk interface. The admin menus, hamburger drawer, and dashboard
-  shortcuts are hidden, so what's left is browse, search, cast, and your profile.
-- A layout that respects the Portal's screen. Its system back/home buttons float
-  over the top of the display, so that space is reserved and the header sits below
-  it instead of getting covered.
-- A look that matches the device, with a custom header and a color scheme closer to
-  the Portal's own rather than Jellyfin's default teal.
-- Smoother transitions. Navigating between Home, the library, and a movie page
-  crossfades instead of hard-cutting, and the app fades in from the launcher splash.
-- An ambient mode. After about a minute idle it shows a full-screen slideshow of
-  your cover art with a clock and date, and the background tint drifts with the time
-  of day. Tap to wake it.
-- A cleaner video player: a top bar with just back, title, and cast, black
-  letterboxing, and controls that fade out while you're watching.
+## What's native in v2.0
+
+The whole browsing experience is native Compose, built to Meta's portal-samples
+design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
+
+- **Home grid** — My Media (your libraries), Continue Watching, Next Up, and New
+  Releases per library, as smooth side-scrolling rails with lazy-loaded, panel-sized
+  thumbnails. A static portalfin header floats above and content scrolls behind it.
+  Search, Downloads and Settings sit as right-aligned icons on the "My Media" title row.
+- **Search** — a native search screen backed by the REST API's server-side fuzzy
+  match (the same one jellyfin-web uses), debounced as you type, with results in the
+  same poster grid as the libraries. No WebView.
+- **Library / category pages** — real pagination (100 per page, Prev / "Page X of Y"
+  / Next at top and bottom), quick-filter pills (All · Favorites · Genres ·
+  Collections), and Genres/Collections as titled poster grids.
+- **Movie detail** — a fullscreen backdrop that fades into the page with content
+  layered on top, graphical title art, Play / Resume / Start Over, cast & crew,
+  scenes (chapter picker), More Like This, genre chips, Rotten Tomatoes critic
+  score, community ★, an "Ends at" estimate, and a subtitle picker.
+- **TV shows** — series pages with "Resume SxxExx / Play S01E01" plus a seasons row;
+  full season detail pages with an episode grid and a season selector; and episode
+  detail pages with the episode still over the series backdrop.
+- **Native sign-in** — server entry and login call the Jellyfin SDK directly,
+  instead of dropping you into a web login page.
+- **Profile / settings** — a native screen (no WebView): your account, server, the
+  native-home toggle, sign out, and switch server.
+- **Native video player** — ExoPlayer with Portal-tuned controls: oversized
+  play/skip/scrubber for at-distance touch, immersive fullscreen that survives the
+  Portal's system-OSD band, and the noise (fullscreen/lock/decoder/info) removed.
+- **Transcoded downloads** — download any movie/episode (or a whole season) at a
+  chosen quality (1080p / 720p / 480p); the server transcodes to a phone-sized file
+  instead of the multi-GB original. A round download button on the detail page shows
+  download / in-progress / downloaded states; the Downloads screen shows each item's
+  quality + size and an iOS-style device-storage bar; season downloads check free
+  space first and suggest a lower quality if it won't fit. Downloaded copies play
+  offline (and scrub) — Play/Resume uses the local file automatically.
+
+Carried over from v1.x: animated screen transitions, a branded splash, an ambient
+slideshow after ~60s idle (cover-art gallery with clock/date and time-of-day
+tinting), and the layout that reserves the Portal's top system-button band.
 
 ### How it works under the hood
 
-The app is a native Android shell around the Jellyfin web UI rather than a
-from-scratch rewrite, which keeps it current with upstream Jellyfin for free.
 `MainActivity` runs a small state machine over server and user state: no server
-configured routes to a native Compose `ConnectFragment`, a server but no user routes
-to a native `LoginFragment`, and once you're authenticated it hands off to the
+configured routes to a native `ConnectFragment`, a server but no user routes to a
+native `LoginFragment`, and once you're authenticated it lands on the native home
+grid (`HomeFragment`) — or, with the native-home flag off, the legacy
 `WebViewFragment` that hosts jellyfin-web.
 
-The native login calls the Jellyfin SDK's `authenticateUserByName` directly, then
-seeds the WebView's `localStorage` with the resulting credentials so the web app
-loads already signed in on `/home`. A JavaScript bridge (`PortalFinBridge`) runs the
-other direction too: it watches for sign-out and clears the native session, and
-signals when restyling is done so the WebView can fade in cleanly.
+The native screens talk to the server through the **Jellyfin Kotlin SDK** (itemsApi,
+tvShowsApi, userLibraryApi, imageApi, etc.) and render with Compose + Coil, with
+image decodes pinned to each card's pixel size so scrolling stays smooth on the
+Portal. Search uses the same `itemsApi.getItems(searchTerm = …)` call as the library
+grid, so results are full items that open the native detail screen. Navigation is a
+fragment state machine with custom crossfade transitions, and the portalfin header is
+an Activity-level overlay so it stays put while fragments animate beneath it.
 
-Almost everything visual is done by injecting `portalfin-restyle.js` on every page
-load (and re-injecting it on in-app navigation, since jellyfin-web is a single-page
-app). That script reserves the 64px top band the Portal overlays its system buttons
-on, swaps in the custom `#portalfin-header`, hides the kiosk chrome, applies the
-Portal palette and fonts, and drives the ambient slideshow and time-of-day tinting.
-The transitions use the browser's View Transitions API, with a shared
-`view-transition-name` on the header so it stays put across route changes.
+The **WebView path still exists** as a flag-gated fallback for the few screens not yet
+ported (person pages, the admin dashboard). There it injects `portalfin-restyle.js` on
+every page load (and re-injects on SPA navigation) to reserve the 64px top band, swap
+in the custom header, hide the kiosk chrome, and apply the Portal palette — the same
+approach v1.x used everywhere.
 
 ## Supported devices
 
@@ -134,16 +176,38 @@ adb install -r app/build/outputs/apk/proprietary/debug/portalfin-v*-proprietary-
 
 Shipped:
 
-- [x] **CSS view transitions** between SPA routes — kill the flat web-app feel on every navigation
-- [x] **Native splash → home crossfade** — splash logo crossfades into the styled web app
-- [x] **Ambient slideshow** — after 60s idle, fullscreen rotating gallery of Jellyfin backdrop art with oversized clock + date + current item title; tap to wake. Fills the screen edge-to-edge (drops the Portal top inset) and keeps the display awake.
-- [x] **Custom video player chrome** — minimal back/title/cast top bar, black letterbox, enlarged transport controls, all auto-hiding with the OSD
+- [x] **Native UI rebuild (v2.0)** — native Jetpack Compose home, library, and
+  detail screens calling the Jellyfin REST API directly, on Meta's Portal design
+  system (Material 3 + Inter + Meta blue). See [v2.0.0 release notes](docs/releases/v2.0.0.md).
+- [x] **Native Portal home grid** — My Media + Continue Watching + Next Up + New
+  Releases rails, replacing jellyfin-web's React home.
+- [x] **Native library pages** — pagination, quick-filter pills (All / Favorites /
+  Genres / Collections), grouped genre & collection grids.
+- [x] **Native detail page** — fullscreen backdrop, title art, Play/Resume,
+  cast & crew, scenes (chapters), more-like-this, RT score, subtitle picker.
+- [x] **Native TV / season / episode flow** — series pages (Resume SxxExx +
+  seasons row), season detail with an episode grid, episode detail pages.
+- [x] **Native search** — REST API server-side fuzzy match, debounced, results
+  in the library poster grid, opening native detail (no WebView).
+- [x] **Native profile / settings** — account, server, native-home toggle,
+  sign out, switch server (no WebView).
+- [x] **M3 auth flow** — Connect / server selection / Login migrated to
+  Material 3 with the Portal header and top-inset reserve.
+- [x] **Transcoded downloads** — pick 1080p/720p/480p; server transcodes to a
+  phone-sized file; offline playback + scrubbing (MPEG-TS), per-item quality,
+  device-storage bar, whole-season downloads with free-space checks.
+- [x] **Portal-tuned native player** — oversized controls/scrubber, immersive
+  fullscreen that survives the system-OSD band, trimmed control set.
+- [x] **CSS view transitions** between SPA routes (v1.1)
+- [x] **Native splash → home crossfade** (v1.1)
+- [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)
+- [x] **Custom video player chrome** — minimal back/title/cast bar, black letterbox (v1.1)
 
 Next up — contributions welcome:
 
+- [ ] **Native person/actor pages** — the main remaining WebView screen.
+- [ ] **Genre chips that dive into the genre** from the detail page.
 - [ ] **Weather overlay** on the ambient slideshow (clock + date are done; weather is not)
-- [ ] **Transcode-on-download quality picker** (in progress) — pick 1080p/720p and transcode server-side to a phone-sized MP4 instead of the multi-GB remux
-- [ ] **Native Portal home grid** — replace jellyfin-web's React home with native Compose tiles calling the Jellyfin REST API directly. Biggest lift, biggest payoff for "feels native."
 - [ ] **Voice control** via the Portal's built-in mic ("portalfin, play Back to the Future")
 
 ## Architecture
@@ -153,33 +217,36 @@ The interesting bits:
 ```
 app/src/main/java/org/jellyfin/mobile/
 ├── MainActivity.kt              # Server/User state machine drives Fragment routing:
-│                                #   ServerState.Unset       → ConnectFragment
-│                                #   ServerState.Available + UserState.Unset → LoginFragment
-│                                #   ServerState.Available + UserState.Available → WebViewFragment
-├── setup/
-│   ├── ConnectFragment.kt       # Native server URL entry (Compose)
-│   └── LoginFragment.kt         # Native sign-in (Compose) — NEW IN PORTALFIN
-├── ui/screens/
-│   ├── connect/ConnectScreen.kt # Compose UI for server entry; defines reusable StyledTextButton
-│   └── login/LoginScreen.kt     # Compose UI calling Jellyfin SDK's authenticateUserByName
+│                                #   ServerState.Unset                          → ConnectFragment
+│                                #   ServerState.Available + UserState.Unset     → LoginFragment
+│                                #   ServerState.Available + UserState.Available → HomeFragment (native)
+│                                #                                                 or WebViewFragment (flag off)
+│                                # Also hosts the static portalfin header overlay + openDetail/openSeason/…
+├── ui/
+│   ├── utils/AppTheme.kt        # M3 theme: PortalDarkColorScheme (Meta blue), Inter typography, PortalColors
+│   └── screens/                 # All native Compose, on the Portal design system:
+│       ├── home/                # HomeScreen — My Media / Continue Watching / Next Up / New Releases rails
+│       ├── library/             # LibraryScreen + paged/grouped ViewModels (pagination, filter pills)
+│       ├── detail/              # DetailScreen — movie/series/episode hero + actions + rows
+│       ├── season/              # SeasonScreen — season detail page (episode grid + season selector)
+│       ├── search/              # SearchScreen + SearchViewModel — REST API fuzzy search (debounced)
+│       ├── profile/             # ProfileScreen — native settings (no WebView)
+│       ├── connect/ + login/    # ConnectScreen / ServerSelection / LoginScreen (M3; SDK authenticateUserByName)
+│       └── PortalHeader.kt      # Static header overlay (HEADER_HEIGHT = 64dp top reserve)
+├── player/ui/                   # Native ExoPlayer: PlayerFragment, PlayerMenus, PlayerFullscreenHelper
 └── webapp/
-    ├── WebViewFragment.kt       # Hosts the WebView. Inner class PortalFinBridge exposes
-    │                            #   getCredentials() → seed jellyfin-web localStorage
-    │                            #   onSignedOut()    → clear native UserEntity + route to Login
-    │                            #   onRestyleApplied() → fadeIn the WebView once styled
+    ├── WebViewFragment.kt       # Flag-gated fallback for un-ported screens (person pages, dashboard).
+    │                            #   PortalFinBridge: getCredentials() seeds jellyfin-web localStorage,
+    │                            #   onSignedOut() clears the native session, onRestyleApplied() fades in.
     └── JellyfinWebViewClient.kt # In onPageFinished: re-injects portalfin-restyle.js on every nav
 
 app/src/main/assets/native/
-├── portalfin-restyle.js         # The big one. Visibility gate, full Portal stylesheet,
-│                                # custom #portalfin-header, kiosk chrome hiding, sign-out
-│                                # detection, SPA-route re-injection.
-└── wordmark.png                 # Served at /native/wordmark.png by AssetsPathHandler
+└── portalfin-restyle.js         # WebView-path stylesheet: reserves the 64px top band, custom header,
+                                 # kiosk-chrome hiding, ambient slideshow, SPA-route re-injection.
 
 app/src/main/res/
-├── drawable/ic_launcher_padded.xml  # Launcher icon (Portal launcher does its own crop;
-│                                    # adaptive icon XML files removed — use this instead)
 ├── values/colors.xml                # Portal palette: #1A1A1A / #2B2B2B / #0866FF
-└── values/strings_donottranslate.xml # app_name = "portalfin"
+└── values/dimens.xml                # Portal-tuned player control sizes
 ```
 
 ## Attribution

@@ -87,6 +87,7 @@ class PlayerMenus(
         audioStreamsButton.setOnClickListener {
             fragment.suppressControllerAutoHide(true)
             audioStreamsMenu.show()
+            fragment.reassertFullscreen()
         }
         subtitlesButton.setOnClickListener {
             when (subtitleCount) {
@@ -100,20 +101,24 @@ class PlayerMenus(
                 else -> {
                     fragment.suppressControllerAutoHide(true)
                     subtitlesMenu.show()
+                    fragment.reassertFullscreen()
                 }
             }
         }
         speedButton.setOnClickListener {
             fragment.suppressControllerAutoHide(true)
             speedMenu.show()
+            fragment.reassertFullscreen()
         }
         qualityButton.setOnClickListener {
             fragment.suppressControllerAutoHide(true)
             qualityMenu.show()
+            fragment.reassertFullscreen()
         }
         decoderButton.setOnClickListener {
             fragment.suppressControllerAutoHide(true)
             decoderMenu.show()
+            fragment.reassertFullscreen()
         }
         infoButton.setOnClickListener {
             playbackInfo.isVisible = !playbackInfo.isVisible

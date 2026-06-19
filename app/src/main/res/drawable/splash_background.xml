@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Classic launch splash: dark background with the centered portalfin wordmark.
+     Set as android:windowBackground on the launch theme so the system shows it
+     for the WHOLE cold start (no circle mask, no Android-12 icon slot, no second
+     in-app fade). The real app theme takes over once content draws. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/theme_background" />
+    <item android:gravity="center">
+        <bitmap
+            android:src="@drawable/splash_wordmark"
+            android:gravity="center"
+            android:width="280dp"
+            android:height="93dp" />
+    </item>
+</layer-list>
