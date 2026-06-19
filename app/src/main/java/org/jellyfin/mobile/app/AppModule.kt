@@ -181,6 +181,13 @@ val applicationModule = module {
         DefaultMediaSourceFactory(get<CacheDataSource.Factory>(), extractorsFactory)
     }
     single { ProgressiveMediaSource.Factory(get<CacheDataSource.Factory>()) }
+    // Dedicated factory for downloaded files. Downloads are MPEG-TS (see
+    // DownloadQueue) — enabling constant-bitrate seeking lets the player scrub a
+    // .ts file, which a plain progressive factory can't do reliably.
+    single(named("downloadMediaSourceFactory")) {
+        val extractorsFactory = DefaultExtractorsFactory().setConstantBitrateSeekingEnabled(true)
+        ProgressiveMediaSource.Factory(get<CacheDataSource.Factory>(), extractorsFactory)
+    }
     single { HlsMediaSource.Factory(get<CacheDataSource.Factory>()) }
     single { SingleSampleMediaSource.Factory(get<CacheDataSource.Factory>()) }
 

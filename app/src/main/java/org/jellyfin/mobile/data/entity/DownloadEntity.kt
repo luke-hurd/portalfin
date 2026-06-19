@@ -46,6 +46,11 @@ data class DownloadEntity(
 
     @ColumnInfo(name = "status") val status: DownloadStatus = DownloadStatus.QUEUED,
 
+    // The DownloadQuality.intValue this was transcoded at (0=1080p, 1=720p,
+    // 2=480p). Null for legacy rows from before the quality picker. Shown on the
+    // Downloads screen so users can see each item's resolution.
+    @ColumnInfo(name = "download_quality") val downloadQuality: Int? = null,
+
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "modified_at") var modifiedAt: Long = System.currentTimeMillis(),
 )

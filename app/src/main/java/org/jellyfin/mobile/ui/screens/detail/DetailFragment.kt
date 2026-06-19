@@ -9,8 +9,14 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.ComposeView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.jellyfin.mobile.data.dao.DownloadDao
 import org.jellyfin.mobile.databinding.FragmentComposeBinding
+import org.jellyfin.mobile.downloads.DownloadStatus
 import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.interaction.PlayOptions
@@ -30,6 +36,7 @@ import org.koin.android.ext.android.inject
  */
 class DetailFragment : Fragment() {
     private val activityEventHandler: ActivityEventHandler by inject()
+    private val downloadDao: DownloadDao by inject()
     private var _viewBinding: FragmentComposeBinding? = null
     private val viewBinding get() = _viewBinding!!
     private val composeView: ComposeView get() = viewBinding.composeView
@@ -59,6 +66,7 @@ class DetailFragment : Fragment() {
                     DetailScreen(
                         onPlay = ::play,
                         onItemClick = ::openItem,
+                        onOpenDownloads = { requireMainActivity().openDownloads() },
                         viewModel = vm,
                         topContentPadding = HEADER_HEIGHT,
                     )
@@ -77,20 +85,29 @@ class DetailFragment : Fragment() {
     }
 
     private fun play(item: BaseItemDto, startTicks: Long, subtitleIndex: Int?) {
-        activityEventHandler.emit(
-            ActivityEvent.LaunchNativePlayer(
-                PlayOptions(
-                    ids = listOf(item.id),
-                    mediaSourceId = null,
-                    startIndex = 0,
-                    // Resume from the saved position; "Start Over" passes 0.
-                    startPosition = startTicks.takeIf { it > 0 }?.ticks,
-                    audioStreamIndex = null,
-                    subtitleStreamIndex = subtitleIndex,
-                    playFromDownloads = false,
+        // If this item is downloaded, play the local copy (offline + instant)
+        // instead of streaming. Checked off the main thread, then launched.
+        lifecycleScope.launch {
+            val isDownloaded = withContext(Dispatchers.IO) {
+                downloadDao.getDownloadByItemId(item.id)?.status == DownloadStatus.DOWNLOADED
+            }
+            activityEventHandler.emit(
+                ActivityEvent.LaunchNativePlayer(
+                    PlayOptions(
+                        ids = listOf(item.id),
+                        // Download playback resolves the source by itemId; for it to
+                        // take the download branch, mediaSourceId must be non-null too.
+                        mediaSourceId = if (isDownloaded) item.id.toString() else null,
+                        startIndex = 0,
+                        // Resume from the saved position; "Start Over" passes 0.
+                        startPosition = startTicks.takeIf { it > 0 }?.ticks,
+                        audioStreamIndex = null,
+                        subtitleStreamIndex = subtitleIndex,
+                        playFromDownloads = isDownloaded,
+                    ),
                 ),
-            ),
-        )
+            )
+        }
     }
 
     override fun onDestroyView() {

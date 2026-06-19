@@ -1,5 +1,6 @@
 package org.jellyfin.mobile.ui.screens.detail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,6 +96,7 @@ private val EPISODE_STILL_WIDTH = 360.dp
 fun DetailScreen(
     onPlay: (item: BaseItemDto, startTicks: Long, subtitleIndex: Int?) -> Unit,
     onItemClick: (BaseItemDto) -> Unit,
+    onOpenDownloads: () -> Unit,
     viewModel: DetailViewModel,
     topContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
@@ -118,6 +120,7 @@ fun DetailScreen(
                 topContentPadding = topContentPadding,
                 downloadStatus = downloadStatus,
                 onDownload = { quality -> viewModel.download(current.item, quality) },
+                onOpenDownloads = onOpenDownloads,
             )
         }
     }
@@ -131,6 +134,7 @@ private fun DetailContent(
     topContentPadding: androidx.compose.ui.unit.Dp,
     downloadStatus: org.jellyfin.mobile.downloads.DownloadStatus?,
     onDownload: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
+    onOpenDownloads: () -> Unit,
 ) {
     val item = content.item
     val apiClient: ApiClient = koinInject()
@@ -206,6 +210,7 @@ private fun DetailContent(
             onItemClick = onItemClick,
             downloadStatus = downloadStatus,
             onDownload = onDownload,
+            onOpenDownloads = onOpenDownloads,
             modifier = Modifier.padding(top = CONTENT_TOP_OFFSET),
         )
     }
@@ -218,6 +223,7 @@ private fun DetailInfo(
     onItemClick: (BaseItemDto) -> Unit,
     downloadStatus: org.jellyfin.mobile.downloads.DownloadStatus?,
     onDownload: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
+    onOpenDownloads: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val item = content.item
@@ -264,7 +270,11 @@ private fun DetailInfo(
                 if (subtitles.isNotEmpty()) {
                     SubtitlePicker(subtitles, subtitleIndex) { subtitleIndex = it }
                 }
-                DownloadAction(status = downloadStatus, onDownload = onDownload)
+                DownloadAction(
+                    status = downloadStatus,
+                    onDownload = onDownload,
+                    onOpenDownloads = onOpenDownloads,
+                )
             }
         }
 
@@ -647,14 +657,17 @@ private fun PlayActions(
 }
 
 /**
- * Round download button for the action row. Tapping (when not yet downloaded)
- * opens a quality menu; while downloading it shows a spinner; once downloaded it
- * shows a check. 56dp circle so it clears the Portal touch-target minimum.
+ * Round download button for the action row, three states:
+ * - not downloaded: download glyph; tap opens a quality menu.
+ * - downloading/queued: spinner; tap opens the Downloads view (to watch progress).
+ * - downloaded: check glyph on a blue-stroked circle; tap opens the Downloads view.
+ * 56dp circle so it clears the Portal touch-target minimum.
  */
 @Composable
 private fun DownloadAction(
     status: org.jellyfin.mobile.downloads.DownloadStatus?,
     onDownload: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
+    onOpenDownloads: () -> Unit,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     val downloading = status == org.jellyfin.mobile.downloads.DownloadStatus.QUEUED ||
@@ -664,12 +677,17 @@ private fun DownloadAction(
     Box {
         Surface(
             shape = CircleShape,
-            color = if (done) PortalColors.MetaBlue else PortalColors.Surface,
+            color = PortalColors.Surface,
+            // Blue stroke once downloaded so it reads as "saved".
+            border = if (done) BorderStroke(2.dp, PortalColors.MetaBlue) else null,
             modifier = Modifier.size(56.dp),
         ) {
             Box(
-                modifier = Modifier
-                    .pressable { if (!downloading && !done) menuOpen = true },
+                // Tapping while downloading OR downloaded jumps to the Downloads
+                // view; otherwise open the quality menu.
+                modifier = Modifier.pressable {
+                    if (downloading || done) onOpenDownloads() else menuOpen = true
+                },
                 contentAlignment = Alignment.Center,
             ) {
                 when {
@@ -680,8 +698,8 @@ private fun DownloadAction(
                     )
                     done -> Icon(
                         Icons.Filled.DownloadDone,
-                        contentDescription = "Downloaded",
-                        tint = PortalColors.OnBackground,
+                        contentDescription = "Downloaded — open Downloads",
+                        tint = PortalColors.MetaBlue,
                     )
                     else -> Icon(
                         Icons.Filled.Download,

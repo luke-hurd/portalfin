@@ -37,6 +37,7 @@ import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import java.io.File
 import java.util.UUID
 import kotlin.time.Duration
@@ -77,12 +78,13 @@ class QueueManager(
         } ?: return PlayerException.InvalidPlayOptions()
 
         when (playOptions.playFromDownloads) {
-            true -> playOptions.mediaSourceId?.let {
-                startDownloadPlayback(
-                    itemId = itemId,
-                    playWhenReady = true,
-                )
-            }
+            true -> startDownloadPlayback(
+                itemId = itemId,
+                startTime = playOptions.startPosition,
+                audioStreamIndex = playOptions.audioStreamIndex,
+                subtitleStreamIndex = playOptions.subtitleStreamIndex,
+                playWhenReady = true,
+            )
             else -> startRemotePlayback(
                 itemId = itemId,
                 mediaSourceId = playOptions.mediaSourceId,
@@ -365,7 +367,8 @@ class QueueManager(
 
     @CheckResult
     private fun createDownloadVideoMediaSource(mediaSourceId: String, fileUri: String): MediaSource {
-        val mediaSourceFactory: ProgressiveMediaSource.Factory = get()
+        // CBR-seeking factory so MPEG-TS downloads are scrubbable.
+        val mediaSourceFactory: ProgressiveMediaSource.Factory = get(named("downloadMediaSourceFactory"))
 
         val mediaItem = MediaItem.Builder()
             .setMediaId(mediaSourceId)

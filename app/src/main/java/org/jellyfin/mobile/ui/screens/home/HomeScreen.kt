@@ -222,19 +222,19 @@ private fun RowTitle(
     }
 }
 
-/** 52dp icon button for the title-row actions (Portal touch-target minimum). */
+/** 62dp icon button for the title-row actions (bumped ~20% for easier tapping). */
 @Composable
 private fun TitleAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    IconButton(onClick = onClick, modifier = Modifier.size(52.dp)) {
+    IconButton(onClick = onClick, modifier = Modifier.size(62.dp)) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = PortalColors.OnBackground,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(34.dp),
         )
     }
 }
@@ -355,7 +355,11 @@ private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
     ) {
         repeat(3) { rowIndex ->
             Column {
-                // Placeholder title row — first row also shows the action-icon stubs.
+                // Placeholder title row. Must match RowTitle's geometry EXACTLY so
+                // cards don't shift when content loads: same padding, and on the
+                // first row the action icons are 62dp boxes (the real IconButton
+                // bounds) with a 34dp shimmer circle centered — this is what makes
+                // the row 62dp tall, matching the loaded layout.
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -373,12 +377,16 @@ private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
                         Spacer(Modifier.weight(1f))
                         repeat(3) {
                             Box(
-                                modifier = Modifier
-                                    .padding(start = 8.dp)
-                                    .size(28.dp)
-                                    .clip(CircleShape)
-                                    .shimmer(),
-                            )
+                                modifier = Modifier.size(62.dp),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(34.dp)
+                                        .clip(CircleShape)
+                                        .shimmer(),
+                                )
+                            }
                         }
                     }
                 }

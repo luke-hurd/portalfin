@@ -289,7 +289,8 @@ class MainActivity : AppCompatActivity() {
         val top = supportFragmentManager.findFragmentById(R.id.fragment_container)
         val show = top is HomeFragment || top is LibraryFragment ||
             top is DetailFragment || top is ProfileFragment || top is SeasonFragment ||
-            top is SearchFragment || top is ConnectFragment || top is LoginFragment
+            top is SearchFragment || top is DownloadsFragment ||
+            top is ConnectFragment || top is LoginFragment
         findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header).visibility =
             if (show) android.view.View.VISIBLE else android.view.View.GONE
     }

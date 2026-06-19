@@ -64,6 +64,7 @@ class DownloadManager(
                     downloadEntity = downloadEntity.copy(
                         item = item,
                         status = DownloadStatus.QUEUED,
+                        downloadQuality = quality.intValue,
                         modifiedAt = System.currentTimeMillis(),
                     )
                     downloadDao.update(downloadEntity)
@@ -75,6 +76,7 @@ class DownloadManager(
                         itemId = item.id,
                         item = item,
                         path = item.name ?: item.id.toString(),
+                        downloadQuality = quality.intValue,
                     )
                     downloadDao.insert(downloadEntity)
                 }

@@ -95,10 +95,14 @@ class DownloadQueue(
         progressCallback: FileDownloader.ProgressCallback,
     ): String {
         val quality = appPreferences.downloadQuality
-        val filename = "${download.itemId}.mp4"
+        // MPEG-TS, not MP4: Jellyfin's live transcode emits a *fragmented* MP4
+        // with an empty moov (duration 0, no sidx), which ExoPlayer cannot seek —
+        // scrubbing was dead. MPEG-TS supports constant-bitrate seeking, so the
+        // downloaded copy is scrubbable. (See DownloadVideoExtractorsFactory.)
+        val filename = "${download.itemId}.ts"
 
         // Use a mime of "" so DocumentFile.createFile doesn't append a second
-        // ".mp4" extension to the name we already gave it. Recreate fresh each
+        // extension to the name we already gave it. Recreate fresh each
         // run since transcodes aren't resumable.
         itemLocation.findFile(filename)?.delete()
         val fileLocation = itemLocation.createFile("", filename) ?: error("Unable to find or create file $filename")
@@ -130,7 +134,7 @@ class DownloadQueue(
         val sessionId = java.util.UUID.randomUUID().toString().replace("-", "")
         val params = linkedMapOf(
             "static" to "false",
-            "container" to "mp4",
+            "container" to "ts",
             "videoCodec" to "h264",
             "audioCodec" to "aac",
             "maxHeight" to quality.maxHeight.toString(),
@@ -150,6 +154,6 @@ class DownloadQueue(
             "transcode ${quality.label}: item=$itemId maxHeight=${quality.maxHeight} " +
                 "vBitRate=${quality.videoBitRate} session=$sessionId",
         )
-        return api.createUrl("/Videos/$itemId/stream.mp4?$query")
+        return api.createUrl("/Videos/$itemId/stream.ts?$query")
     }
 }
