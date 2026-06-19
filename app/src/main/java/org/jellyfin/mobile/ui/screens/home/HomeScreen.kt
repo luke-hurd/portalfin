@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -150,7 +152,7 @@ private fun HomeRowView(
     onSearchClick: (() -> Unit)? = null,
 ) {
     Column {
-        RowTitle(row.title)
+        RowTitle(row.title, onSearchClick = onSearchClick, onSettingsClick = onSettingsClick)
         LazyRow(
             contentPadding = PaddingValues(horizontal = EDGE_PADDING),
             horizontalArrangement = Arrangement.spacedBy(CARD_SPACING),
@@ -166,59 +168,59 @@ private fun HomeRowView(
                     MediaCard(item = item, onClick = { onItemClick(item) })
                 }
             }
-            // Search + Settings cards trail the My Media libraries — half width,
-            // big glyph. Search goes first (magnifying glass), then the gear. Both
-            // live in scroll content (below the OSD band) so they're actually
-            // tappable, unlike the dead header.
-            if (onSearchClick != null) {
-                item(contentType = "search-card") {
-                    IconCard(icon = Icons.Filled.Search, contentDescription = "Search", onClick = onSearchClick)
-                }
+        }
+    }
+}
+
+/**
+ * Row title. The top ("My Media") row also carries right-aligned Search +
+ * Settings icon buttons — they live in scroll content (below the OSD band) so
+ * they're actually tappable, unlike the dead header.
+ */
+@Composable
+private fun RowTitle(
+    title: String,
+    onSearchClick: (() -> Unit)? = null,
+    onSettingsClick: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = EDGE_PADDING, end = EDGE_PADDING - 4.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = PortalColors.OnBackground,
+        )
+        if (onSearchClick != null || onSettingsClick != null) {
+            Spacer(Modifier.weight(1f))
+            onSearchClick?.let {
+                TitleAction(icon = Icons.Filled.Search, contentDescription = "Search", onClick = it)
             }
-            if (onSettingsClick != null) {
-                item(contentType = "settings-card") {
-                    IconCard(icon = Icons.Filled.Settings, contentDescription = "Settings", onClick = onSettingsClick)
-                }
+            onSettingsClick?.let {
+                TitleAction(icon = Icons.Filled.Settings, contentDescription = "Settings", onClick = it)
             }
         }
     }
 }
 
-/** Half-width card (same height as a library card) with a large glyph; used for Search & Settings. */
+/** 52dp icon button for the title-row actions (Portal touch-target minimum). */
 @Composable
-private fun IconCard(
+private fun TitleAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     contentDescription: String,
     onClick: () -> Unit,
 ) {
-    // Library cards are CARD_WIDTH wide at 16:9 → this is half the width, same height.
-    val cardHeight = CARD_WIDTH * 9f / 16f
-    Box(
-        modifier = Modifier
-            .width(CARD_WIDTH / 2)
-            .height(cardHeight)
-            .clip(RoundedCornerShape(CARD_CORNER))
-            .background(PortalColors.Surface)
-            .pressable(onClick),
-        contentAlignment = Alignment.Center,
-    ) {
+    IconButton(onClick = onClick, modifier = Modifier.size(52.dp)) {
         Icon(
             imageVector = icon,
             contentDescription = contentDescription,
             tint = PortalColors.OnBackground,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(28.dp),
         )
     }
-}
-
-@Composable
-private fun RowTitle(title: String) {
-    Text(
-        text = title,
-        style = MaterialTheme.typography.titleMedium,
-        color = PortalColors.OnBackground,
-        modifier = Modifier.padding(start = EDGE_PADDING, bottom = 12.dp),
-    )
 }
 
 @Composable

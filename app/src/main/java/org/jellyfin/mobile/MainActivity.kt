@@ -32,6 +32,7 @@ import org.jellyfin.mobile.ui.screens.detail.DetailFragment
 import org.jellyfin.mobile.ui.screens.home.HomeFragment
 import org.jellyfin.mobile.ui.screens.library.LibraryFragment
 import org.jellyfin.mobile.ui.screens.profile.ProfileFragment
+import org.jellyfin.mobile.ui.screens.search.SearchFragment
 import org.jellyfin.mobile.ui.screens.season.SeasonFragment
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.BackPressInterceptor
@@ -255,13 +256,9 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addFragmentAnimated<ProfileFragment>()
     }
 
-    /**
-     * Open jellyfin-web's search (predictive/fuzzy) in the WebView, deep-linked
-     * onto the back stack so back returns to the native home. No native search
-     * screen yet — the web search is genuinely good, so we reuse it.
-     */
+    /** Open the native search screen (REST API search, no WebView). */
     fun openSearch() {
-        openWebViewAt("/web/#/search.html")
+        supportFragmentManager.addFragmentAnimated<SearchFragment>()
     }
 
     /**
@@ -286,7 +283,7 @@ class MainActivity : AppCompatActivity() {
         val top = supportFragmentManager.findFragmentById(R.id.fragment_container)
         val show = top is HomeFragment || top is LibraryFragment ||
             top is DetailFragment || top is ProfileFragment || top is SeasonFragment ||
-            top is ConnectFragment || top is LoginFragment
+            top is SearchFragment || top is ConnectFragment || top is LoginFragment
         findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header).visibility =
             if (show) android.view.View.VISIBLE else android.view.View.GONE
     }
