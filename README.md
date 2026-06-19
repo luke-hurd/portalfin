@@ -41,11 +41,11 @@ to settle.
 
 **v2.0** rebuilds the core experience as **native Jetpack Compose** screens that call
 the Jellyfin REST API directly (via the Jellyfin Kotlin SDK). Home, library, detail,
-TV/season browsing, sign-in, and the profile/settings screen are all native now and
-built to Meta's Portal design system (Material 3 + the Inter typeface + Meta blue
-`#0866FF` + 52dp touch targets). It is *much* snappier than the WebView versions.
-The WebView still ships as a flag-gated fallback for anything not yet ported (search,
-person pages, the admin dashboard), so nothing is lost.
+TV/season browsing, search, sign-in, and the profile/settings screen are all native
+now and built to Meta's Portal design system (Material 3 + the Inter typeface + Meta
+blue `#0866FF` + 52dp touch targets). It is *much* snappier than the WebView versions.
+The WebView still ships as a flag-gated fallback for anything not yet ported (person
+pages, the admin dashboard), so nothing is lost.
 
 ## Screenshots
 
@@ -73,6 +73,10 @@ design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
 - **Home grid** — My Media (your libraries), Continue Watching, Next Up, and New
   Releases per library, as smooth side-scrolling rails with lazy-loaded, panel-sized
   thumbnails. A static portalfin header floats above and content scrolls behind it.
+  Search and Settings sit as right-aligned icons on the "My Media" title row.
+- **Search** — a native search screen backed by the REST API's server-side fuzzy
+  match (the same one jellyfin-web uses), debounced as you type, with results in the
+  same poster grid as the libraries. No WebView.
 - **Library / category pages** — real pagination (100 per page, Prev / "Page X of Y"
   / Next at top and bottom), quick-filter pills (All · Favorites · Genres ·
   Collections), and Genres/Collections as titled poster grids.
@@ -106,14 +110,16 @@ grid (`HomeFragment`) — or, with the native-home flag off, the legacy
 The native screens talk to the server through the **Jellyfin Kotlin SDK** (itemsApi,
 tvShowsApi, userLibraryApi, imageApi, etc.) and render with Compose + Coil, with
 image decodes pinned to each card's pixel size so scrolling stays smooth on the
-Portal. Navigation is a fragment state machine with custom crossfade transitions,
-and the portalfin header is an Activity-level overlay so it stays put while fragments
-animate beneath it.
+Portal. Search uses the same `itemsApi.getItems(searchTerm = …)` call as the library
+grid, so results are full items that open the native detail screen. Navigation is a
+fragment state machine with custom crossfade transitions, and the portalfin header is
+an Activity-level overlay so it stays put while fragments animate beneath it.
 
-The **WebView path still exists** as a flag-gated fallback for the screens not yet
-ported. There it injects `portalfin-restyle.js` on every page load (and re-injects on
-SPA navigation) to reserve the 64px top band, swap in the custom header, hide the
-kiosk chrome, and apply the Portal palette — the same approach v1.x used everywhere.
+The **WebView path still exists** as a flag-gated fallback for the few screens not yet
+ported (person pages, the admin dashboard). There it injects `portalfin-restyle.js` on
+every page load (and re-injects on SPA navigation) to reserve the 64px top band, swap
+in the custom header, hide the kiosk chrome, and apply the Portal palette — the same
+approach v1.x used everywhere.
 
 ## Supported devices
 
@@ -166,10 +172,14 @@ Shipped:
   cast & crew, scenes (chapters), more-like-this, RT score, subtitle picker.
 - [x] **Native TV / season / episode flow** — series pages (Resume SxxExx +
   seasons row), season detail with an episode grid, episode detail pages.
+- [x] **Native search** — REST API server-side fuzzy match, debounced, results
+  in the library poster grid, opening native detail (no WebView).
 - [x] **Native profile / settings** — account, server, native-home toggle,
   sign out, switch server (no WebView).
 - [x] **M3 auth flow** — Connect / server selection / Login migrated to
   Material 3 with the Portal header and top-inset reserve.
+- [x] **M3 Downloads screen** — Scaffold/ListItem on the Portal palette,
+  finishing the design-system migration of every reachable screen.
 - [x] **Portal-tuned native player** — oversized controls/scrubber, immersive
   fullscreen that survives the system-OSD band, trimmed control set.
 - [x] **CSS view transitions** between SPA routes (v1.1)
@@ -179,8 +189,7 @@ Shipped:
 
 Next up — contributions welcome:
 
-- [ ] **Native search & person pages** — the main remaining WebView screens.
-- [ ] **Migrate Downloads to M3** — the last Material 2 screen (it's mid-rework).
+- [ ] **Native person/actor pages** — the main remaining WebView screen.
 - [ ] **Transcode-on-download quality picker** (in progress) — pick 1080p/720p and transcode server-side to a phone-sized MP4 instead of the multi-GB remux
 - [ ] **Genre chips that dive into the genre** from the detail page.
 - [ ] **Weather overlay** on the ambient slideshow (clock + date are done; weather is not)
@@ -205,12 +214,13 @@ app/src/main/java/org/jellyfin/mobile/
 │       ├── library/             # LibraryScreen + paged/grouped ViewModels (pagination, filter pills)
 │       ├── detail/              # DetailScreen — movie/series/episode hero + actions + rows
 │       ├── season/              # SeasonScreen — season detail page (episode grid + season selector)
+│       ├── search/              # SearchScreen + SearchViewModel — REST API fuzzy search (debounced)
 │       ├── profile/             # ProfileScreen — native settings (no WebView)
 │       ├── connect/ + login/    # ConnectScreen / ServerSelection / LoginScreen (M3; SDK authenticateUserByName)
 │       └── PortalHeader.kt      # Static header overlay (HEADER_HEIGHT = 64dp top reserve)
 ├── player/ui/                   # Native ExoPlayer: PlayerFragment, PlayerMenus, PlayerFullscreenHelper
 └── webapp/
-    ├── WebViewFragment.kt       # Flag-gated fallback for un-ported screens (search, person, dashboard).
+    ├── WebViewFragment.kt       # Flag-gated fallback for un-ported screens (person pages, dashboard).
     │                            #   PortalFinBridge: getCredentials() seeds jellyfin-web localStorage,
     │                            #   onSignedOut() clears the native session, onRestyleApplied() fades in.
     └── JellyfinWebViewClient.kt # In onPageFinished: re-injects portalfin-restyle.js on every nav
