@@ -49,21 +49,29 @@ pages, the admin dashboard), so nothing is lost.
 
 ## Screenshots
 
-| Connect to server | Native sign-in |
+| On the Portal | Splash |
 |---|---|
-| ![](docs/screenshots/01-connect.png) | ![](docs/screenshots/02-login.png) |
+| ![](docs/screenshots/01-portal-home.png) | ![](docs/screenshots/02-splash.png) |
 
-| Library | Movie detail |
+| Home | Library grid |
 |---|---|
-| ![](docs/screenshots/04-movies.png) | ![](docs/screenshots/05-detail.png) |
+| ![](docs/screenshots/03-home.png) | ![](docs/screenshots/05-movie-grid.png) |
 
-| Profile / settings | Video player |
+| Search | Movie detail |
 |---|---|
-| ![](docs/screenshots/06-profile.png) | ![](docs/screenshots/09-playback.png) |
+| ![](docs/screenshots/06-search.png) | ![](docs/screenshots/07-movie-detail.png) |
 
-| Ambient slideshow | Ambient slideshow |
+| Series detail | Season detail |
 |---|---|
-| ![](docs/screenshots/07-ambient.png) | ![](docs/screenshots/08-ambient.png) |
+| ![](docs/screenshots/08-series-detail.png) | ![](docs/screenshots/09-season-detail.png) |
+
+| Downloads | Connect to server |
+|---|---|
+| ![](docs/screenshots/10-downloads.png) | ![](docs/screenshots/12-connect.png) |
+
+| Profile / settings | Sign in |
+|---|---|
+| ![](docs/screenshots/11-profile.png) | ![](docs/screenshots/13-login.png) |
 
 ## What's native in v2.0
 

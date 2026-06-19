@@ -39,6 +39,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,6 +76,16 @@ fun SearchScreen(
 ) {
     val state by viewModel.state.collectAsState()
     var query by remember { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+
+    // Drop the keyboard + field focus before opening an item, so the soft
+    // keyboard doesn't linger on the detail page behind it.
+    fun openItem(item: BaseItemDto) {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+        onItemClick(item)
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(GRID_COLUMNS),
@@ -116,7 +127,7 @@ fun SearchScreen(
                     key = { it.id.toString() },
                     contentType = { "poster" },
                 ) { item ->
-                    PosterCard(item = item, onClick = { onItemClick(item) })
+                    PosterCard(item = item, onClick = { openItem(item) })
                 }
         }
     }
