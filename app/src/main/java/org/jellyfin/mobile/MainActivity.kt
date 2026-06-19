@@ -200,19 +200,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Authenticated landing route. Native home grid (beta, flag-gated): when on,
-     * show the native Compose home; otherwise the WebView, which still backs
-     * every other route (detail, search, player).
+     * Authenticated landing route — always the native Compose home now. (The old
+     * WebView home + its toggle were removed; the WebView only backs the few
+     * un-ported deep-link routes via [openWebViewAt].)
      */
     private fun routeAuthenticated(currentFragment: Fragment?, server: org.jellyfin.mobile.data.entity.ServerEntity) {
-        if (appPreferences.useNativeHome) {
-            if (currentFragment !is HomeFragment) {
-                supportFragmentManager.replaceFragment<HomeFragment>()
-            }
-        } else if (currentFragment !is WebViewFragment || currentFragment.server != server) {
-            supportFragmentManager.replaceFragment<WebViewFragment>(
-                Bundle().apply { putParcelable(Constants.FRAGMENT_WEB_VIEW_EXTRA_SERVER, server) },
-            )
+        if (currentFragment !is HomeFragment) {
+            supportFragmentManager.replaceFragment<HomeFragment>()
         }
     }
 

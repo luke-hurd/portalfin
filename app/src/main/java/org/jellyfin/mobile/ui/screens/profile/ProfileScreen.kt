@@ -21,7 +21,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -32,10 +31,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
+import org.jellyfin.mobile.BuildConfig
+import org.jellyfin.mobile.ui.screens.pressable
 import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
@@ -46,22 +48,22 @@ private val EDGE_PADDING = 28.dp
 private val SECTION_SPACING = 20.dp
 private val AVATAR = 88.dp
 private const val AVATAR_PX = 220
+private const val REPO_URL = "https://github.com/luke-hurd/portalfin"
 
 /**
- * Native profile / settings screen — no WebView. Shows the signed-in user, the
- * native-home toggle, and account actions, all on the Portal design system.
+ * Native profile / settings screen — no WebView. Shows the signed-in user,
+ * account actions, and an About section, all on the Portal design system.
  */
 @Composable
 fun ProfileScreen(
     serverHostname: String,
-    nativeHomeEnabled: Boolean,
-    onNativeHomeChange: (Boolean) -> Unit,
     onSignOut: () -> Unit,
     onSwitchServer: () -> Unit,
     viewModel: ProfileViewModel,
     topContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val state by viewModel.state.collectAsState()
+    val uriHandler = LocalUriHandler.current
 
     Column(
         modifier = Modifier
@@ -73,19 +75,49 @@ fun ProfileScreen(
     ) {
         ProfileHeader(state)
 
-        SectionCard(title = "Interface") {
-            ToggleRow(
-                label = "Native home (beta)",
-                checked = nativeHomeEnabled,
-                onCheckedChange = onNativeHomeChange,
-            )
-        }
-
         SectionCard(title = "Account") {
             // Switch Server is the primary action (blue); Sign Out is destructive (red).
             ActionButton(text = "Switch Server", onClick = onSwitchServer)
             ActionButton(text = "Sign Out", onClick = onSignOut, containerColor = PortalColors.Error)
         }
+
+        AboutSection(onOpenRepo = { uriHandler.openUri(REPO_URL) })
+    }
+}
+
+/** About portalfin: version, author, license, and a link to the repo. */
+@Composable
+private fun AboutSection(onOpenRepo: () -> Unit) {
+    SectionCard(title = "About") {
+        AboutRow("Version", BuildConfig.VERSION_NAME)
+        AboutRow("Author", "Luke Hurd")
+        AboutRow("License", "GPL-2.0-only")
+        // Tappable repo link.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 44.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .pressable(onOpenRepo),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = "GitHub", style = MaterialTheme.typography.bodyLarge, color = PortalColors.OnBackground)
+            Spacer(Modifier.weight(1f))
+            Text(
+                text = "github.com/luke-hurd/portalfin",
+                style = MaterialTheme.typography.bodyMedium,
+                color = PortalColors.MetaBlue,
+            )
+        }
+    }
+}
+
+@Composable
+private fun AboutRow(label: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = PortalColors.OnBackground)
+        Spacer(Modifier.weight(1f))
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, color = PortalColors.OnSurface)
     }
 }
 
@@ -149,18 +181,6 @@ private fun SectionCard(title: String, content: @Composable () -> Unit) {
         ) {
             content()
         }
-    }
-}
-
-@Composable
-private fun ToggleRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label, style = MaterialTheme.typography.bodyLarge, color = PortalColors.OnBackground)
-        Spacer(Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 
