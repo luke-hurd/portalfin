@@ -24,6 +24,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.DownloadDone
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -33,6 +35,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -96,6 +99,7 @@ fun DetailScreen(
     topContentPadding: androidx.compose.ui.unit.Dp = 0.dp,
 ) {
     val state by viewModel.state.collectAsState()
+    val downloadStatus by viewModel.downloadStatus.collectAsState()
 
     Box(modifier = Modifier.fillMaxSize()) {
         when (val current = state) {
@@ -107,7 +111,14 @@ fun DetailScreen(
                 color = PortalColors.Error,
                 modifier = Modifier.align(Alignment.Center).padding(EDGE_PADDING),
             )
-            is DetailState.Content -> DetailContent(current, onPlay, onItemClick, topContentPadding)
+            is DetailState.Content -> DetailContent(
+                content = current,
+                onPlay = onPlay,
+                onItemClick = onItemClick,
+                topContentPadding = topContentPadding,
+                downloadStatus = downloadStatus,
+                onDownload = { quality -> viewModel.download(current.item, quality) },
+            )
         }
     }
 }
@@ -118,6 +129,8 @@ private fun DetailContent(
     onPlay: (BaseItemDto, Long, Int?) -> Unit,
     onItemClick: (BaseItemDto) -> Unit,
     topContentPadding: androidx.compose.ui.unit.Dp,
+    downloadStatus: org.jellyfin.mobile.downloads.DownloadStatus?,
+    onDownload: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
 ) {
     val item = content.item
     val apiClient: ApiClient = koinInject()
@@ -191,6 +204,8 @@ private fun DetailContent(
             content = content,
             onPlay = onPlay,
             onItemClick = onItemClick,
+            downloadStatus = downloadStatus,
+            onDownload = onDownload,
             modifier = Modifier.padding(top = CONTENT_TOP_OFFSET),
         )
     }
@@ -201,6 +216,8 @@ private fun DetailInfo(
     content: DetailState.Content,
     onPlay: (BaseItemDto, Long, Int?) -> Unit,
     onItemClick: (BaseItemDto) -> Unit,
+    downloadStatus: org.jellyfin.mobile.downloads.DownloadStatus?,
+    onDownload: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val item = content.item
@@ -242,11 +259,12 @@ private fun DetailInfo(
             // the episode detail, not here.
             SeriesPlayAction(content.nextUp, onPlay = { ep, ticks -> onPlay(ep, ticks, null) })
         } else {
-            // Play/Resume/Start Over + the subtitle picker on one row.
+            // Play/Resume/Start Over + the subtitle picker + download on one row.
             PlayActions(item, onPlay = { startTicks -> onPlay(item, startTicks, subtitleIndex) }) {
                 if (subtitles.isNotEmpty()) {
                     SubtitlePicker(subtitles, subtitleIndex) { subtitleIndex = it }
                 }
+                DownloadAction(status = downloadStatus, onDownload = onDownload)
             }
         }
 
@@ -625,6 +643,65 @@ private fun PlayActions(
             }
         }
         trailing()
+    }
+}
+
+/**
+ * Round download button for the action row. Tapping (when not yet downloaded)
+ * opens a quality menu; while downloading it shows a spinner; once downloaded it
+ * shows a check. 56dp circle so it clears the Portal touch-target minimum.
+ */
+@Composable
+private fun DownloadAction(
+    status: org.jellyfin.mobile.downloads.DownloadStatus?,
+    onDownload: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
+) {
+    var menuOpen by remember { mutableStateOf(false) }
+    val downloading = status == org.jellyfin.mobile.downloads.DownloadStatus.QUEUED ||
+        status == org.jellyfin.mobile.downloads.DownloadStatus.DOWNLOADING
+    val done = status == org.jellyfin.mobile.downloads.DownloadStatus.DOWNLOADED
+
+    Box {
+        Surface(
+            shape = CircleShape,
+            color = if (done) PortalColors.MetaBlue else PortalColors.Surface,
+            modifier = Modifier.size(56.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .pressable { if (!downloading && !done) menuOpen = true },
+                contentAlignment = Alignment.Center,
+            ) {
+                when {
+                    downloading -> CircularProgressIndicator(
+                        modifier = Modifier.size(26.dp),
+                        strokeWidth = 3.dp,
+                        color = PortalColors.MetaBlue,
+                    )
+                    done -> Icon(
+                        Icons.Filled.DownloadDone,
+                        contentDescription = "Downloaded",
+                        tint = PortalColors.OnBackground,
+                    )
+                    else -> Icon(
+                        Icons.Filled.Download,
+                        contentDescription = "Download",
+                        tint = PortalColors.OnBackground,
+                    )
+                }
+            }
+        }
+        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+            org.jellyfin.mobile.downloads.DownloadQuality.entries.forEach { quality ->
+                DropdownMenuItem(
+                    text = { Text("Download · ${quality.label}") },
+                    onClick = {
+                        menuOpen = false
+                        onDownload(quality)
+                    },
+                )
+            }
+        }
     }
 }
 

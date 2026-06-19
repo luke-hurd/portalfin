@@ -33,7 +33,12 @@ class DownloadManager(
         server: ServerEntity,
         user: UserEntity,
         items: Collection<UUID>,
+        quality: DownloadQuality = DownloadQuality.DEFAULT,
     ) = withContext(Dispatchers.IO) {
+        // Remember the chosen quality so DownloadQueue builds the right
+        // server transcode URL when the worker runs.
+        appPreferences.downloadQuality = quality
+
         for (itemsChunk in items.chunked(ITEMS_BATCH)) {
             val existingItems = downloadDao.getDownloadsByItemIds(itemsChunk)
                 .filter { it.serverId == server.id }

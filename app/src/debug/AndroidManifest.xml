@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG-ONLY overrides. This manifest is merged ONLY into debug builds, so none
+  of this ships in a release APK.
+
+  It re-declares DownloadBroadcastReceiver as exported with the headless
+  download-test intent filters, so ADB can drive the real download / transcode /
+  delete flow without tapping Compose UI (synthetic taps don't fire Compose
+  clickables on the Portal). See the receiver's companion object for usage.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <application>
+        <receiver
+            android:name="org.jellyfin.mobile.downloads.DownloadBroadcastReceiver"
+            android:exported="true"
+            tools:node="merge"
+            tools:ignore="ExportedReceiver">
+            <intent-filter>
+                <action android:name="org.jellyfin.mobile.DL_ENQUEUE" />
+                <action android:name="org.jellyfin.mobile.DL_LIST" />
+                <action android:name="org.jellyfin.mobile.DL_DELETE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>

@@ -31,6 +31,7 @@ import org.jellyfin.mobile.setup.LoginFragment
 import org.jellyfin.mobile.ui.screens.detail.DetailFragment
 import org.jellyfin.mobile.ui.screens.home.HomeFragment
 import org.jellyfin.mobile.ui.screens.library.LibraryFragment
+import org.jellyfin.mobile.downloads.DownloadsFragment
 import org.jellyfin.mobile.ui.screens.profile.ProfileFragment
 import org.jellyfin.mobile.ui.screens.search.SearchFragment
 import org.jellyfin.mobile.ui.screens.season.SeasonFragment
@@ -259,6 +260,11 @@ class MainActivity : AppCompatActivity() {
     /** Open the native search screen (REST API search, no WebView). */
     fun openSearch() {
         supportFragmentManager.addFragmentAnimated<SearchFragment>()
+    }
+
+    /** Open the native Downloads screen (from the home Downloads icon). */
+    fun openDownloads() {
+        supportFragmentManager.addFragmentAnimated<DownloadsFragment>()
     }
 
     /**

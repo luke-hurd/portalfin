@@ -38,6 +38,12 @@ data class DownloadEntity(
     @ColumnInfo(name = "path") val path: String,
     @ColumnInfo(name = "item") val item: BaseItemDto,
 
+    // Actual on-disk filename of the transcoded media inside [path]. Null for
+    // legacy rows downloaded before transcode-on-download (those used the
+    // original remux filename derived from item.path). When set (e.g.
+    // "<itemId>.mp4") playback and file lookup must use this instead.
+    @ColumnInfo(name = "download_filename") val downloadFilename: String? = null,
+
     @ColumnInfo(name = "status") val status: DownloadStatus = DownloadStatus.QUEUED,
 
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),

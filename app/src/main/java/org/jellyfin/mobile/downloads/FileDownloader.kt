@@ -79,7 +79,12 @@ class FileDownloader(
     }
 
     private fun Response.getContentRange() = when (code) {
-        200 -> requireNotNull(header("Content-Length")).let(ContentRange::fromContentLengthHeader)
+        // Transcoded streams are sent chunked with no Content-Length. Treat a
+        // missing length as "unknown total": start at 0, total 0 (the progress
+        // bar just shows indeterminate). Static files still report a length.
+        200 -> header("Content-Length")
+            ?.let(ContentRange::fromContentLengthHeader)
+            ?: ContentRange(start = 0, end = 0, total = 0)
         206, 416 -> requireNotNull(header("Content-Range")).let(ContentRange::fromContentRangeHeader)
         else -> error("Invalid response code $code")
     }
@@ -117,8 +122,12 @@ class FileDownloader(
         from: Uri,
         to: ParcelFileDescriptor,
         progressCallback: ProgressCallback = ProgressCallback.Empty,
+        // Static-file downloads can resume from a byte offset. Transcoded
+        // streams cannot (the server generates them on the fly), so we always
+        // fetch from the start for those.
+        resumable: Boolean = true,
     ) {
-        val rangeStart = to.statSize
+        val rangeStart = if (resumable) to.statSize else null
         val response = download(api, from, rangeStart)
         save(response, to, progressCallback)
     }

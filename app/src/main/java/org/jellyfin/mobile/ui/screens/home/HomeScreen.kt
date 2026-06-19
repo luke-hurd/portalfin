@@ -18,8 +18,10 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -69,6 +71,7 @@ fun HomeScreen(
     onLibraryClick: (BaseItemDto) -> Unit,
     onSettingsClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onDownloadsClick: () -> Unit,
     viewModel: HomeViewModel,
     topContentPadding: Dp = 0.dp,
 ) {
@@ -95,6 +98,7 @@ fun HomeScreen(
                 onLibraryClick = onLibraryClick,
                 onSettingsClick = onSettingsClick,
                 onSearchClick = onSearchClick,
+                onDownloadsClick = onDownloadsClick,
                 topContentPadding = topContentPadding,
             )
         }
@@ -108,6 +112,7 @@ private fun HomeContent(
     onLibraryClick: (BaseItemDto) -> Unit,
     onSettingsClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onDownloadsClick: () -> Unit,
     topContentPadding: Dp,
 ) {
     // A plain scrolling Column, NOT a LazyColumn. The home has only a handful of
@@ -134,6 +139,7 @@ private fun HomeContent(
                 isLibraryRow = true,
                 onSettingsClick = onSettingsClick,
                 onSearchClick = onSearchClick,
+                onDownloadsClick = onDownloadsClick,
             )
         }
         // Continue Watching, Next Up, New Releases (<library>) — see HomeViewModel.
@@ -150,9 +156,15 @@ private fun HomeRowView(
     isLibraryRow: Boolean = false,
     onSettingsClick: (() -> Unit)? = null,
     onSearchClick: (() -> Unit)? = null,
+    onDownloadsClick: (() -> Unit)? = null,
 ) {
     Column {
-        RowTitle(row.title, onSearchClick = onSearchClick, onSettingsClick = onSettingsClick)
+        RowTitle(
+            row.title,
+            onSearchClick = onSearchClick,
+            onDownloadsClick = onDownloadsClick,
+            onSettingsClick = onSettingsClick,
+        )
         LazyRow(
             contentPadding = PaddingValues(horizontal = EDGE_PADDING),
             horizontalArrangement = Arrangement.spacedBy(CARD_SPACING),
@@ -173,14 +185,15 @@ private fun HomeRowView(
 }
 
 /**
- * Row title. The top ("My Media") row also carries right-aligned Search +
- * Settings icon buttons — they live in scroll content (below the OSD band) so
- * they're actually tappable, unlike the dead header.
+ * Row title. The top ("My Media") row also carries right-aligned Search,
+ * Downloads + Settings icon buttons — they live in scroll content (below the
+ * OSD band) so they're actually tappable, unlike the dead header.
  */
 @Composable
 private fun RowTitle(
     title: String,
     onSearchClick: (() -> Unit)? = null,
+    onDownloadsClick: (() -> Unit)? = null,
     onSettingsClick: (() -> Unit)? = null,
 ) {
     Row(
@@ -194,10 +207,13 @@ private fun RowTitle(
             style = MaterialTheme.typography.titleMedium,
             color = PortalColors.OnBackground,
         )
-        if (onSearchClick != null || onSettingsClick != null) {
+        if (onSearchClick != null || onDownloadsClick != null || onSettingsClick != null) {
             Spacer(Modifier.weight(1f))
             onSearchClick?.let {
                 TitleAction(icon = Icons.Filled.Search, contentDescription = "Search", onClick = it)
+            }
+            onDownloadsClick?.let {
+                TitleAction(icon = Icons.Filled.Download, contentDescription = "Downloads", onClick = it)
             }
             onSettingsClick?.let {
                 TitleAction(icon = Icons.Filled.Settings, contentDescription = "Settings", onClick = it)
@@ -322,7 +338,13 @@ private fun LibraryCard(
     }
 }
 
-/** Loading skeleton: placeholder rows with a sweeping shimmer (see Modifier.shimmer). */
+/**
+ * Loading skeleton: placeholder rows with a sweeping shimmer. Mirrors the real
+ * home geometry exactly — same EDGE_PADDING / ROW_SPACING / CARD_SPACING, the
+ * same CARD_WIDTH 16:9 cards, and a label stub under each card (real cards have a
+ * 6dp gap + a text line), so nothing shifts when content loads. The first row's
+ * title also reserves space for the right-aligned action icons.
+ */
 @Composable
 private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
     Column(
@@ -331,30 +353,59 @@ private fun HomeSkeleton(topContentPadding: Dp = 0.dp) {
             .padding(top = topContentPadding + EDGE_PADDING, bottom = EDGE_PADDING),
         verticalArrangement = Arrangement.spacedBy(ROW_SPACING),
     ) {
-        repeat(3) {
+        repeat(3) { rowIndex ->
             Column {
-                // Placeholder row title.
-                Box(
+                // Placeholder title row — first row also shows the action-icon stubs.
+                Row(
                     modifier = Modifier
-                        .padding(start = EDGE_PADDING, bottom = 12.dp)
-                        .width(180.dp)
-                        .height(20.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .shimmer(),
-                )
+                        .fillMaxWidth()
+                        .padding(start = EDGE_PADDING, end = EDGE_PADDING - 4.dp, bottom = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .width(180.dp)
+                            .height(20.dp)
+                            .clip(RoundedCornerShape(4.dp))
+                            .shimmer(),
+                    )
+                    if (rowIndex == 0) {
+                        Spacer(Modifier.weight(1f))
+                        repeat(3) {
+                            Box(
+                                modifier = Modifier
+                                    .padding(start = 8.dp)
+                                    .size(28.dp)
+                                    .clip(CircleShape)
+                                    .shimmer(),
+                            )
+                        }
+                    }
+                }
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = EDGE_PADDING),
                     horizontalArrangement = Arrangement.spacedBy(CARD_SPACING),
                     userScrollEnabled = false,
                 ) {
                     items(5) {
-                        Box(
-                            modifier = Modifier
-                                .width(CARD_WIDTH)
-                                .aspectRatio(16f / 9f)
-                                .clip(RoundedCornerShape(CARD_CORNER))
-                                .shimmer(),
-                        )
+                        Column(modifier = Modifier.width(CARD_WIDTH)) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(16f / 9f)
+                                    .clip(RoundedCornerShape(CARD_CORNER))
+                                    .shimmer(),
+                            )
+                            // Label stub — matches MediaCard's 6dp gap + text line.
+                            Spacer(Modifier.height(6.dp))
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth(0.7f)
+                                    .height(12.dp)
+                                    .clip(RoundedCornerShape(4.dp))
+                                    .shimmer(),
+                            )
+                        }
                     }
                 }
             }

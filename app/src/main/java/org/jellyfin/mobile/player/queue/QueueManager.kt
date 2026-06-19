@@ -110,7 +110,11 @@ class QueueManager(
 
         val storageLocation = storageManager.getStorageLocation()
 
-        val filename = download.item.path?.replace(Regex("^.*[\\\\/]"), "") ?: error("Missing item path")
+        // Prefer the persisted transcoded filename; fall back to the original
+        // path basename for legacy downloads.
+        val filename = download.downloadFilename
+            ?: download.item.path?.replace(Regex("^.*[\\\\/]"), "")
+            ?: error("Missing item path")
         val fileLocation = storageLocation.findFile(download.path)?.findFile(filename)?.uri ?: return PlayerException.NetworkFailure()
 
         val mediaSource = LocalJellyfinMediaSource(

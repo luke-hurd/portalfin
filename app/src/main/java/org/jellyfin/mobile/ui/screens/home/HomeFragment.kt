@@ -51,6 +51,7 @@ class HomeFragment : Fragment() {
                         onLibraryClick = ::onLibraryClick,
                         onSettingsClick = ::onSettingsClick,
                         onSearchClick = ::onSearchClick,
+                        onDownloadsClick = ::onDownloadsClick,
                     )
                 }
             }
@@ -75,6 +76,10 @@ class HomeFragment : Fragment() {
         requireMainActivity().openSearch()
     }
 
+    private fun onDownloadsClick() {
+        requireMainActivity().openDownloads()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _viewBinding = null
@@ -87,6 +92,7 @@ private fun HomeContainer(
     onLibraryClick: (BaseItemDto) -> Unit,
     onSettingsClick: () -> Unit,
     onSearchClick: () -> Unit,
+    onDownloadsClick: () -> Unit,
     viewModel: HomeViewModel = viewModel(),
 ) {
     // The portalfin header is a STATIC Activity-level overlay (see MainActivity)
@@ -97,6 +103,7 @@ private fun HomeContainer(
         onLibraryClick = onLibraryClick,
         onSettingsClick = onSettingsClick,
         onSearchClick = onSearchClick,
+        onDownloadsClick = onDownloadsClick,
         viewModel = viewModel,
         topContentPadding = HEADER_HEIGHT,
     )

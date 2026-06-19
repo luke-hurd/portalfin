@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -18,13 +19,22 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Download
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -79,7 +89,7 @@ fun SeasonScreen(
                 color = PortalColors.Error,
                 modifier = Modifier.align(Alignment.Center).padding(EDGE_PADDING),
             )
-            is SeasonState.Content -> SeasonContent(current, onEpisodeClick, onSeasonClick, topContentPadding)
+            is SeasonState.Content -> SeasonContent(current, onEpisodeClick, onSeasonClick, viewModel, topContentPadding)
         }
     }
 }
@@ -89,12 +99,26 @@ private fun SeasonContent(
     content: SeasonState.Content,
     onEpisodeClick: (BaseItemDto) -> Unit,
     onSeasonClick: (BaseItemDto) -> Unit,
+    viewModel: SeasonViewModel,
     topContentPadding: Dp,
 ) {
     val apiClient: ApiClient = koinInject()
     val context = LocalContext.current
     val season = content.season
     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+
+    // Season-download confirm dialog: null = closed; otherwise the sized plan.
+    var downloadPlan by remember { mutableStateOf<SeasonDownloadPlan?>(null) }
+    if (downloadPlan != null) {
+        SeasonDownloadDialog(
+            plan = downloadPlan!!,
+            onConfirm = { quality ->
+                viewModel.downloadSeason(quality)
+                downloadPlan = null
+            },
+            onDismiss = { downloadPlan = null },
+        )
+    }
 
     val hero = remember(apiClient, season.id) {
         // Prefer the season's own backdrop, else the series', else the poster.
@@ -159,6 +183,21 @@ private fun SeasonContent(
                     )
                     season.overview?.takeIf { it.isNotBlank() }?.let {
                         Text(it, style = MaterialTheme.typography.bodyLarge, color = PortalColors.OnBackground)
+                    }
+                    // Download-whole-season — sizes against free space, then confirms.
+                    Button(
+                        onClick = { downloadPlan = viewModel.planSeasonDownload() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = PortalColors.Surface,
+                            contentColor = PortalColors.OnBackground,
+                        ),
+                        modifier = Modifier.heightIn(min = 52.dp).padding(top = 12.dp),
+                    ) {
+                        Icon(Icons.Filled.Download, contentDescription = null)
+                        Text(
+                            text = "  Download Season",
+                            style = MaterialTheme.typography.labelLarge,
+                        )
                     }
                     Text(
                         text = "Episodes",
@@ -242,6 +281,66 @@ private fun EpisodeCard(episode: BaseItemDto, onClick: () -> Unit) {
             )
         }
     }
+}
+
+/**
+ * Confirm dialog for a whole-season download. Shows episode count, estimated
+ * size at the chosen quality, and free space. If it won't fit, it warns and (when
+ * possible) offers the lowest quality that would; otherwise it offers each preset.
+ */
+@Composable
+private fun SeasonDownloadDialog(
+    plan: SeasonDownloadPlan,
+    onConfirm: (org.jellyfin.mobile.downloads.DownloadQuality) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Download season") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    "${plan.episodeCount} episodes · ~${formatBytes(plan.estimatedBytes)} at " +
+                        "${plan.quality.label}",
+                    color = PortalColors.OnBackground,
+                )
+                Text(
+                    "${formatBytes(plan.freeBytes)} free on device",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = PortalColors.OnSurface,
+                )
+                if (!plan.fits) {
+                    val warn = plan.suggestLowerQuality?.let {
+                        "Not enough space at ${plan.quality.label}. Try ${it.label} instead."
+                    } ?: "Not enough free space for this season."
+                    Text(warn, color = PortalColors.Error)
+                }
+            }
+        },
+        confirmButton = {
+            // If it fits, confirm at the chosen quality; if a lower quality is
+            // suggested, that's the primary action; otherwise only Cancel makes sense.
+            when {
+                plan.fits -> TextButton(onClick = { onConfirm(plan.quality) }) {
+                    Text("Download ${plan.quality.label}")
+                }
+                plan.suggestLowerQuality != null -> TextButton(
+                    onClick = { onConfirm(plan.suggestLowerQuality) },
+                ) {
+                    Text("Download ${plan.suggestLowerQuality.label}")
+                }
+                else -> {}
+            }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
+    )
+}
+
+private fun formatBytes(bytes: Long): String {
+    val gb = bytes / (1024.0 * 1024 * 1024)
+    if (gb >= 1.0) return "%.1f GB".format(gb)
+    val mb = bytes / (1024.0 * 1024)
+    return "%.0f MB".format(mb)
 }
 
 @Composable

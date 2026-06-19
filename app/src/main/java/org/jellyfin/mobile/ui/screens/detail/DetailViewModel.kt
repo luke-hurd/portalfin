@@ -4,10 +4,20 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jellyfin.mobile.app.ApiClientController
+import org.jellyfin.mobile.data.dao.DownloadDao
+import org.jellyfin.mobile.downloads.DownloadManager
+import org.jellyfin.mobile.downloads.DownloadQuality
+import org.jellyfin.mobile.downloads.DownloadStatus
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.libraryApi
 import org.jellyfin.sdk.api.client.extensions.tvShowsApi
@@ -26,11 +36,43 @@ import java.util.UUID
  */
 class DetailViewModel : ViewModel(), KoinComponent {
     private val apiClient: ApiClient by inject()
+    private val downloadManager: DownloadManager by inject()
+    private val downloadDao: DownloadDao by inject()
+    private val apiClientController: ApiClientController by inject()
 
     private val _state = MutableStateFlow<DetailState>(DetailState.Loading)
     val state: StateFlow<DetailState> = _state.asStateFlow()
 
+    private val itemId = MutableStateFlow<UUID?>(null)
+
+    /** Live download status for the item on screen — drives the detail download button. */
+    val downloadStatus: StateFlow<DownloadStatus?> = combine(
+        itemId,
+        downloadDao.getAllDownloads(),
+    ) { id, downloads ->
+        if (id == null) null else downloads.firstOrNull { it.itemId == id }?.status
+    }.flowOn(Dispatchers.IO).stateIn(viewModelScope, SharingStarted.WhileSubscribed(), null)
+
+    /** Download the on-screen item at [quality] (server-transcoded). */
+    fun download(item: BaseItemDto, quality: DownloadQuality = DownloadQuality.DEFAULT) {
+        viewModelScope.launch {
+            try {
+                val serverUser = apiClientController.loadSavedServerUser() ?: return@launch
+                if (serverUser.user.accessToken == null) return@launch
+                downloadManager.enqueueItems(
+                    server = serverUser.server,
+                    user = serverUser.user,
+                    items = listOf(item.id),
+                    quality = quality,
+                )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to enqueue download")
+            }
+        }
+    }
+
     fun load(itemId: UUID) {
+        this.itemId.value = itemId
         _state.value = DetailState.Loading
         viewModelScope.launch {
             try {

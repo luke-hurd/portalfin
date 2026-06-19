@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.PowerManager
 import android.provider.Settings
 import android.provider.Settings.System.ACCELEROMETER_ROTATION
+import androidx.appcompat.app.AlertDialog
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.getSystemService
 import com.google.android.material.snackbar.Snackbar
@@ -24,6 +25,7 @@ import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.downloads.DownloadManager
 import org.jellyfin.mobile.downloads.DownloadMethod
+import org.jellyfin.mobile.downloads.DownloadQuality
 import org.jellyfin.mobile.settings.ExternalPlayerPackage
 import org.jellyfin.mobile.webapp.WebViewFragment
 import org.jellyfin.sdk.model.serializer.toUUID
@@ -87,11 +89,36 @@ suspend fun MainActivity.requestDownload(itemIds: Collection<UUID>) {
         appPreferences.downloadMethod = DownloadMethod.MOBILE_AND_ROAMING
     }
 
-    if (permissionResult) {
-        val server = mainViewModel.serverState.value.server ?: return
-        val user = mainViewModel.userState.value.user ?: return
-        downloadManager.enqueueItems(server, user, itemIds)
+    if (!permissionResult) return
+
+    // Ask which quality to transcode-download at. Originals are multi-GB
+    // remuxes; transcoding server-side gets a 2hr film down to ~1–2 GB.
+    val quality: DownloadQuality = suspendCancellableCoroutine { continuation ->
+        AlertDialog.Builder(this)
+            .setTitle(R.string.download_quality_title)
+            .setItems(
+                arrayOf(
+                    getString(R.string.download_quality_1080p),
+                    getString(R.string.download_quality_720p),
+                ),
+            ) { _, which ->
+                continuation.resume(if (which == 0) DownloadQuality.FULL_HD else DownloadQuality.HD)
+            }
+            .setOnCancelListener { continuation.cancel(null) }
+            .show()
     }
+
+    val server = mainViewModel.serverState.value.server ?: return
+    val user = mainViewModel.userState.value.user ?: return
+    downloadManager.enqueueItems(server, user, itemIds, quality)
+
+    // The quality picker dismisses on tap with no feedback, so confirm the
+    // download started and tell the user where to find it (Profile > Downloads).
+    AlertDialog.Builder(this)
+        .setTitle(R.string.download_started_title)
+        .setMessage(R.string.download_started_message)
+        .setPositiveButton(android.R.string.ok, null)
+        .show()
 }
 
 fun Activity.isAutoRotateOn() = Settings.System.getInt(contentResolver, ACCELEROMETER_ROTATION, 0) == 1
