@@ -60,6 +60,7 @@ import org.jellyfin.mobile.ui.utils.PortalColors
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.BaseItemPerson
 import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.MediaStreamType
@@ -85,6 +86,7 @@ private val RELATED_CARD_WIDTH = 130.dp
 private const val RELATED_IMG_PX = 300
 private val SUBTITLE_MAX_WIDTH = 200.dp
 private const val SUBTITLE_MAX_CHARS = 100
+private val EPISODE_STILL_WIDTH = 360.dp
 
 @Composable
 fun DetailScreen(
@@ -121,13 +123,21 @@ private fun DetailContent(
     val apiClient: ApiClient = koinInject()
     val context = LocalContext.current
 
-    // Prefer the wide BACKDROP (cinematic, what jellyfin-web shows up top); fall
-    // back to PRIMARY only when there's no backdrop.
+    // Background image. For an EPISODE use the SERIES/parent backdrop (the episode
+    // still is shown separately on top, so don't double it up here). Otherwise the
+    // item's own wide BACKDROP, falling back to PRIMARY.
     val hero = remember(apiClient, item.id, context) {
-        val type = if (!item.backdropImageTags.isNullOrEmpty()) ImageType.BACKDROP else ImageType.PRIMARY
+        val (bgId, bgType) = when {
+            item.type == BaseItemKind.EPISODE && item.parentBackdropItemId != null ->
+                item.parentBackdropItemId!! to ImageType.BACKDROP
+            item.type == BaseItemKind.EPISODE && item.seriesId != null ->
+                item.seriesId!! to ImageType.BACKDROP
+            !item.backdropImageTags.isNullOrEmpty() -> item.id to ImageType.BACKDROP
+            else -> item.id to ImageType.PRIMARY
+        }
         val url = apiClient.imageApi.getItemImageUrl(
-            itemId = item.id,
-            imageType = type,
+            itemId = bgId,
+            imageType = bgType,
             maxWidth = BACKDROP_WIDTH_PX,
         )
         ImageRequest.Builder(context).data(url).crossfade(true).build()
@@ -194,6 +204,8 @@ private fun DetailInfo(
     modifier: Modifier = Modifier,
 ) {
     val item = content.item
+    val isSeries = item.type == BaseItemKind.SERIES
+    val isEpisode = item.type == BaseItemKind.EPISODE
     val subtitles = remember(item) {
         item.mediaStreams.orEmpty().filter { it.type == MediaStreamType.SUBTITLE }
     }
@@ -206,7 +218,13 @@ private fun DetailInfo(
             .padding(horizontal = EDGE_PADDING),
         verticalArrangement = Arrangement.spacedBy(SECTION_SPACING),
     ) {
-        TitleArt(item)
+        if (isEpisode) {
+            // Episode: still image above a text title (series · SxxExx · name).
+            EpisodeStill(item)
+            EpisodeTitle(item)
+        } else {
+            TitleArt(item)
+        }
 
         item.taglines?.firstOrNull()?.takeIf { it.isNotBlank() }?.let { tagline ->
             Text(
@@ -218,10 +236,17 @@ private fun DetailInfo(
 
         MetaRow(item)
 
-        // Play/Resume/Start Over + the subtitle picker on one row.
-        PlayActions(item, onPlay = { startTicks -> onPlay(item, startTicks, subtitleIndex) }) {
-            if (subtitles.isNotEmpty()) {
-                SubtitlePicker(subtitles, subtitleIndex) { subtitleIndex = it }
+        if (isSeries) {
+            // Series: play the next-up episode (resume where you left off), or the
+            // first episode if unwatched. Episode-level subtitles/chapters live on
+            // the episode detail, not here.
+            SeriesPlayAction(content.nextUp, onPlay = { ep, ticks -> onPlay(ep, ticks, null) })
+        } else {
+            // Play/Resume/Start Over + the subtitle picker on one row.
+            PlayActions(item, onPlay = { startTicks -> onPlay(item, startTicks, subtitleIndex) }) {
+                if (subtitles.isNotEmpty()) {
+                    SubtitlePicker(subtitles, subtitleIndex) { subtitleIndex = it }
+                }
             }
         }
 
@@ -237,8 +262,15 @@ private fun DetailInfo(
             GenreChips(genres)
         }
 
-        item.chapters?.takeIf { it.isNotEmpty() }?.let { chapters ->
-            ChapterRow(item, chapters) { startTicks -> onPlay(item, startTicks, subtitleIndex) }
+        when {
+            isSeries -> if (content.seasons.isNotEmpty()) SeasonsRow(content.seasons, onItemClick)
+            // Episode: other episodes in the season, under the description / above cast.
+            isEpisode -> if (content.siblingEpisodes.isNotEmpty()) {
+                EpisodeStripRow(content.siblingEpisodes, currentId = item.id, onItemClick = onItemClick)
+            }
+            else -> item.chapters?.takeIf { it.isNotEmpty() }?.let { chapters ->
+                ChapterRow(item, chapters) { startTicks -> onPlay(item, startTicks, subtitleIndex) }
+            }
         }
 
         item.people?.filter { !it.name.isNullOrBlank() }?.takeIf { it.isNotEmpty() }?.let { people ->
@@ -247,6 +279,77 @@ private fun DetailInfo(
 
         if (content.similar.isNotEmpty()) {
             RelatedRow(content.similar, onItemClick)
+        }
+    }
+}
+
+/** Series play button: "Resume SxxExx · dur" from the next-up episode, else "Play S1E1". */
+@Composable
+private fun SeriesPlayAction(nextUp: BaseItemDto?, onPlay: (BaseItemDto, Long) -> Unit) {
+    if (nextUp == null) return // still loading or no episodes
+    val resumeTicks = nextUp.userData?.playbackPositionTicks ?: 0L
+    val season = nextUp.parentIndexNumber
+    val episode = nextUp.indexNumber
+    val epLabel = if (season != null && episode != null) {
+        "S%02dE%02d".format(season, episode)
+    } else {
+        nextUp.name.orEmpty()
+    }
+    val verb = if (resumeTicks > 0) "Resume" else "Play"
+    val durSuffix = if (resumeTicks > 0) "  ·  ${formatTicks(resumeTicks)}" else ""
+    Button(
+        onClick = { onPlay(nextUp, resumeTicks) },
+        colors = ButtonDefaults.buttonColors(containerColor = PortalColors.MetaBlue),
+        modifier = Modifier.heightIn(min = 52.dp).widthIn(min = 200.dp),
+    ) {
+        Icon(Icons.Filled.PlayArrow, contentDescription = null)
+        Text(text = "  $verb $epLabel$durSuffix", style = MaterialTheme.typography.labelLarge)
+    }
+}
+
+/** Seasons poster row — tap a season to open its episode list. */
+@Composable
+private fun SeasonsRow(seasons: List<BaseItemDto>, onItemClick: (BaseItemDto) -> Unit) {
+    val apiClient: ApiClient = koinInject()
+    val context = LocalContext.current
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("Seasons", style = MaterialTheme.typography.titleMedium, color = PortalColors.OnBackground)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            items(seasons.distinctBy { it.id }, key = { it.id.toString() }) { season ->
+                val img = remember(apiClient, season.id) {
+                    val url = apiClient.imageApi.getItemImageUrl(
+                        itemId = season.id,
+                        imageType = ImageType.PRIMARY,
+                        tag = season.imageTags?.get(ImageType.PRIMARY),
+                        maxWidth = RELATED_IMG_PX,
+                    )
+                    ImageRequest.Builder(context).data(url).crossfade(true).build()
+                }
+                Column(modifier = Modifier.width(RELATED_CARD_WIDTH).pressable { onItemClick(season) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(2f / 3f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PortalColors.SurfaceVariant),
+                    ) {
+                        AsyncImage(
+                            model = img,
+                            contentDescription = season.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = season.name.orEmpty(),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = PortalColors.OnSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }
@@ -290,6 +393,108 @@ private fun TitleArt(item: BaseItemDto) {
     }
 }
 
+/** Episode still — 16:9 image shown above the title on an episode detail page. */
+@Composable
+private fun EpisodeStill(item: BaseItemDto) {
+    val apiClient: ApiClient = koinInject()
+    val context = LocalContext.current
+    val still = remember(apiClient, item.id) {
+        val url = apiClient.imageApi.getItemImageUrl(
+            itemId = item.id,
+            imageType = ImageType.PRIMARY,
+            tag = item.imageTags?.get(ImageType.PRIMARY),
+            maxWidth = BACKDROP_WIDTH_PX,
+        )
+        ImageRequest.Builder(context).data(url).crossfade(true).build()
+    }
+    Box(
+        modifier = Modifier
+            .width(EPISODE_STILL_WIDTH)
+            .aspectRatio(16f / 9f)
+            .clip(RoundedCornerShape(10.dp))
+            .background(PortalColors.SurfaceVariant),
+    ) {
+        AsyncImage(
+            model = still,
+            contentDescription = item.name,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.fillMaxSize(),
+        )
+    }
+}
+
+/** Episode title: "Series · SxxExx · Name" (text, since episodes have no logo art). */
+@Composable
+private fun EpisodeTitle(item: BaseItemDto) {
+    val season = item.parentIndexNumber
+    val episode = item.indexNumber
+    val code = if (season != null && episode != null) "S%02dE%02d".format(season, episode) else null
+    val prefix = listOfNotNull(item.seriesName, code).joinToString("  ·  ")
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        if (prefix.isNotEmpty()) {
+            Text(text = prefix, style = MaterialTheme.typography.bodyMedium, color = PortalColors.OnSurface)
+        }
+        Text(
+            text = item.name.orEmpty(),
+            style = MaterialTheme.typography.headlineSmall,
+            color = Color.White,
+        )
+    }
+}
+
+/** Other episodes in the season — horizontal still row (current one excluded). */
+@Composable
+private fun EpisodeStripRow(
+    episodes: List<BaseItemDto>,
+    currentId: java.util.UUID,
+    onItemClick: (BaseItemDto) -> Unit,
+) {
+    val apiClient: ApiClient = koinInject()
+    val context = LocalContext.current
+    val others = remember(episodes, currentId) { episodes.filter { it.id != currentId } }
+    if (others.isEmpty()) return
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("More from this season", style = MaterialTheme.typography.titleMedium, color = PortalColors.OnBackground)
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            items(others.distinctBy { it.id }, key = { it.id.toString() }) { ep ->
+                val img = remember(apiClient, ep.id) {
+                    val url = apiClient.imageApi.getItemImageUrl(
+                        itemId = ep.id,
+                        imageType = ImageType.PRIMARY,
+                        tag = ep.imageTags?.get(ImageType.PRIMARY),
+                        maxWidth = CHAPTER_IMG_PX,
+                    )
+                    ImageRequest.Builder(context).data(url).crossfade(true).build()
+                }
+                Column(modifier = Modifier.width(CHAPTER_CARD_WIDTH).pressable { onItemClick(ep) }) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .aspectRatio(16f / 9f)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(PortalColors.SurfaceVariant),
+                    ) {
+                        AsyncImage(
+                            model = img,
+                            contentDescription = ep.name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = ep.indexNumber?.let { "$it. ${ep.name.orEmpty()}" } ?: ep.name.orEmpty(),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = PortalColors.OnSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
+    }
+}
+
 /** Genres as M3 chips. */
 @Composable
 private fun GenreChips(genres: List<String>) {
@@ -316,7 +521,9 @@ private fun CastRow(people: List<BaseItemPerson>) {
             color = PortalColors.OnBackground,
         )
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            items(people, key = { it.id.toString() }) { person ->
+            // A person can appear twice (e.g. writer + presenter) — same id would
+            // crash LazyRow's unique-key check, so dedupe by id.
+            items(people.distinctBy { it.id }, key = { it.id.toString() }) { person ->
                 val img = remember(apiClient, person.id) {
                     person.primaryImageTag?.let {
                         val url = apiClient.imageApi.getItemImageUrl(
@@ -564,7 +771,7 @@ private fun RelatedRow(similar: List<BaseItemDto>, onItemClick: (BaseItemDto) ->
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("More Like This", style = MaterialTheme.typography.titleMedium, color = PortalColors.OnBackground)
         LazyRow(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            items(similar, key = { it.id.toString() }) { related ->
+            items(similar.distinctBy { it.id }, key = { it.id.toString() }) { related ->
                 val img = remember(apiClient, related.id) {
                     val url = apiClient.imageApi.getItemImageUrl(
                         itemId = related.id,

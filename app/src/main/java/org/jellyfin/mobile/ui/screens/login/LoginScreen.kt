@@ -12,11 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Surface
-import androidx.compose.material.Text
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -36,6 +36,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import org.jellyfin.mobile.R
+import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
 import org.jellyfin.mobile.ui.screens.connect.LogoHeader
 import org.jellyfin.mobile.ui.screens.connect.StyledTextButton
 import org.jellyfin.sdk.api.client.ApiClient
@@ -58,10 +59,13 @@ fun LoginScreen(
     onSwitchServer: () -> Unit,
     apiClient: ApiClient = koinInject(),
 ) {
-    Surface(color = MaterialTheme.colors.background) {
+    Surface(color = MaterialTheme.colorScheme.background) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                // Reserve the static portalfin header / Portal OSD band (the device
+                // under-reports systemBars top on "aloha", so use the fixed reserve).
+                .padding(top = HEADER_HEIGHT)
                 .systemBarsPadding()
                 .padding(horizontal = 16.dp),
         ) {
@@ -69,12 +73,12 @@ fun LoginScreen(
 
             Text(
                 text = stringResource(R.string.login_title),
-                style = MaterialTheme.typography.h5,
+                style = MaterialTheme.typography.headlineSmall,
                 modifier = Modifier.padding(bottom = 4.dp),
             )
             Text(
                 text = stringResource(R.string.login_subtitle, prettyHost(serverHostname)),
-                style = MaterialTheme.typography.caption,
+                style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(bottom = 16.dp),
             )
 
@@ -190,8 +194,8 @@ private fun LoginForm(
         AnimatedVisibility(visible = loginState is LoginState.Error) {
             Text(
                 text = (loginState as? LoginState.Error)?.message.orEmpty(),
-                color = MaterialTheme.colors.error,
-                style = MaterialTheme.typography.caption,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
                 modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
             )
         }

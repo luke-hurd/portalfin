@@ -12,20 +12,21 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.ListItem
-import androidx.compose.material.MaterialTheme
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Text
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.runtime.Composable
@@ -125,7 +126,7 @@ fun ServerSelection(
         Text(
             text = stringResource(R.string.connect_to_server_title),
             modifier = Modifier.padding(bottom = 8.dp),
-            style = MaterialTheme.typography.h5,
+            style = MaterialTheme.typography.headlineSmall,
         )
         Crossfade(
             targetState = serverSelectionMode,
@@ -261,8 +262,8 @@ private fun AnimatedErrorText(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 4.dp),
-            color = MaterialTheme.colors.error,
-            style = MaterialTheme.typography.caption,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.bodySmall,
         )
     }
 }
@@ -299,7 +300,7 @@ private fun ServerDiscoveryList(
                 .padding(bottom = 16.dp)
                 .fillMaxSize()
                 .background(
-                    color = MaterialTheme.colors.surface,
+                    color = MaterialTheme.colorScheme.surface,
                     shape = MaterialTheme.shapes.medium,
                 ),
         ) {
@@ -315,7 +316,6 @@ private fun ServerDiscoveryList(
     }
 }
 
-@OptIn(ExperimentalMaterialApi::class)
 @Stable
 @Composable
 private fun ServerDiscoveryItem(
@@ -324,12 +324,14 @@ private fun ServerDiscoveryItem(
 ) {
     ListItem(
         modifier = Modifier
+            .heightIn(min = 52.dp)
             .clip(MaterialTheme.shapes.medium)
             .clickable(onClick = onClickServer),
-        text = {
+        colors = ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+        headlineContent = {
             Text(text = serverSuggestion.name)
         },
-        secondaryText = {
+        supportingContent = {
             Text(text = serverSuggestion.address)
         },
     )

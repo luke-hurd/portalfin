@@ -32,6 +32,7 @@ import org.jellyfin.mobile.ui.screens.detail.DetailFragment
 import org.jellyfin.mobile.ui.screens.home.HomeFragment
 import org.jellyfin.mobile.ui.screens.library.LibraryFragment
 import org.jellyfin.mobile.ui.screens.profile.ProfileFragment
+import org.jellyfin.mobile.ui.screens.season.SeasonFragment
 import org.jellyfin.mobile.utils.AndroidVersion
 import org.jellyfin.mobile.utils.BackPressInterceptor
 import org.jellyfin.mobile.utils.BluetoothPermissionHelper
@@ -239,6 +240,11 @@ class MainActivity : AppCompatActivity() {
         supportFragmentManager.addFragmentAnimated<DetailFragment>(DetailFragment.args(item))
     }
 
+    /** Open a season's episode list — pushed onto the back stack. */
+    fun openSeason(season: org.jellyfin.sdk.model.api.BaseItemDto) {
+        supportFragmentManager.addFragmentAnimated<SeasonFragment>(SeasonFragment.args(season))
+    }
+
     /** Return to the native home — pop everything above it off the back stack. */
     fun popToHome() {
         supportFragmentManager.popBackStack(null, androidx.fragment.app.FragmentManager.POP_BACK_STACK_INCLUSIVE)
@@ -270,7 +276,8 @@ class MainActivity : AppCompatActivity() {
     fun updatePortalHeaderVisibility() {
         val top = supportFragmentManager.findFragmentById(R.id.fragment_container)
         val show = top is HomeFragment || top is LibraryFragment ||
-            top is DetailFragment || top is ProfileFragment
+            top is DetailFragment || top is ProfileFragment || top is SeasonFragment ||
+            top is ConnectFragment || top is LoginFragment
         findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header).visibility =
             if (show) android.view.View.VISIBLE else android.view.View.GONE
     }

@@ -46,6 +46,7 @@ import org.jellyfin.mobile.ui.screens.home.HomeViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryGroupViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
 import org.jellyfin.mobile.ui.screens.profile.ProfileViewModel
+import org.jellyfin.mobile.ui.screens.season.SeasonViewModel
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
 import org.jellyfin.mobile.utils.extractId
@@ -93,6 +94,7 @@ val applicationModule = module {
     viewModel { LibraryGroupViewModel() }
     viewModel { DetailViewModel() }
     viewModel { ProfileViewModel() }
+    viewModel { SeasonViewModel() }
 
     // Fragments
     fragment { WebViewFragment() }

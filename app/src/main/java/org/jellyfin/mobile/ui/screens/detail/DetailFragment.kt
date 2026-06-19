@@ -58,12 +58,21 @@ class DetailFragment : Fragment() {
                     // the apron on this screen). Just reserve its height.
                     DetailScreen(
                         onPlay = ::play,
-                        onItemClick = { related -> requireMainActivity().openDetail(related) },
+                        onItemClick = ::openItem,
                         viewModel = vm,
                         topContentPadding = HEADER_HEIGHT,
                     )
                 }
             }
+        }
+    }
+
+    /** A season opens its episode list; anything else opens a detail page. */
+    private fun openItem(item: BaseItemDto) {
+        if (item.type == org.jellyfin.sdk.model.api.BaseItemKind.SEASON) {
+            requireMainActivity().openSeason(item)
+        } else {
+            requireMainActivity().openDetail(item)
         }
     }
 

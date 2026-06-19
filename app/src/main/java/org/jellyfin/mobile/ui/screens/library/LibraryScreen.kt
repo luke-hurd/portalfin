@@ -155,7 +155,7 @@ private fun FlatLibrary(
             )
             is LibraryState.Error -> emptyCell(current.message)
             is LibraryState.Content -> {
-                items(current.items, key = { it.id.toString() }, contentType = { "poster" }) { item ->
+                items(current.items.distinctBy { it.id }, key = { it.id.toString() }, contentType = { "poster" }) { item ->
                     PosterCard(item = item, onClick = { onItemClick(item) })
                 }
                 // Bottom pager (centered) + breathing room so it isn't smashed
@@ -251,7 +251,7 @@ private fun GroupedLibrary(
                             }
                         }
                     } else {
-                        items(items, key = { "${group.id}_${it.id}" }, contentType = { "poster" }) { item ->
+                        items(items.distinctBy { it.id }, key = { "${group.id}_${it.id}" }, contentType = { "poster" }) { item ->
                             PosterCard(item = item, onClick = { onItemClick(item) })
                         }
                     }

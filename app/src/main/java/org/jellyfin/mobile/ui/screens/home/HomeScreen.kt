@@ -150,7 +150,7 @@ private fun HomeRowView(
             horizontalArrangement = Arrangement.spacedBy(CARD_SPACING),
         ) {
             items(
-                row.items,
+                row.items.distinctBy { it.id },
                 key = { item -> item.id.toString() },
                 contentType = { if (isLibraryRow) "library-card" else "media-card" },
             ) { item ->

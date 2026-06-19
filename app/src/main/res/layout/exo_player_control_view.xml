@@ -16,7 +16,7 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:navigationIcon="?attr/homeAsUpIndicator">
+        app:navigationIcon="@drawable/ic_player_back_white">
 
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/toolbar_title"
@@ -35,11 +35,12 @@
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/previous_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/exo_center_button_size"
+        android:layout_height="@dimen/exo_center_button_size"
         android:layout_marginEnd="@dimen/exo_center_controls_distance"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_center_icon_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_skip_previous_black_32dp"
         android:tint="?android:textColorPrimary"
         app:layout_constraintBottom_toBottomOf="@id/play_pause_container"
@@ -48,11 +49,12 @@
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/previous_chapter_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/exo_center_button_size"
+        android:layout_height="@dimen/exo_center_button_size"
         android:layout_marginEnd="@dimen/exo_center_controls_distance"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_center_icon_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_skip_previous_chapter_black_32dp"
         android:tint="?android:textColorPrimary"
         app:layout_constraintBottom_toBottomOf="@id/play_pause_container"
@@ -70,20 +72,22 @@
 
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/exo_play_pause"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_width="@dimen/exo_center_button_size"
+            android:layout_height="@dimen/exo_center_button_size"
             android:background="@drawable/ripple_background_circular"
             android:padding="@dimen/exo_center_icon_padding"
+            android:scaleType="fitCenter"
             android:tint="?android:textColorPrimary" />
     </FrameLayout>
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/next_chapter_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/exo_center_button_size"
+        android:layout_height="@dimen/exo_center_button_size"
         android:layout_marginStart="@dimen/exo_center_controls_distance"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_center_icon_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_skip_next_chapter_black_32dp"
         android:tint="?android:textColorPrimary"
         app:layout_constraintBottom_toBottomOf="@id/play_pause_container"
@@ -92,11 +96,12 @@
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/next_button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="@dimen/exo_center_button_size"
+        android:layout_height="@dimen/exo_center_button_size"
         android:layout_marginStart="@dimen/exo_center_controls_distance"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_center_icon_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_skip_next_black_32dp"
         android:tint="?android:textColorPrimary"
         app:layout_constraintBottom_toBottomOf="@id/play_pause_container"
@@ -149,8 +154,8 @@
             app:played_color="?colorAccent"
             app:scrubber_color="?colorAccent"
             app:unplayed_color="@color/playback_timebar_unplayed"
-            app:scrubber_dragged_size="24dp"
-            app:scrubber_enabled_size="16dp" />
+            app:scrubber_dragged_size="42dp"
+            app:scrubber_enabled_size="28dp" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.appcompat.widget.AppCompatTextView
@@ -171,6 +176,8 @@
         app:barrierDirection="top"
         app:constraint_referenced_ids="audio_streams_button,subtitles_button,fullscreen_switcher" />
 
+    <!-- Hidden on Portal: lock has no use on a fixed wall display. Kept in the
+         layout (not deleted) so view-binding references still resolve. -->
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/lock_screen_button"
         android:layout_width="@dimen/exo_bottom_controls_size"
@@ -180,6 +187,7 @@
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
         android:src="@drawable/ic_screen_lock_white_24dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
@@ -187,12 +195,14 @@
         android:id="@+id/audio_streams_button"
         android:layout_width="@dimen/exo_bottom_controls_size"
         android:layout_height="@dimen/exo_bottom_controls_size"
+        android:layout_marginStart="@dimen/exo_bottom_controls_margin"
         android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_music_note_white_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toEndOf="@id/lock_screen_button" />
+        app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/subtitles_button"
@@ -201,6 +211,7 @@
         android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_subtitles_stateful_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/audio_streams_button" />
@@ -212,6 +223,7 @@
         android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_slow_motion_video_white_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/subtitles_button" />
@@ -223,10 +235,12 @@
         android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
+        android:scaleType="fitCenter"
         android:src="@drawable/ic_settings_white_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/speed_button" />
 
+    <!-- Hidden on Portal: software/hardware decoder toggle isn't needed here. -->
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/decoder_button"
         android:layout_width="@dimen/exo_bottom_controls_size"
@@ -235,9 +249,11 @@
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
         android:src="@drawable/ic_video_settings_white_24dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/quality_button" />
 
+    <!-- Hidden on Portal: info overlay. -->
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/info_button"
         android:layout_width="@dimen/exo_bottom_controls_size"
@@ -246,9 +262,12 @@
         android:background="@drawable/ripple_background_circular"
         android:padding="@dimen/exo_bottom_controls_padding"
         android:src="@drawable/ic_info_white_24dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/decoder_button" />
 
+    <!-- Hidden on Portal: fullscreen toggle forced the device into portrait; the
+         Portal is a fixed landscape display so it serves no purpose. -->
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/fullscreen_switcher"
         android:layout_width="@dimen/exo_bottom_controls_size"
@@ -256,8 +275,8 @@
         android:layout_marginEnd="@dimen/exo_bottom_controls_margin"
         android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
         android:background="@drawable/ripple_background_circular"
-        android:padding="@dimen/exo_bottom_controls_padding"
         android:src="@drawable/ic_fullscreen_enter_white_32dp"
+        android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

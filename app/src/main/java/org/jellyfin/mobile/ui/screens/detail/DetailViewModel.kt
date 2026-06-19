@@ -10,8 +10,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.libraryApi
+import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemKind
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import timber.log.Timber
@@ -39,6 +41,10 @@ class DetailViewModel : ViewModel(), KoinComponent {
                 _state.value = DetailState.Content(item)
                 // Related items load after the main content so the page paints fast.
                 loadSimilar(itemId)
+                // For a series, also load seasons + the next-up episode.
+                if (item.type == BaseItemKind.SERIES) loadSeriesExtras(itemId)
+                // For an episode, load its sibling episodes (same season).
+                if (item.type == BaseItemKind.EPISODE) loadSiblingEpisodes(item)
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load detail")
                 _state.value = DetailState.Error(e.message ?: "Couldn't load this title")
@@ -62,6 +68,43 @@ class DetailViewModel : ViewModel(), KoinComponent {
         }
     }
 
+    /** Seasons + the next-up episode (where you left off) for a series. */
+    private fun loadSeriesExtras(seriesId: UUID) {
+        viewModelScope.launch {
+            val (seasons, nextUp) = try {
+                withContext(Dispatchers.IO) {
+                    val seasonsRes by apiClient.tvShowsApi.getSeasons(seriesId = seriesId)
+                    val nextUpRes by apiClient.tvShowsApi.getNextUp(seriesId = seriesId, limit = 1)
+                    seasonsRes.items.orEmpty() to nextUpRes.items.orEmpty().firstOrNull()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load series extras")
+                emptyList<BaseItemDto>() to null
+            }
+            val content = _state.value as? DetailState.Content ?: return@launch
+            _state.value = content.copy(seasons = seasons, nextUp = nextUp)
+        }
+    }
+
+    /** Other episodes in the same season, for the episode-detail sibling row. */
+    private fun loadSiblingEpisodes(episode: BaseItemDto) {
+        val seriesId = episode.seriesId ?: return
+        val seasonId = episode.seasonId ?: return
+        viewModelScope.launch {
+            val siblings = try {
+                withContext(Dispatchers.IO) {
+                    val res by apiClient.tvShowsApi.getEpisodes(seriesId = seriesId, seasonId = seasonId)
+                    res.items.orEmpty()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load sibling episodes")
+                emptyList()
+            }
+            val content = _state.value as? DetailState.Content ?: return@launch
+            _state.value = content.copy(siblingEpisodes = siblings)
+        }
+    }
+
     companion object {
         private const val SIMILAR_LIMIT = 20
     }
@@ -72,6 +115,9 @@ sealed interface DetailState {
     data class Content(
         val item: BaseItemDto,
         val similar: List<BaseItemDto> = emptyList(),
+        val seasons: List<BaseItemDto> = emptyList(),
+        val nextUp: BaseItemDto? = null,
+        val siblingEpisodes: List<BaseItemDto> = emptyList(),
     ) : DetailState
     data class Error(val message: String) : DetailState
 }
