@@ -73,7 +73,7 @@ design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
 - **Home grid** — My Media (your libraries), Continue Watching, Next Up, and New
   Releases per library, as smooth side-scrolling rails with lazy-loaded, panel-sized
   thumbnails. A static portalfin header floats above and content scrolls behind it.
-  Search and Settings sit as right-aligned icons on the "My Media" title row.
+  Search, Downloads and Settings sit as right-aligned icons on the "My Media" title row.
 - **Search** — a native search screen backed by the REST API's server-side fuzzy
   match (the same one jellyfin-web uses), debounced as you type, with results in the
   same poster grid as the libraries. No WebView.
@@ -94,6 +94,13 @@ design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
 - **Native video player** — ExoPlayer with Portal-tuned controls: oversized
   play/skip/scrubber for at-distance touch, immersive fullscreen that survives the
   Portal's system-OSD band, and the noise (fullscreen/lock/decoder/info) removed.
+- **Transcoded downloads** — download any movie/episode (or a whole season) at a
+  chosen quality (1080p / 720p / 480p); the server transcodes to a phone-sized file
+  instead of the multi-GB original. A round download button on the detail page shows
+  download / in-progress / downloaded states; the Downloads screen shows each item's
+  quality + size and an iOS-style device-storage bar; season downloads check free
+  space first and suggest a lower quality if it won't fit. Downloaded copies play
+  offline (and scrub) — Play/Resume uses the local file automatically.
 
 Carried over from v1.x: animated screen transitions, a branded splash, an ambient
 slideshow after ~60s idle (cover-art gallery with clock/date and time-of-day
@@ -178,8 +185,9 @@ Shipped:
   sign out, switch server (no WebView).
 - [x] **M3 auth flow** — Connect / server selection / Login migrated to
   Material 3 with the Portal header and top-inset reserve.
-- [x] **M3 Downloads screen** — Scaffold/ListItem on the Portal palette,
-  finishing the design-system migration of every reachable screen.
+- [x] **Transcoded downloads** — pick 1080p/720p/480p; server transcodes to a
+  phone-sized file; offline playback + scrubbing (MPEG-TS), per-item quality,
+  device-storage bar, whole-season downloads with free-space checks.
 - [x] **Portal-tuned native player** — oversized controls/scrubber, immersive
   fullscreen that survives the system-OSD band, trimmed control set.
 - [x] **CSS view transitions** between SPA routes (v1.1)
@@ -190,7 +198,6 @@ Shipped:
 Next up — contributions welcome:
 
 - [ ] **Native person/actor pages** — the main remaining WebView screen.
-- [ ] **Transcode-on-download quality picker** (in progress) — pick 1080p/720p and transcode server-side to a phone-sized MP4 instead of the multi-GB remux
 - [ ] **Genre chips that dive into the genre** from the detail page.
 - [ ] **Weather overlay** on the ambient slideshow (clock + date are done; weather is not)
 - [ ] **Voice control** via the Portal's built-in mic ("portalfin, play Back to the Future")
