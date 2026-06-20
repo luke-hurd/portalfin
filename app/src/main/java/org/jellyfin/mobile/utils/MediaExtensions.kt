@@ -2,6 +2,7 @@
 
 package org.jellyfin.mobile.utils
 
+import android.graphics.Bitmap
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaMetadata
@@ -13,6 +14,10 @@ import androidx.media3.exoplayer.analytics.AnalyticsCollector
 import org.jellyfin.mobile.player.source.JellyfinMediaSource
 import org.jellyfin.mobile.ui.content.ImageProvider
 import org.jellyfin.mobile.utils.extensions.width
+import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.extensions.imageApi
+import org.jellyfin.sdk.model.api.BaseItemDto
+import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.ImageType
 import androidx.media3.common.AudioAttributes as Media3AudioAttributes
 
@@ -27,15 +32,65 @@ inline fun MediaSession.applyDefaultLocalAudioAttributes(contentType: Int) {
     setPlaybackToLocal(audioAttributes)
 }
 
-fun JellyfinMediaSource.toMediaMetadata(): MediaMetadata = MediaMetadata.Builder().apply {
+/**
+ * Pick the best PORTRAIT poster for the now-playing artwork (e.g. the Portal home
+ * "Now playing" card). Movies have their own Primary poster; an episode's Primary
+ * is a 16:9 still, so prefer the parent series' portrait poster. Falls back to the
+ * item's own Primary. Returns the (itemId, tag) to address via [ImageProvider]/the
+ * image API; tag may be null (the server still resolves the current Primary image).
+ */
+fun BaseItemDto.posterImageSource(): Pair<java.util.UUID, String?> {
+    if (type == BaseItemKind.EPISODE) {
+        val sid = seriesId
+        if (sid != null) {
+            // seriesPrimaryImageTag is the series poster; use it when present, else
+            // still address the series item (server resolves its Primary).
+            return sid to seriesPrimaryImageTag
+        }
+    }
+    return id to imageTags?.get(ImageType.PRIMARY)
+}
+
+/** URL for the portrait poster used in now-playing artwork. */
+fun BaseItemDto.posterImageUrl(apiClient: ApiClient, fillHeight: Int): String {
+    val (posterId, tag) = posterImageSource()
+    return apiClient.imageApi.getItemImageUrl(
+        itemId = posterId,
+        imageType = ImageType.PRIMARY,
+        fillHeight = fillHeight,
+        quality = IMAGE_QUALITY,
+        tag = tag,
+    )
+}
+
+private const val IMAGE_QUALITY = 90
+
+/**
+ * Build the [MediaMetadata] surfaced to the system media session (lock screen,
+ * notification, and the Portal home "Now playing" card).
+ *
+ * [artwork], when provided, is embedded directly as the album-art bitmap — the
+ * most reliable path across launchers/widgets that don't resolve content URIs.
+ * The content-provider URI is also set as a fallback for consumers that do.
+ */
+fun JellyfinMediaSource.toMediaMetadata(artwork: Bitmap? = null): MediaMetadata = MediaMetadata.Builder().apply {
     putString(MediaMetadata.METADATA_KEY_MEDIA_ID, itemId.toString())
     putString(MediaMetadata.METADATA_KEY_TITLE, item?.name ?: sourceInfo.name.orEmpty())
     item?.artists?.joinToString()?.let { artists ->
         putString(MediaMetadata.METADATA_KEY_ARTIST, artists)
     }
     putLong(MediaMetadata.METADATA_KEY_DURATION, runTime.inWholeMilliseconds)
-    val imageUri = ImageProvider.buildItemUri(itemId, ImageType.PRIMARY, item?.imageTags?.get(ImageType.PRIMARY))
+
+    // Address a PORTRAIT poster (series poster for episodes) rather than the
+    // episode's 16:9 still. The URI is a fallback for URI-aware consumers.
+    val (posterId, posterTag) = item?.posterImageSource() ?: (itemId to item?.imageTags?.get(ImageType.PRIMARY))
+    val imageUri = ImageProvider.buildItemUri(posterId, ImageType.PRIMARY, posterTag)
     putString(MediaMetadata.METADATA_KEY_ART_URI, imageUri.toString())
+
+    if (artwork != null) {
+        putBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART, artwork)
+        putBitmap(MediaMetadata.METADATA_KEY_ART, artwork)
+    }
 }.build()
 
 fun MediaSession.setPlaybackState(playbackState: Int, position: Long, playbackActions: Long) {

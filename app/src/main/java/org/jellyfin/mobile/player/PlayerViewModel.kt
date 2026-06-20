@@ -27,6 +27,9 @@ import androidx.media3.exoplayer.mediacodec.MediaCodecSelector
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.exoplayer.util.EventLogger
+import coil3.ImageLoader
+import coil3.request.ImageRequest
+import coil3.toBitmap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,6 +65,7 @@ import org.jellyfin.mobile.utils.extensions.width
 import org.jellyfin.mobile.utils.getVolumeLevelPercent
 import org.jellyfin.mobile.utils.getVolumeRange
 import org.jellyfin.mobile.utils.logTracks
+import org.jellyfin.mobile.utils.posterImageUrl
 import org.jellyfin.mobile.utils.seekToOffset
 import org.jellyfin.mobile.utils.setPlaybackState
 import org.jellyfin.mobile.utils.toMediaMetadata
@@ -103,6 +107,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private val userApi: UserApi = apiClient.userApi
 
     private val appPreferences: AppPreferences by inject()
+    private val imageLoader: ImageLoader by inject()
     private val lifecycleObserver = PlayerLifecycleObserver(this)
     private val audioManager: AudioManager by lazy { getApplication<Application>().getSystemService()!! }
     val notificationHelper: PlayerNotificationHelper by lazy { PlayerNotificationHelper(this) }
@@ -312,11 +317,41 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
         player.playWhenReady = playWhenReady
 
+        // Set text/URI metadata right away; then load the portrait poster bitmap
+        // and update the session so the Portal "Now playing" card shows artwork.
         mediaSession.setMetadata(jellyfinMediaSource.toMediaMetadata())
+        loadArtwork(jellyfinMediaSource)
 
         if (jellyfinMediaSource is RemoteJellyfinMediaSource) {
             viewModelScope.launch {
                 player.reportPlaybackStart(jellyfinMediaSource)
+            }
+        }
+    }
+
+    /**
+     * Asynchronously load the portrait poster for [mediaSource] and re-publish the
+     * media-session metadata with it embedded as the artwork bitmap. Best-effort:
+     * on failure the text/URI metadata already set in [load] stays in place.
+     */
+    private fun loadArtwork(mediaSource: JellyfinMediaSource) {
+        val item = mediaSource.item ?: return
+        viewModelScope.launch {
+            val artwork = withContext(Dispatchers.IO) {
+                try {
+                    val imageUrl = item.posterImageUrl(apiClient, fillHeight = ARTWORK_TARGET_HEIGHT)
+                    val request = ImageRequest.Builder(getApplication())
+                        .data(imageUrl)
+                        .build()
+                    imageLoader.execute(request).image?.toBitmap()
+                } catch (e: Exception) {
+                    Timber.w(e, "Failed to load now-playing artwork")
+                    null
+                }
+            }
+            // Only apply if this source is still the one playing.
+            if (artwork != null && queueManager.getCurrentMediaSourceOrNull()?.itemId == mediaSource.itemId) {
+                mediaSession.setMetadata(mediaSource.toMediaMetadata(artwork))
             }
         }
     }
@@ -788,5 +823,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
     fun setPlayerMenuHelper(menuHelper: PlayerMenuHelper) {
         playerMenuHelper = menuHelper
+    }
+
+    private companion object {
+        // Portrait poster height (px) to request for now-playing artwork. Generous
+        // enough for the Portal home card without fetching the full-res poster.
+        const val ARTWORK_TARGET_HEIGHT = 480
     }
 }
