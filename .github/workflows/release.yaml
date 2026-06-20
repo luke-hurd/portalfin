@@ -1,0 +1,67 @@
+name: App / Release
+
+# Publishes a GitHub release whenever a vX.Y.Z tag is pushed. The proprietary
+# debug APK is built with the tag's version baked in (via JELLYFIN_VERSION) and
+# attached as `portalfin.apk` — a stable, unversioned filename so the permanent
+# link below always serves the newest build:
+#
+#   https://github.com/luke-hurd/portalfin/releases/latest/download/portalfin.apk
+#
+# Cut a release by tagging on main:
+#   git tag -a v2.1.0 -m "v2.1.0 — ..." && git push origin v2.1.0
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Setup Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@50e97c2cd7a37755bbfafc9c5b7cafaece252f6e # v6.1.0
+      - name: Assemble proprietary debug APK
+        env:
+          # The build strips a leading "v"; the tag ref looks like refs/tags/v2.0.0
+          JELLYFIN_VERSION: ${{ github.ref_name }}
+        run: ./gradlew :app:assembleProprietaryDebug
+      - name: Locate APK
+        id: apk
+        run: |
+          path="app/build/outputs/apk/proprietary/debug/portalfin.apk"
+          if [ ! -f "$path" ]; then
+            echo "Expected $path but it was not produced" >&2
+            exit 1
+          fi
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+      - name: Resolve release notes
+        id: notes
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="docs/releases/${version}.md"
+          if [ -f "$notes" ]; then
+            echo "args=--notes-file $notes" >> "$GITHUB_OUTPUT"
+          else
+            echo "No docs/releases/${version}.md found; auto-generating notes"
+            echo "args=--generate-notes" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            ${{ steps.notes.outputs.args }} \
+            "${{ steps.apk.outputs.path }}"
