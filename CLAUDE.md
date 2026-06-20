@@ -102,3 +102,16 @@ real media. The user can manually test on-device flows when asked.
 Feature/fix branch → `--no-ff` merge into `develop` → push. Commit messages end
 with the Co-Authored-By line. One structural change per commit so partial
 rollback stays possible.
+
+## 7. The built APK is ALWAYS named `portalfin.apk`. Never version the filename.
+
+Other projects link to the APK by a stable URL, so the output filename must
+never change between releases — version numbers in the filename break those
+links. The build is pinned to this in `app/build.gradle.kts` via
+`androidComponents { onVariants { ... output.outputFileName.set("portalfin.apk") } }`.
+
+- Do NOT revert that block or reintroduce a versioned filename (the old
+  `base.archivesName` produced `portalfin-v<ver>-<flavor>-<buildtype>.apk`).
+- The version is NOT lost — it stays in `versionName`/`versionCode` inside the
+  APK and in the git tag / GitHub release title.
+- Output path is unchanged: `app/build/outputs/apk/proprietary/debug/portalfin.apk`.

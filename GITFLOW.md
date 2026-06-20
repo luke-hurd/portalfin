@@ -61,8 +61,12 @@ git push origin main --tags
 gh release create v1.1.0 \
     --title "v1.1.0" \
     --notes-file docs/releases/v1.1.0.md \
-    app/build/outputs/apk/proprietary/debug/portalfin-v1.1.0-proprietary-debug.apk
+    app/build/outputs/apk/proprietary/debug/portalfin.apk
 ```
+
+The APK is always named `portalfin.apk` (no version in the filename) so other
+projects can link to a stable URL. The version lives inside the APK
+(versionName/versionCode) and in the git tag / release title.
 
 Each release ships:
 - A signed (debug-signed for sideload) APK attached as a release asset
@@ -113,7 +117,7 @@ is now the required gate before any feature branch merges into `develop`.
 
 ```bash
 ./gradlew :app:assembleProprietaryDebug
-adb install -r app/build/outputs/apk/proprietary/debug/portalfin-v*-proprietary-debug.apk
+adb install -r app/build/outputs/apk/proprietary/debug/portalfin.apk
 adb shell am force-stop org.jellyfin.mobile.portalfin.debug
 adb shell monkey -p org.jellyfin.mobile.portalfin.debug -c android.intent.category.LAUNCHER 1
 sleep 8   # let the app cold-start through splash
