@@ -112,6 +112,19 @@ android {
 
 base.archivesName.set("portalfin-v${project.getVersionName()}")
 
+// Force every APK output to the stable filename `portalfin.apk`, regardless of
+// version/flavor/buildtype. Other projects link to this APK by URL, so the name
+// must never change between releases (version numbers in the filename break
+// those links). The version is still recorded in versionName/versionCode inside
+// the APK and in the `versionTxt` task output. See CLAUDE.md rule on APK naming.
+androidComponents {
+    onVariants { variant ->
+        variant.outputs.forEach { output ->
+            output.outputFileName.set("portalfin.apk")
+        }
+    }
+}
+
 dependencies {
     val proprietaryImplementation by configurations
 
