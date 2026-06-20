@@ -22,6 +22,14 @@
   ▶︎ <a href="https://www.youtube.com/watch?v=1E4ZBgMRJXY" target="_blank" rel="noopener noreferrer"><strong>See it in action on the Portal</strong></a>
 </p>
 
+<p align="center">
+  <a href="https://github.com/luke-hurd/portalfin/releases/latest/download/portalfin.apk"><img src="https://img.shields.io/github/v/release/luke-hurd/portalfin?label=download%20portalfin.apk&style=for-the-badge&logo=android" alt="Download latest portalfin.apk"></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/luke-hurd/portalfin/releases/latest/download/portalfin.apk"><strong>⬇ Download portalfin.apk</strong></a> &nbsp;·&nbsp; <a href="#sideload-instructions">Sideload instructions</a>
+</p>
+
 ## What is portalfin?
 
 portalfin is a Jellyfin client for the Facebook Portal. I had an old first-gen Portal
@@ -156,8 +164,13 @@ sure your Portal is up to date. After that it's a one-time setup:
 3. Enable ADB on the Portal: Settings → Debug → ADB Enabled (you'll be prompted for the device password)
 4. Accept the "Allow USB debugging?" dialog on the Portal screen
 5. Verify the connection: `adb devices` should show your Portal
-6. Download `portalfin-vX.Y.Z.apk` from the [latest release](https://github.com/luke-hurd/portalfin/releases/latest)
-7. Install: `adb install portalfin-vX.Y.Z.apk`
+6. Download the APK — this link always points at the newest release:
+   **[⬇ portalfin.apk](https://github.com/luke-hurd/portalfin/releases/latest/download/portalfin.apk)**
+7. Install: `adb install portalfin.apk`
+
+> The download link never changes between versions, so other projects can link
+> to it directly. Want a specific version instead? Grab it from the
+> [releases page](https://github.com/luke-hurd/portalfin/releases).
 
 The portalfin tile will appear on the Portal's Apps screen.
 
@@ -169,7 +182,7 @@ Requirements: JDK 17, Android SDK with platform-36 + build-tools 36.0.0.
 git clone https://github.com/luke-hurd/portalfin.git
 cd portalfin
 ./gradlew :app:assembleProprietaryDebug
-adb install -r app/build/outputs/apk/proprietary/debug/portalfin-v*-proprietary-debug.apk
+adb install -r app/build/outputs/apk/proprietary/debug/portalfin.apk
 ```
 
 ## Roadmap

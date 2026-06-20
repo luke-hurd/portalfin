@@ -50,28 +50,51 @@ which commits belonged together — useful for rollback.
 
 ## Cutting a release
 
+Releases are **automated**. Pushing a `vX.Y.Z` tag triggers
+`.github/workflows/release.yaml`, which builds the proprietary debug APK with
+the tag's version baked in and publishes a GitHub release with the APK attached
+as `portalfin.apk`. You do NOT build or run `gh release create` by hand.
+
 ```bash
-git checkout develop
-git pull
-# Bump versionName in app/build.gradle.kts (or rely on getVersionName())
-git tag -a v1.1.0 -m "v1.1.0 — view transitions, splash crossfade, ambient mode"
-git checkout main
-git merge --no-ff develop
-git push origin main --tags
-gh release create v1.1.0 \
-    --title "v1.1.0" \
-    --notes-file docs/releases/v1.1.0.md \
-    app/build/outputs/apk/proprietary/debug/portalfin.apk
+# 1. Land everything on main
+git checkout develop && git pull
+git checkout main && git merge --no-ff develop && git push origin main
+
+# 2. (Optional) write release notes the workflow will pick up automatically
+#    docs/releases/<version>.md  — e.g. docs/releases/2.1.0.md
+#    If absent, the workflow auto-generates notes from commits.
+
+# 3. Tag and push — this is the only step that publishes the release
+git tag -a v2.1.0 -m "v2.1.0 — short summary"
+git push origin v2.1.0
 ```
 
+The build derives its version from the tag via the `JELLYFIN_VERSION` env var
+(see `buildSrc/.../VersionUtils.kt`), so there's nothing to bump in
+`app/build.gradle.kts`.
+
 The APK is always named `portalfin.apk` (no version in the filename) so other
-projects can link to a stable URL. The version lives inside the APK
-(versionName/versionCode) and in the git tag / release title.
+projects can link to a stable URL that always serves the newest build:
+
+```
+https://github.com/luke-hurd/portalfin/releases/latest/download/portalfin.apk
+```
+
+The version lives inside the APK (versionName/versionCode) and in the git tag /
+release title — never in the filename.
 
 Each release ships:
-- A signed (debug-signed for sideload) APK attached as a release asset
-- Release notes in `docs/releases/v1.1.0.md`
+- A (debug-signed for sideload) APK attached as `portalfin.apk`
+- Release notes — from `docs/releases/<version>.md` if present, else auto-generated
 - A git tag
+
+To publish a release manually (e.g. CI is down), reproduce what the workflow does:
+
+```bash
+JELLYFIN_VERSION=v2.1.0 ./gradlew :app:assembleProprietaryDebug
+gh release create v2.1.0 --title "v2.1.0" --notes-file docs/releases/2.1.0.md \
+    app/build/outputs/apk/proprietary/debug/portalfin.apk
+```
 
 ## Rollback
 
