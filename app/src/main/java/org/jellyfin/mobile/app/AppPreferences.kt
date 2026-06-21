@@ -120,8 +120,12 @@ class AppPreferences(context: Context) {
     val exoPlayerStartLandscapeVideoInLandscape: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_START_LANDSCAPE_VIDEO_IN_LANDSCAPE, false)
 
+    // Default OFF on portalfin: the Portal is a fixed touchscreen, so brightness/
+    // volume swipe-to-adjust isn't intuitive, and near-vertical micro-movement in a
+    // tap-to-pause was intermittently firing the gesture OSD. Brightness is forced
+    // full on play instead (see PlayerFragment). See memory: portalfin device.
     val exoPlayerAllowSwipeGestures: Boolean
-        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_SWIPE_GESTURES, true)
+        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_SWIPE_GESTURES, false)
 
     val exoPlayerAllowPressSpeedUp: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_PRESS_SPEED_UP, true)
