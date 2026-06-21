@@ -21,4 +21,13 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top"
         android:visibility="gone" />
+
+    <!-- Ambient screensaver overlay. Activity-level so it covers ALL screens
+         (native home/library/detail + the WebView player) edge-to-edge above the
+         Portal top inset. Shown by MainActivity after idle; GONE otherwise. -->
+    <androidx.compose.ui.platform.ComposeView
+        android:id="@+id/ambient_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
 </FrameLayout>

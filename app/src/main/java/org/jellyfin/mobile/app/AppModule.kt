@@ -42,6 +42,7 @@ import org.jellyfin.mobile.player.source.MediaSourceResolver
 import org.jellyfin.mobile.player.ui.PlayerFragment
 import org.jellyfin.mobile.setup.ConnectionHelper
 import org.jellyfin.mobile.ui.screens.detail.DetailViewModel
+import org.jellyfin.mobile.ui.screens.ambient.AmbientViewModel
 import org.jellyfin.mobile.ui.screens.home.HomeViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryGroupViewModel
 import org.jellyfin.mobile.ui.screens.library.LibraryViewModel
@@ -95,6 +96,7 @@ val applicationModule = module {
     viewModel { DetailViewModel() }
     viewModel { ProfileViewModel() }
     viewModel { SeasonViewModel() }
+    viewModel { AmbientViewModel() }
 
     // Fragments
     fragment { WebViewFragment() }
