@@ -18,3 +18,8 @@ keystore.properties
 
 # Claude Code scratch dir (CDP client, test scripts)
 .cctmp/
+
+# The Gradle wrapper jar MUST be tracked (CI runs ./gradlew). A global gitignore
+# (~/.gitignore_global) ignores *.jar, which kept it out and broke every CI
+# workflow — explicitly un-ignore it here.
+!gradle/wrapper/gradle-wrapper.jar
