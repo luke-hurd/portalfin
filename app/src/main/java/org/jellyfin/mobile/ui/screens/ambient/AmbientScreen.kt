@@ -1,12 +1,8 @@
 package org.jellyfin.mobile.ui.screens.ambient
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,8 +15,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -83,26 +80,40 @@ fun AmbientScreen(
         contentAlignment = Alignment.Center,
     ) {
         if (slides.isNotEmpty()) {
-            var index by remember { mutableIntStateOf(0) }
+            // Layer stack, bottom-first. Each entry is a monotonic generation (so
+            // keys never collide as the slide index wraps). The TOP layer fades in
+            // 0->1 ON TOP of the fully-opaque layer below; once it's fully covered
+            // the lower layers are dropped. This keeps an opaque backdrop on screen
+            // at all times — a plain crossfade leaves both layers translucent for a
+            // moment, letting the background show through between slides.
+            val layers = remember { mutableStateListOf(0) }
+            val topAlpha = remember { Animatable(1f) }
 
-            // Advance the slide on a fixed cadence.
             LaunchedEffect(slides) {
-                index = 0
                 while (true) {
                     delay(ROTATE_MS)
-                    index = (index + 1) % slides.size
+                    layers.add(layers.last() + 1)
+                    topAlpha.snapTo(0f)
+                    topAlpha.animateTo(1f, tween(CROSSFADE_MS))
+                    // New slide now fully covers the old — drop everything beneath it.
+                    while (layers.size > 1) layers.removeAt(0)
                 }
             }
 
-            // Crossfade between slides; each incoming slide runs its own Ken Burns.
-            AnimatedContent(
-                targetState = index,
-                transitionSpec = {
-                    fadeIn(tween(CROSSFADE_MS)) togetherWith fadeOut(tween(CROSSFADE_MS))
-                },
-                label = "ambient-slide",
-            ) { i ->
-                KenBurnsBackdrop(slide = slides[i], slideIndex = i)
+            layers.forEachIndexed { stackIndex, generation ->
+                val isTop = stackIndex == layers.lastIndex
+                // Only the incoming top layer is translucent (and only while more
+                // than one layer exists); everything else stays fully opaque.
+                val layerAlpha = if (isTop && layers.size > 1) topAlpha.value else 1f
+                key(generation) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .graphicsLayer { alpha = layerAlpha },
+                    ) {
+                        KenBurnsBackdrop(slide = slides[generation % slides.size], slideIndex = generation)
+                    }
+                }
             }
         }
 
@@ -174,13 +185,15 @@ private fun AmbientTitle(slide: AmbientSlide, modifier: Modifier = Modifier) {
             model = request,
             contentDescription = slide.title,
             contentScale = ContentScale.Fit,
-            modifier = modifier.size(width = 280.dp, height = 90.dp),
+            // Title art bumped ~50% (was 280x90) so it reads from across the room.
+            modifier = modifier.size(width = 420.dp, height = 135.dp),
         )
     } else {
         Text(
             text = slide.title + (slide.year?.let { "  ·  $it" } ?: ""),
             color = PortalColors.OnBackground,
-            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 28.sp),
+            // Bumped ~50% (was 28sp) to match the larger title art.
+            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 42.sp, lineHeight = 48.sp),
             textAlign = TextAlign.End,
             modifier = modifier,
         )
