@@ -81,6 +81,10 @@ pages, the admin dashboard), so nothing is lost.
 |---|---|
 | ![](docs/screenshots/11-profile.png) | ![](docs/screenshots/13-login.png) |
 
+| Ambient screensaver | Ambient screensaver |
+|---|---|
+| ![](docs/screenshots/ambient-01.png) | ![](docs/screenshots/ambient-02.png) |
+
 ## What's native in v2.0
 
 The whole browsing experience is native Compose, built to Meta's portal-samples
@@ -110,6 +114,16 @@ design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
 - **Native video player** — ExoPlayer with Portal-tuned controls: oversized
   play/skip/scrubber for at-distance touch, immersive fullscreen that survives the
   Portal's system-OSD band, and the noise (fullscreen/lock/decoder/info) removed.
+- **Ambient screensaver** — after ~60s idle, a fullscreen slideshow of random
+  cover art from your library with a slow Ken Burns zoom & drift, big clock + date,
+  and the title's logo art. Backdrops crossfade on top of one another (never a gap),
+  the Portal's system-OSD band is hidden for a true edge-to-edge display, and any
+  touch dismisses it. It never engages while a video is playing or the app is
+  backgrounded.
+- **Branded "Now playing" card** — the media card the Portal shows on its home
+  screen while you're watching uses the portalfin logo (not Jellyfin's) and
+  features the title's portrait poster (series poster for episodes, movie poster
+  for films).
 - **Transcoded downloads** — download any movie/episode (or a whole season) at a
   chosen quality (1080p / 720p / 480p); the server transcodes to a phone-sized file
   instead of the multi-GB original. A round download button on the detail page shows
@@ -118,9 +132,9 @@ design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
   space first and suggest a lower quality if it won't fit. Downloaded copies play
   offline (and scrub) — Play/Resume uses the local file automatically.
 
-Carried over from v1.x: animated screen transitions, a branded splash, an ambient
-slideshow after ~60s idle (cover-art gallery with clock/date and time-of-day
-tinting), and the layout that reserves the Portal's top system-button band.
+Carried over from v1.x: animated screen transitions, a branded splash, and the
+layout that reserves the Portal's top system-button band. (The ambient slideshow
+was a v1.x web feature too — in v2.1 it's been rebuilt fully native; see above.)
 
 ### How it works under the hood
 
@@ -211,6 +225,11 @@ Shipped:
   device-storage bar, whole-season downloads with free-space checks.
 - [x] **Portal-tuned native player** — oversized controls/scrubber, immersive
   fullscreen that survives the system-OSD band, trimmed control set.
+- [x] **Native ambient screensaver (v2.1)** — fullscreen idle slideshow rebuilt
+  in Compose: Ken Burns zoom/drift, clock + date, title art, gap-free layered
+  crossfade, hidden OSD band. See [v2.1.0 release notes](docs/releases/v2.1.0.md).
+- [x] **Branded "Now playing" card (v2.1)** — portalfin logo + portrait poster on
+  the Portal home media card.
 - [x] **CSS view transitions** between SPA routes (v1.1)
 - [x] **Native splash → home crossfade** (v1.1)
 - [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)
