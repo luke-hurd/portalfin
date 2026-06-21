@@ -125,10 +125,14 @@ private fun KenBurnsBackdrop(slide: AmbientSlide, slideIndex: Int) {
         )
     }
 
-    // Alternate drift direction per slide for variety.
+    // Alternate drift direction per slide for variety. Both scale AND drift start
+    // at their zero point (scale 1.0 = exactly fullscreen, translateX 0) and grow
+    // together. The drift MUST start at 0, not -drift: panning a not-yet-zoomed
+    // image exposes the background behind it. Drift (<=KB_DRIFT_PX) always stays
+    // within the zoom's overscan ((scale-1)/2 * width), so no edge ever shows.
     val driftSign = if (slideIndex % 2 == 0) 1f else -1f
     val scale = KB_SCALE_FROM + (KB_SCALE_TO - KB_SCALE_FROM) * progress.value
-    val translateX = driftSign * KB_DRIFT_PX * (progress.value - 0.5f) * 2f
+    val translateX = driftSign * KB_DRIFT_PX * progress.value
 
     val context = LocalContext.current
     val request = remember(slide.backdropUrl) {
