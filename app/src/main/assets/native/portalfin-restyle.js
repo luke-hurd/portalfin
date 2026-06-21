@@ -2112,8 +2112,12 @@ try {
     }
 
     function resetAmbientIdle() {
-        if (ambientTimer) clearTimeout(ambientTimer);
-        ambientTimer = setTimeout(enterAmbient, AMBIENT_IDLE_MS);
+        // DISABLED: ambient is now a NATIVE Compose overlay owned by MainActivity
+        // (ui/screens/ambient), which covers every screen including this WebView
+        // player. The old in-WebView slideshow below is kept for reference/history
+        // but must not arm — two screensavers would fight. Do not re-enable
+        // without first removing the native one.
+        return;
     }
 
     ['mousemove', 'pointermove', 'touchstart', 'keydown', 'wheel', 'click'].forEach(evt => {

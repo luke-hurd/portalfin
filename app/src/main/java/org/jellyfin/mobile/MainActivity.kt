@@ -74,6 +74,14 @@ class MainActivity : AppCompatActivity() {
 
     private val orientationListener: OrientationEventListener by lazy { SmartOrientationListener(this) }
 
+    // --- Ambient screensaver ----------------------------------------------
+    // After [AMBIENT_IDLE_MS] with no user interaction, show a full-screen native
+    // ambient slideshow (see ui/screens/ambient). Any touch dismisses it. The
+    // timer is driven off onUserInteraction() and paused while a video plays.
+    private val ambientHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val ambientRunnable = Runnable { showAmbient() }
+    private var ambientShown = false
+
     /**
      * Passes back press events onto the currently visible [Fragment] if it implements the [BackPressInterceptor] interface.
      *
@@ -289,6 +297,74 @@ class MainActivity : AppCompatActivity() {
             if (show) android.view.View.VISIBLE else android.view.View.GONE
     }
 
+    // --- Ambient screensaver ----------------------------------------------
+
+    /** Reset the idle countdown on every touch; dismiss ambient if it's up. */
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        if (ambientShown) {
+            hideAmbient()
+        } else {
+            scheduleAmbient()
+        }
+    }
+
+    /** (Re)arm the idle timer unless a video is playing. */
+    private fun scheduleAmbient() {
+        ambientHandler.removeCallbacks(ambientRunnable)
+        if (isVideoPlaying()) return
+        ambientHandler.postDelayed(ambientRunnable, AMBIENT_IDLE_MS)
+    }
+
+    private fun isVideoPlaying(): Boolean = supportFragmentManager.fragments.any { it is PlayerFragment && it.isVisible }
+
+    private fun showAmbient() {
+        if (ambientShown || isVideoPlaying()) return
+        // Never engage while backgrounded — the timer could otherwise fire just as
+        // the app leaves the foreground, and the user would return to a running
+        // screensaver (a past regression). RESUMED == we're actually on screen.
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
+        ambientShown = true
+        val overlay = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.ambient_overlay)
+        overlay.setContent {
+            org.jellyfin.mobile.ui.utils.AppTheme {
+                org.jellyfin.mobile.ui.screens.ambient.AmbientScreen()
+            }
+        }
+        overlay.visibility = android.view.View.VISIBLE
+        // Keep the Portal display awake while the slideshow runs (it otherwise
+        // dims/sleeps mid-rotation). Cleared in hideAmbient().
+        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Hide the Portal's system OSD band (back/home pills) so the slideshow is
+        // truly edge-to-edge — same immersive trick the video player uses.
+        setSystemBarsHidden(true)
+    }
+
+    private fun hideAmbient() {
+        if (!ambientShown) return
+        ambientShown = false
+        val overlay = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.ambient_overlay)
+        overlay.visibility = android.view.View.GONE
+        // Dispose the composition so its timers/coroutines stop.
+        overlay.setContent {}
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Restore the Portal OSD for normal app use.
+        setSystemBarsHidden(false)
+        scheduleAmbient()
+    }
+
+    /** Show/hide the system bars (the Portal back/home OSD band) immersively. */
+    private fun setSystemBarsHidden(hidden: Boolean) {
+        val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        if (hidden) {
+            controller.systemBarsBehavior =
+                androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
@@ -313,14 +389,27 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        scheduleAmbient()
+    }
+
     override fun onStop() {
         super.onStop()
         orientationListener.disable()
+        // Don't let the timer fire (or the overlay linger) while backgrounded.
+        ambientHandler.removeCallbacks(ambientRunnable)
+        hideAmbient()
     }
 
     override fun onDestroy() {
+        ambientHandler.removeCallbacks(ambientRunnable)
         unbindService(serviceConnection)
         chromecast.destroy()
         super.onDestroy()
+    }
+
+    private companion object {
+        const val AMBIENT_IDLE_MS = 60_000L
     }
 }
