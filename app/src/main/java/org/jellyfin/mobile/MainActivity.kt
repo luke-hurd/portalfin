@@ -335,6 +335,9 @@ class MainActivity : AppCompatActivity() {
         // Keep the Portal display awake while the slideshow runs (it otherwise
         // dims/sleeps mid-rotation). Cleared in hideAmbient().
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Hide the Portal's system OSD band (back/home pills) so the slideshow is
+        // truly edge-to-edge — same immersive trick the video player uses.
+        setSystemBarsHidden(true)
     }
 
     private fun hideAmbient() {
@@ -345,7 +348,21 @@ class MainActivity : AppCompatActivity() {
         // Dispose the composition so its timers/coroutines stop.
         overlay.setContent {}
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Restore the Portal OSD for normal app use.
+        setSystemBarsHidden(false)
         scheduleAmbient()
+    }
+
+    /** Show/hide the system bars (the Portal back/home OSD band) immersively. */
+    private fun setSystemBarsHidden(hidden: Boolean) {
+        val controller = androidx.core.view.WindowCompat.getInsetsController(window, window.decorView)
+        if (hidden) {
+            controller.systemBarsBehavior =
+                androidx.core.view.WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(androidx.core.view.WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     override fun onRequestPermissionsResult(
