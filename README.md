@@ -120,6 +120,10 @@ design system (Material 3, Inter, Meta blue, 52dp touch targets, dark-always):
   the Portal's system-OSD band is hidden for a true edge-to-edge display, and any
   touch dismisses it. It never engages while a video is playing or the app is
   backgrounded.
+- **Branded "Now playing" card** — the media card the Portal shows on its home
+  screen while you're watching uses the portalfin logo (not Jellyfin's) and
+  features the title's portrait poster (series poster for episodes, movie poster
+  for films).
 - **Transcoded downloads** — download any movie/episode (or a whole season) at a
   chosen quality (1080p / 720p / 480p); the server transcodes to a phone-sized file
   instead of the multi-GB original. A round download button on the detail page shows
@@ -224,6 +228,8 @@ Shipped:
 - [x] **Native ambient screensaver (v2.1)** — fullscreen idle slideshow rebuilt
   in Compose: Ken Burns zoom/drift, clock + date, title art, gap-free layered
   crossfade, hidden OSD band. See [v2.1.0 release notes](docs/releases/v2.1.0.md).
+- [x] **Branded "Now playing" card (v2.1)** — portalfin logo + portrait poster on
+  the Portal home media card.
 - [x] **CSS view transitions** between SPA routes (v1.1)
 - [x] **Native splash → home crossfade** (v1.1)
 - [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)
