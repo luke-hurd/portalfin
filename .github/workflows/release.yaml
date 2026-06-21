@@ -49,12 +49,13 @@ jobs:
       - name: Resolve release notes
         id: notes
         run: |
-          version="${GITHUB_REF_NAME#v}"
-          notes="docs/releases/${version}.md"
+          # Notes live at docs/releases/<tag>.md, tag INCLUDING the leading "v"
+          # (e.g. docs/releases/v2.1.0.md) — that's the existing convention.
+          notes="docs/releases/${GITHUB_REF_NAME}.md"
           if [ -f "$notes" ]; then
             echo "args=--notes-file $notes" >> "$GITHUB_OUTPUT"
           else
-            echo "No docs/releases/${version}.md found; auto-generating notes"
+            echo "No ${notes} found; auto-generating notes"
             echo "args=--generate-notes" >> "$GITHUB_OUTPUT"
           fi
       - name: Publish release
