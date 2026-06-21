@@ -1,10 +1,9 @@
 package org.jellyfin.mobile.ui.screens.ambient
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.core.updateTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -114,16 +113,22 @@ fun AmbientScreen(
 /** One backdrop with a continuous slow zoom + drift over its time on screen. */
 @Composable
 private fun KenBurnsBackdrop(slide: AmbientSlide, slideIndex: Int) {
-    val transition = updateTransition(targetState = true, label = "kenburns")
-    val progress by transition.animateFloat(
-        transitionSpec = { tween(durationMillis = ROTATE_MS.toInt() + CROSSFADE_MS, easing = LinearEasing) },
-        label = "kb-progress",
-    ) { if (it) 1f else 0f }
+    // Drive progress 0f -> 1f once, on mount. (An Animatable in a LaunchedEffect
+    // actually animates; updateTransition(targetState = true) does NOT — its
+    // state never changes, so it snaps straight to the end and nothing moves.)
+    val progress = remember { Animatable(0f) }
+    LaunchedEffect(slide.backdropUrl) {
+        progress.snapTo(0f)
+        progress.animateTo(
+            targetValue = 1f,
+            animationSpec = tween(durationMillis = ROTATE_MS.toInt() + CROSSFADE_MS, easing = LinearEasing),
+        )
+    }
 
     // Alternate drift direction per slide for variety.
     val driftSign = if (slideIndex % 2 == 0) 1f else -1f
-    val scale = KB_SCALE_FROM + (KB_SCALE_TO - KB_SCALE_FROM) * progress
-    val translateX = driftSign * KB_DRIFT_PX * (progress - 0.5f) * 2f
+    val scale = KB_SCALE_FROM + (KB_SCALE_TO - KB_SCALE_FROM) * progress.value
+    val translateX = driftSign * KB_DRIFT_PX * (progress.value - 0.5f) * 2f
 
     val context = LocalContext.current
     val request = remember(slide.backdropUrl) {
@@ -171,8 +176,7 @@ private fun AmbientTitle(slide: AmbientSlide, modifier: Modifier = Modifier) {
         Text(
             text = slide.title + (slide.year?.let { "  ·  $it" } ?: ""),
             color = PortalColors.OnBackground,
-            fontWeight = FontWeight.Bold,
-            fontSize = 28.sp,
+            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 28.sp),
             textAlign = TextAlign.End,
             modifier = modifier,
         )
@@ -203,17 +207,17 @@ private fun AmbientClock(modifier: Modifier = Modifier) {
     val dateText = "$dayName, ${months[cal.get(Calendar.MONTH)]} ${cal.get(Calendar.DAY_OF_MONTH)}"
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        // Base on the theme's Inter styles and override only size — a bare Text
+        // would fall back to the system font, not Inter.
         Text(
             text = timeText,
             color = Color.White,
-            fontWeight = FontWeight.Bold,
-            fontSize = 88.sp,
+            style = MaterialTheme.typography.headlineSmall.copy(fontSize = 88.sp, lineHeight = 92.sp),
         )
         Text(
             text = dateText,
             color = Color.White.copy(alpha = 0.85f),
-            fontWeight = FontWeight.Medium,
-            fontSize = 24.sp,
+            style = MaterialTheme.typography.titleMedium.copy(fontSize = 24.sp, lineHeight = 28.sp),
         )
     }
 }

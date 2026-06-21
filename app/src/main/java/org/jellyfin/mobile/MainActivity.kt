@@ -320,6 +320,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAmbient() {
         if (ambientShown || isVideoPlaying()) return
+        // Never engage while backgrounded — the timer could otherwise fire just as
+        // the app leaves the foreground, and the user would return to a running
+        // screensaver (a past regression). RESUMED == we're actually on screen.
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED)) return
         ambientShown = true
         val overlay = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.ambient_overlay)
         overlay.setContent {
