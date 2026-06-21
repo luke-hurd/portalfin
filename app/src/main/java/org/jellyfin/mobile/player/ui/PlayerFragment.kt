@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.OrientationEventListener
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
 import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
 import android.widget.ImageButton
 import androidx.annotation.RequiresApi
@@ -210,6 +211,11 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
 
         playerLockScreenHelper = PlayerLockScreenHelper(this, playerBinding, orientationListener)
         playerGestureHelper = PlayerGestureHelper(this, playerBinding, playerLockScreenHelper)
+
+        // Force the screen to full brightness while watching so the picture is bright
+        // regardless of the Portal's ambient/system brightness. Restored to system
+        // brightness in onDestroy (window.brightness = BRIGHTNESS_OVERRIDE_NONE).
+        requireActivity().window.brightness = BRIGHTNESS_OVERRIDE_FULL
 
         // Handle fullscreen switcher
         fullscreenSwitcher.setOnClickListener {
