@@ -347,15 +347,36 @@ class MainActivity : AppCompatActivity() {
             setTitle("Update available")
             setMessage("portalfin $version is available. Download and install it now?")
             setPositiveButton("Update") { _, _ ->
+                // First time: portalfin needs the "install unknown apps" permission.
+                // Send the user straight to its toggle instead of failing.
+                if (!appUpdater.canInstall()) {
+                    promptInstallPermission()
+                    return@setPositiveButton
+                }
                 Toast.makeText(this@MainActivity, "Downloading update…", Toast.LENGTH_SHORT).show()
                 lifecycleScope.launch {
-                    val ok = appUpdater.downloadAndInstall()
-                    if (!ok) {
-                        Toast.makeText(this@MainActivity, "Update download failed", Toast.LENGTH_LONG).show()
+                    when (appUpdater.downloadAndInstall()) {
+                        org.jellyfin.mobile.utils.AppUpdater.InstallResult.NeedsPermission -> promptInstallPermission()
+                        org.jellyfin.mobile.utils.AppUpdater.InstallResult.Failed ->
+                            Toast.makeText(this@MainActivity, "Update download failed", Toast.LENGTH_LONG).show()
+                        org.jellyfin.mobile.utils.AppUpdater.InstallResult.Started -> Unit
                     }
                 }
             }
             setNegativeButton("Later", null)
+        }.show()
+    }
+
+    /** First-update gate: explain + deep-link to portalfin's install-sources toggle. */
+    private fun promptInstallPermission() {
+        AlertDialog.Builder(this).apply {
+            setTitle("Allow updates")
+            setMessage(
+                "To install updates, allow portalfin to install apps. " +
+                    "Turn on \"Allow from this source\" on the next screen, then tap Update again.",
+            )
+            setPositiveButton("Open settings") { _, _ -> appUpdater.openInstallPermissionSettings() }
+            setNegativeButton("Cancel", null)
         }.show()
     }
 

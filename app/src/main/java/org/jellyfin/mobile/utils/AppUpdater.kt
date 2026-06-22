@@ -59,29 +59,63 @@ class AppUpdater(
         }
     }
 
+    sealed interface InstallResult {
+        data object Started : InstallResult
+        /** Sent the user to the "install unknown apps" settings for portalfin. */
+        data object NeedsPermission : InstallResult
+        data object Failed : InstallResult
+    }
+
+    /** True if portalfin is currently allowed to install APKs. */
+    fun canInstall(): Boolean =
+        !AndroidVersion.isAtLeastO || context.packageManager.canRequestPackageInstalls()
+
     /**
-     * Download the latest `portalfin.apk` and launch the system installer.
-     * Returns false if the download failed (the installer prompt itself is the
-     * user's to accept). The APK goes to cacheDir/updates and is shared via
-     * FileProvider.
+     * If portalfin can't install yet, deep-link straight to ITS "install unknown
+     * apps" toggle (not a generic settings page — that's the dead-end the system
+     * dialog's "Settings" button lands on). The user enables it, comes back, taps
+     * update again.
      */
-    suspend fun downloadAndInstall(): Boolean = withContext(Dispatchers.IO) {
+    fun openInstallPermissionSettings() {
+        val intent = if (AndroidVersion.isAtLeastO) {
+            Intent(
+                android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:${BuildConfig.APPLICATION_ID}"),
+            )
+        } else {
+            Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS)
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        try {
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Timber.w(e, "Couldn't open install-permission settings")
+        }
+    }
+
+    /**
+     * Download the latest `portalfin.apk` and launch the system installer. The APK
+     * goes to cacheDir/updates and is shared via FileProvider. Caller should check
+     * [canInstall] first; if false, send the user to [openInstallPermissionSettings].
+     */
+    suspend fun downloadAndInstall(): InstallResult = withContext(Dispatchers.IO) {
+        if (!canInstall()) return@withContext InstallResult.NeedsPermission
         try {
             val request = Request.Builder().url(LATEST_APK_URL).build()
             val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
             val apk = File(updatesDir, "portalfin.apk")
 
             okHttpClient.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@withContext false
-                val sink = response.body?.byteStream() ?: return@withContext false
+                if (!response.isSuccessful) return@withContext InstallResult.Failed
+                val sink = response.body?.byteStream() ?: return@withContext InstallResult.Failed
                 apk.outputStream().use { out -> sink.copyTo(out) }
             }
 
             launchInstaller(apk)
-            true
+            InstallResult.Started
         } catch (e: Exception) {
             Timber.w(e, "Update download failed")
-            false
+            InstallResult.Failed
         }
     }
 
