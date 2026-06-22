@@ -43,12 +43,18 @@ class AmbientViewModel : ViewModel(), KoinComponent {
     private val _slides = MutableStateFlow<List<AmbientSlide>>(emptyList())
     val slides: StateFlow<List<AmbientSlide>> = _slides.asStateFlow()
 
-    init {
-        load()
-    }
+    private var loading = false
 
-    fun load() {
-        if (_slides.value.isNotEmpty()) return
+    /**
+     * Fetch backdrops. Call every time the screensaver engages: if we already have
+     * slides we keep them (no flicker), but if we're empty — e.g. the first fetch
+     * ran before login, or the server was briefly unreachable — we retry instead of
+     * showing a blank screensaver. [force] re-fetches even when slides exist.
+     */
+    fun load(force: Boolean = false) {
+        if (loading) return
+        if (_slides.value.isNotEmpty() && !force) return
+        loading = true
         viewModelScope.launch {
             val items = withContext(Dispatchers.IO) {
                 try {
@@ -59,6 +65,7 @@ class AmbientViewModel : ViewModel(), KoinComponent {
                 }
             }
             if (items.isNotEmpty()) _slides.value = items
+            loading = false
         }
     }
 
