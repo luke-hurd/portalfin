@@ -70,6 +70,7 @@ private const val TS_SEARCH_PACKETS = 1800
 val applicationModule = module {
     single { AppPreferences(androidApplication()) }
     single { OkHttpClient() }
+    single { org.jellyfin.mobile.utils.AppUpdater(androidApplication(), get()) }
     single { ImageLoader(androidApplication()) }
     single { PermissionRequestHelper() }
     single { RemoteVolumeProvider(get()) }

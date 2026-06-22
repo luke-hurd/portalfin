@@ -25,7 +25,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +39,10 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.jellyfin.mobile.BuildConfig
+import org.jellyfin.mobile.MainActivity
 import org.jellyfin.mobile.ui.screens.pressable
 import org.jellyfin.mobile.ui.utils.PortalColors
+import org.jellyfin.mobile.utils.AppUpdater
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.model.api.ImageType
@@ -81,7 +85,39 @@ fun ProfileScreen(
             ActionButton(text = "Sign Out", onClick = onSignOut, containerColor = PortalColors.Error)
         }
 
+        UpdatesSection()
+
         AboutSection(onOpenRepo = { uriHandler.openUri(REPO_URL) })
+    }
+}
+
+/** "Check for updates" — queries GitHub and prompts to install a newer release. */
+@Composable
+private fun UpdatesSection() {
+    val context = LocalContext.current
+    var status by remember { mutableStateOf<String?>(null) }
+    var checking by remember { mutableStateOf(false) }
+
+    SectionCard(title = "Updates") {
+        ActionButton(
+            text = if (checking) "Checking…" else "Check for Updates",
+            onClick = {
+                val activity = context as? MainActivity ?: return@ActionButton
+                checking = true
+                status = null
+                activity.checkForUpdateManually { result ->
+                    checking = false
+                    status = when (result) {
+                        is AppUpdater.UpdateCheck.Available -> null // a dialog is shown instead
+                        AppUpdater.UpdateCheck.UpToDate -> "You're on the latest version."
+                        AppUpdater.UpdateCheck.Failed -> "Couldn't check for updates."
+                    }
+                }
+            },
+        )
+        status?.let { msg ->
+            Text(text = msg, style = MaterialTheme.typography.bodyMedium, color = PortalColors.OnSurface)
+        }
     }
 }
 

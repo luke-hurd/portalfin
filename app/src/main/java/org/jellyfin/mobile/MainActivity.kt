@@ -61,6 +61,7 @@ class MainActivity : AppCompatActivity() {
     val chromecast: IChromecast = Chromecast()
     private val permissionRequestHelper: PermissionRequestHelper by inject()
     private val appPreferences: AppPreferences by inject()
+    private val appUpdater: org.jellyfin.mobile.utils.AppUpdater by inject()
 
     var serviceBinder: RemotePlayerService.ServiceBinder? = null
         private set
@@ -154,6 +155,10 @@ class MainActivity : AppCompatActivity() {
 
         // Subscribe to activity events
         with(activityEventHandler) { subscribe() }
+
+        // Self-update: check GitHub for a newer release on launch (best-effort,
+        // silent on failure/up-to-date). See AppUpdater.
+        checkForUpdate()
 
         // Load UI — drive routing off both server and user state so we can
         // show our native LoginFragment between Connect and WebView.
@@ -309,6 +314,49 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshImmortalNavState() {
         immortalNavState.value = isImmortalLauncherDefault()
+    }
+
+    // --- Self-update -------------------------------------------------------
+
+    /** Silent on-launch check; prompts only if a newer release exists. */
+    private fun checkForUpdate() {
+        lifecycleScope.launch {
+            val result = appUpdater.check()
+            if (result is org.jellyfin.mobile.utils.AppUpdater.UpdateCheck.Available) {
+                lifecycle.withStarted { promptUpdate(result.version) }
+            }
+        }
+    }
+
+    /**
+     * Manual check (from Profile). [onResult] reports back so the UI can show a
+     * "you're up to date" / "check failed" message; an available update prompts here.
+     */
+    fun checkForUpdateManually(onResult: (org.jellyfin.mobile.utils.AppUpdater.UpdateCheck) -> Unit) {
+        lifecycleScope.launch {
+            val result = appUpdater.check()
+            if (result is org.jellyfin.mobile.utils.AppUpdater.UpdateCheck.Available) {
+                promptUpdate(result.version)
+            }
+            onResult(result)
+        }
+    }
+
+    private fun promptUpdate(version: String) {
+        AlertDialog.Builder(this).apply {
+            setTitle("Update available")
+            setMessage("portalfin $version is available. Download and install it now?")
+            setPositiveButton("Update") { _, _ ->
+                Toast.makeText(this@MainActivity, "Downloading update…", Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    val ok = appUpdater.downloadAndInstall()
+                    if (!ok) {
+                        Toast.makeText(this@MainActivity, "Update download failed", Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            setNegativeButton("Later", null)
+        }.show()
     }
 
     /** Header is shown only on the native home/library screens. */

@@ -199,6 +199,15 @@ sure your Portal is up to date. After that it's a one-time setup:
 
 The portalfin tile will appear on the Portal's Apps screen.
 
+### Updating
+
+You only have to sideload once. portalfin **checks for updates on launch** and
+offers a one-tap update when a newer release is out (there's also a **Check for
+Updates** button in Profile). It downloads the latest `portalfin.apk` and hands it
+to Android's installer — the first time, you'll approve "install unknown apps" for
+portalfin once; after that it's a single confirmation. Installing over the top
+keeps your login and settings.
+
 ## Building from source
 
 Requirements: JDK 17, Android SDK with platform-36 + build-tools 36.0.0.
@@ -244,6 +253,8 @@ Shipped:
 - [x] **Immortal launcher support (v2.2)** — auto-detects the [Immortal](https://github.com/starbrightlab/immortal)
   community launcher (which hides the system OSD) and draws OEM-matched back/home
   buttons; back pops, home drops to Immortal. See [v2.2.0 release notes](docs/releases/v2.2.0.md).
+- [x] **In-app self-update (v2.3)** — checks GitHub on launch + a manual button;
+  downloads the stable `portalfin.apk` and installs over the top. See [v2.3.0 release notes](docs/releases/v2.3.0.md).
 - [x] **CSS view transitions** between SPA routes (v1.1)
 - [x] **Native splash → home crossfade** (v1.1)
 - [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)
