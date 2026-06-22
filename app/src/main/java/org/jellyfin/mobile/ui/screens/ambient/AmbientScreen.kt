@@ -42,6 +42,7 @@ import java.util.Calendar
 private const val ROTATE_MS = 12_000L
 private const val CROSSFADE_MS = 1_500
 private const val CLOCK_TICK_MS = 10_000L
+private const val EMPTY_RETRY_MS = 5_000L
 
 // Ken Burns: each slide slowly scales up and drifts. Direction alternates per
 // slide so consecutive backdrops don't all pan the same way.
@@ -61,6 +62,17 @@ fun AmbientScreen(
     viewModel: AmbientViewModel = koinViewModel(),
 ) {
     val slides by viewModel.slides.collectAsState()
+
+    // (Re)load every time the screensaver mounts. If it comes up empty (e.g. a
+    // transient server hiccup), keep retrying so we never sit on a blank
+    // screensaver — MainActivity already guarantees we're logged in here.
+    LaunchedEffect(Unit) {
+        viewModel.load()
+        while (viewModel.slides.value.isEmpty()) {
+            delay(EMPTY_RETRY_MS)
+            viewModel.load()
+        }
+    }
 
     Box(
         modifier = modifier.fillMaxSize(),

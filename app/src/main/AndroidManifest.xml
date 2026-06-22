@@ -121,6 +121,11 @@
 
         <receiver android:name="org.jellyfin.mobile.downloads.DownloadBroadcastReceiver" />
 
+        <!-- Receives the real result of a self-update PackageInstaller session. -->
+        <receiver
+            android:name="org.jellyfin.mobile.utils.UpdateInstallReceiver"
+            android:exported="false" />
+
         <meta-data
             android:name="com.google.android.gms.version"
             android:value="@integer/google_play_services_version" />
