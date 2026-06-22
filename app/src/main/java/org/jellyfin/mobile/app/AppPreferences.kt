@@ -113,6 +113,12 @@ class AppPreferences(context: Context) {
         get() = sharedPreferences.getBoolean(Constants.PREF_USE_NATIVE_HOME, false)
         set(value) = sharedPreferences.edit { putBoolean(Constants.PREF_USE_NATIVE_HOME, value) }
 
+    // Immortal-launcher nav mode: "auto" (default; detect), "on", or "off".
+    // Resolved against actual launcher detection in MainActivity.shouldUseImmortalNav().
+    var immortalNavMode: String
+        get() = sharedPreferences.getString(Constants.PREF_IMMORTAL_NAV_MODE, Constants.IMMORTAL_NAV_AUTO)!!
+        set(value) = sharedPreferences.edit { putString(Constants.PREF_IMMORTAL_NAV_MODE, value) }
+
     @VideoPlayerType
     val videoPlayerType: String
         get() = sharedPreferences.getString(Constants.PREF_VIDEO_PLAYER_TYPE, VideoPlayerType.WEB_PLAYER)!!
