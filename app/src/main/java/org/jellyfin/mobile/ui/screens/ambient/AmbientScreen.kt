@@ -3,6 +3,7 @@ package org.jellyfin.mobile.ui.screens.ambient
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,7 +23,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
@@ -63,20 +63,7 @@ fun AmbientScreen(
     val slides by viewModel.slides.collectAsState()
 
     Box(
-        modifier = modifier
-            .fillMaxSize()
-            .drawWithCache {
-                // Bottom-up scrim so the clock + title stay legible over bright art.
-                val brush = Brush.verticalGradient(
-                    0.0f to Color.Transparent,
-                    0.55f to Color.Transparent,
-                    1.0f to PortalColors.Background.copy(alpha = 0.85f),
-                )
-                onDrawWithContent {
-                    drawContent()
-                    drawRect(brush)
-                }
-            },
+        modifier = modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
         if (slides.isNotEmpty()) {
@@ -115,10 +102,39 @@ fun AmbientScreen(
                     }
                 }
             }
+
+            // Bottom scrim sits ABOVE the artwork but BELOW the clock + title
+            // (drawn next), so the text reads cleanly instead of being dimmed by an
+            // apron painted on top of it.
+            BottomScrim()
+
+            // Title art of the current slide, on top of the scrim. (Lifted out of
+            // the backdrop layer so the scrim can sit between art and text.)
+            val current = layers.last() % slides.size
+            AmbientTitle(
+                slide = slides[current],
+                modifier = Modifier.align(Alignment.BottomEnd).padding(48.dp),
+            )
         }
 
         AmbientClock(modifier = Modifier.align(Alignment.BottomStart).padding(48.dp))
     }
+}
+
+/** Bottom-up gradient apron for legibility — painted over the art, under the text. */
+@Composable
+private fun BottomScrim() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    0.0f to Color.Transparent,
+                    0.55f to Color.Transparent,
+                    1.0f to PortalColors.Background.copy(alpha = 0.85f),
+                ),
+            ),
+    )
 }
 
 /** One backdrop with a continuous slow zoom + drift over its time on screen. */
@@ -153,24 +169,18 @@ private fun KenBurnsBackdrop(slide: AmbientSlide, slideIndex: Int) {
             .build()
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        AsyncImage(
-            model = request,
-            contentDescription = slide.title,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .fillMaxSize()
-                .graphicsLayer {
-                    scaleX = scale
-                    scaleY = scale
-                    translationX = translateX
-                },
-        )
-        AmbientTitle(
-            slide = slide,
-            modifier = Modifier.align(Alignment.BottomEnd).padding(48.dp),
-        )
-    }
+    AsyncImage(
+        model = request,
+        contentDescription = slide.title,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxSize()
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                translationX = translateX
+            },
+    )
 }
 
 /** The title-art logo (preferred) or text title + year, bottom-right. */

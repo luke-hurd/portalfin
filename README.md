@@ -167,6 +167,17 @@ Requirements:
 - Portal firmware from October 2025 or later
 - ADB enabled in **Settings → Debug → ADB Enabled**
 
+## Immortal launcher
+
+portalfin is compatible with **[Immortal](https://github.com/starbrightlab/immortal)**,
+the open-source community launcher that gives old Portals a new home screen.
+
+Immortal replaces the Portal's stock launcher and doesn't draw the system back/home
+buttons portalfin normally relies on, so portalfin **auto-detects Immortal and draws
+its own** back/home buttons (styled to match the Portal's) — back pops the current
+screen, home drops you back out to Immortal. On the stock Portal OS nothing changes:
+the system buttons handle navigation as before. No setup required either way.
+
 ## Sideload instructions
 
 The Portal has no app store, so you install over USB with ADB. ADB was locked on
@@ -230,9 +241,9 @@ Shipped:
   crossfade, hidden OSD band. See [v2.1.0 release notes](docs/releases/v2.1.0.md).
 - [x] **Branded "Now playing" card (v2.1)** — portalfin logo + portrait poster on
   the Portal home media card.
-- [x] **Immortal launcher support (v2.2)** — detects the Immortal community
-  launcher (no OEM OSD) and draws OEM-matched back/home buttons; back pops, home
-  drops to Immortal. Auto/On/Off toggle in Profile. See [v2.2.0 release notes](docs/releases/v2.2.0.md).
+- [x] **Immortal launcher support (v2.2)** — auto-detects the [Immortal](https://github.com/starbrightlab/immortal)
+  community launcher (which hides the system OSD) and draws OEM-matched back/home
+  buttons; back pops, home drops to Immortal. See [v2.2.0 release notes](docs/releases/v2.2.0.md).
 - [x] **CSS view transitions** between SPA routes (v1.1)
 - [x] **Native splash → home crossfade** (v1.1)
 - [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)

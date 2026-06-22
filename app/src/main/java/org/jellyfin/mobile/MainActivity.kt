@@ -295,21 +295,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     /**
-     * Whether to draw portalfin's own back/home nav (Immortal launcher has no OEM
-     * OSD pills). Resolves the tri-state setting against live launcher detection.
-     * Re-evaluated in [onResume] in case the user toggles the setting or switches
-     * launchers. Backed by a Compose state so the header recomposes.
+     * Whether to draw portalfin's own back/home nav. Pure auto-detection: the
+     * Immortal launcher force-hides the OEM OSD (globally, via policy_control set
+     * at install — see memory portalfin-immortal-nav), so under Immortal our pills
+     * are the only nav; on the stock OEM OS the system OSD shows and we draw
+     * nothing. No user toggle — detection is reliable. Re-evaluated on resume in
+     * case the launcher changed. Backed by a Compose state so the header recomposes.
+     *
+     * NOTE: we deliberately do NOT touch the system bars here. The OEM OSD is shown
+     * by the OS by default; suppressing it during browsing was a regression.
      */
     private val immortalNavState = androidx.compose.runtime.mutableStateOf(false)
 
-    fun shouldUseImmortalNav(): Boolean = when (appPreferences.immortalNavMode) {
-        Constants.IMMORTAL_NAV_ON -> true
-        Constants.IMMORTAL_NAV_OFF -> false
-        else -> isImmortalLauncherDefault() // "auto"
-    }
-
     private fun refreshImmortalNavState() {
-        immortalNavState.value = shouldUseImmortalNav()
+        immortalNavState.value = isImmortalLauncherDefault()
     }
 
     /** Header is shown only on the native home/library screens. */

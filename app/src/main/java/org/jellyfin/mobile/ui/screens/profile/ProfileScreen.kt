@@ -25,9 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -39,10 +37,8 @@ import coil3.compose.AsyncImage
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import org.jellyfin.mobile.BuildConfig
-import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.ui.screens.pressable
 import org.jellyfin.mobile.ui.utils.PortalColors
-import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.model.api.ImageType
@@ -85,76 +81,7 @@ fun ProfileScreen(
             ActionButton(text = "Sign Out", onClick = onSignOut, containerColor = PortalColors.Error)
         }
 
-        ImmortalNavSection()
-
         AboutSection(onOpenRepo = { uriHandler.openUri(REPO_URL) })
-    }
-}
-
-/**
- * "Navigation" setting: choose how the on-screen back/home nav behaves. Auto
- * detects the Immortal launcher (which has no OEM OSD pills); On/Off force it.
- * Stored in [AppPreferences.immortalNavMode]; MainActivity re-reads it on resume.
- */
-@Composable
-private fun ImmortalNavSection() {
-    val appPreferences: AppPreferences = koinInject()
-    var mode by remember { mutableStateOf(appPreferences.immortalNavMode) }
-
-    SectionCard(title = "Navigation") {
-        Text(
-            text = "On-screen back & home buttons. Auto turns them on when the " +
-                "Immortal launcher is running (which hides the Portal's own buttons).",
-            style = MaterialTheme.typography.bodyMedium,
-            color = PortalColors.OnSurface,
-        )
-        SegmentedChoice(
-            options = listOf(
-                Constants.IMMORTAL_NAV_AUTO to "Auto",
-                Constants.IMMORTAL_NAV_ON to "On",
-                Constants.IMMORTAL_NAV_OFF to "Off",
-            ),
-            selected = mode,
-            onSelect = {
-                mode = it
-                appPreferences.immortalNavMode = it
-            },
-        )
-    }
-}
-
-/** A simple 3-segment selector styled on the Portal palette. */
-@Composable
-private fun SegmentedChoice(
-    options: List<Pair<String, String>>,
-    selected: String,
-    onSelect: (String) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(PortalColors.SurfaceVariant),
-        horizontalArrangement = Arrangement.spacedBy(2.dp),
-    ) {
-        options.forEach { (value, label) ->
-            val isSelected = value == selected
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 44.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (isSelected) PortalColors.MetaBlue else androidx.compose.ui.graphics.Color.Transparent)
-                    .pressable { onSelect(value) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = if (isSelected) androidx.compose.ui.graphics.Color.White else PortalColors.OnSurface,
-                )
-            }
-        }
     }
 }
 
