@@ -49,6 +49,19 @@ android {
         }
     }
 
+    // Shared, committed debug keystore. We ship the proprietaryDebug variant as the
+    // public release, so its signature MUST be stable across machines/CI — otherwise
+    // in-app self-update (and `adb install -r` upgrades) fail with "App not installed"
+    // due to a signing-key mismatch. Android's auto-generated per-machine debug key
+    // can't provide that. This is only a debug-signing key for a sideloaded app, not
+    // a Play release key. See keystore/portalfin-debug.jks.
+    signingConfigs.getByName("debug") {
+        storeFile = rootProject.file("keystore/portalfin-debug.jks")
+        storePassword = "android"
+        keyAlias = "portalfin"
+        keyPassword = "android"
+    }
+
     buildTypes {
         getByName("release") {
             isMinifyEnabled = true
