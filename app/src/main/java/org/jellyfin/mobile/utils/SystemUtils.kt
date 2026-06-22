@@ -38,6 +38,72 @@ val isPortalDevice: Boolean
     get() = Build.MANUFACTURER.equals("Facebook", ignoreCase = true) ||
         Build.DEVICE.equals("aloha", ignoreCase = true)
 
+const val IMMORTAL_LAUNCHER_PACKAGE = "com.immortal.launcher"
+
+/**
+ * True when the Immortal community launcher is the device's current home.
+ *
+ * Immortal replaces the Portal OEM launcher and — crucially — does NOT draw the
+ * OEM system OSD band (the floating back/home pills at top-left). It still reports
+ * `Build.DEVICE == "aloha"`, so device-id checks can't tell it apart. When this is
+ * true, portalfin draws its own back/home affordance. See memory:
+ * portal-top-inset-detection.
+ *
+ * Detection is resilient to the multi-launcher case: with both the OEM launcher
+ * and Immortal installed and no launcher locked as the system default,
+ * `resolveActivity(MATCH_DEFAULT_ONLY)` returns the chooser (no concrete
+ * activity). So we check, in order:
+ *   1. The resolved default HOME activity (covers a locked default).
+ *   2. The user's *preferred* HOME activity via getPreferredActivities (covers
+ *      "no locked default but a preferred launcher is set" — Immortal's case).
+ */
+fun Context.isImmortalLauncherDefault(): Boolean {
+    val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+
+    // 1. Locked system default, if any.
+    packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        ?.activityInfo?.packageName
+        ?.let { pkg -> if (pkg == IMMORTAL_LAUNCHER_PACKAGE) return true }
+
+    // 2. Preferred HOME activity (set, but not locked as the single default).
+    //    getPreferredActivities fills two parallel lists: filters[i] <-> activities[i].
+    return try {
+        val filters = mutableListOf<android.content.IntentFilter>()
+        val activities = mutableListOf<android.content.ComponentName>()
+        packageManager.getPreferredActivities(filters, activities, null)
+        filters.indices.any { i ->
+            filters[i].hasCategory(Intent.CATEGORY_HOME) &&
+                activities[i].packageName == IMMORTAL_LAUNCHER_PACKAGE
+        }
+    } catch (_: Exception) {
+        false
+    }
+}
+
+/** True when the Immortal launcher is installed (regardless of whether it's the default home). */
+fun Context.isImmortalLauncherInstalled(): Boolean = try {
+    packageManager.getPackageInfo(IMMORTAL_LAUNCHER_PACKAGE, 0)
+    true
+} catch (_: PackageManager.NameNotFoundException) {
+    false
+}
+
+/**
+ * Launch the Immortal launcher's home — used by portalfin's own "home" button as the
+ * equivalent of the OEM home pill (drop back out to the launcher). Falls back to a
+ * generic HOME intent if Immortal can't be launched directly.
+ */
+fun Context.launchImmortalHome() {
+    val launch = packageManager.getLaunchIntentForPackage(IMMORTAL_LAUNCHER_PACKAGE)
+    val intent = launch ?: Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    try {
+        startActivity(intent)
+    } catch (e: ActivityNotFoundException) {
+        Timber.w(e, "Could not launch Immortal home")
+    }
+}
+
 fun WebViewFragment.requestNoBatteryOptimizations(rootView: CoordinatorLayout) {
     if (isPortalDevice) return
     if (AndroidVersion.isAtLeastM) {
