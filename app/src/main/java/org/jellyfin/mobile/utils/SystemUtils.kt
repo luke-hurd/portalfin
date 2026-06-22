@@ -49,16 +49,26 @@ const val IMMORTAL_LAUNCHER_PACKAGE = "com.immortal.launcher"
  * true, portalfin draws its own back/home affordance. See memory:
  * portal-top-inset-detection.
  *
- * Detection is resilient to the multi-launcher case: with both the OEM launcher
- * and Immortal installed and no launcher locked as the system default,
- * `resolveActivity(MATCH_DEFAULT_ONLY)` returns the chooser (no concrete
- * activity). So we check, in order:
- *   1. The resolved default HOME activity (covers a locked default).
- *   2. The user's *preferred* HOME activity via getPreferredActivities (covers
- *      "no locked default but a preferred launcher is set" — Immortal's case).
+ * Robustness notes (both learned on-device):
+ *   - With both launchers installed and none locked as the single default,
+ *     `resolveActivity(MATCH_DEFAULT_ONLY)` returns the chooser (no concrete
+ *     activity), so a locked-default check alone misses Immortal.
+ *   - `getPreferredActivities()` keeps a STALE Immortal entry even after Immortal
+ *     is disabled — so a preferred-activity match alone is a false positive once
+ *     Immortal is disabled. We therefore require Immortal to be a CURRENTLY
+ *     QUERYABLE (enabled) HOME activity. `queryIntentActivities` only returns
+ *     enabled components, so it's the source of truth for "is Immortal a live home".
  */
 fun Context.isImmortalLauncherDefault(): Boolean {
     val homeIntent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME)
+
+    // Immortal must be a live (enabled) HOME candidate at all — this is what makes
+    // the check correct after Immortal is disabled (queryIntentActivities drops
+    // disabled components, even though getPreferredActivities still lists them).
+    val immortalIsLiveHome = packageManager
+        .queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+        .any { it.activityInfo?.packageName == IMMORTAL_LAUNCHER_PACKAGE }
+    if (!immortalIsLiveHome) return false
 
     // 1. Locked system default, if any.
     packageManager.resolveActivity(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)

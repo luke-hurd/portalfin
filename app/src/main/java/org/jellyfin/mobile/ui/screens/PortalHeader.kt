@@ -47,16 +47,19 @@ val HEADER_HEIGHT: Dp = 64.dp
 // Simple square white logo (no wordmark). 43dp then -10% → ~39dp.
 private val LOGO_SIZE = 39.dp
 
-// OEM Portal OSD pill geometry (measured from device screenshots): a stadium
-// (fully-rounded) pill, wider than tall, translucent dark fill, centered white
+// OEM Portal OSD pill geometry, measured from device screenshots (1280x800,
+// density 1.0 so px≈dp): a capsule (fully-rounded), ~86x43, translucent WHITE
+// fill (you can see the wallpaper through it as content scrolls), centered white
 // icon. We mirror size/shape/color/iconography as closely as we can.
 private val PILL_HEIGHT = 44.dp
-private val PILL_WIDTH = 60.dp
-private val PILL_CORNER = 22.dp
+private val PILL_WIDTH = 86.dp
+private val PILL_CORNER = 22.dp // = height/2 → full capsule
 private val PILL_ICON = 22.dp
-private val PILL_GAP = 12.dp
-private val NAV_EDGE_PADDING = 16.dp
-private val PILL_FILL = Color(0xCC1C1C1C) // ~80% opaque charcoal, matches the OEM band
+private val PILL_GAP = 17.dp
+private val NAV_EDGE_PADDING = 21.dp
+// Frosted translucent white — reads as the OEM's ~rgb(31,32,34)-over-black pill
+// while staying see-through over bright content.
+private val PILL_FILL = Color(0x33FFFFFF) // ~20% white
 
 @Composable
 fun PortalHeader(
