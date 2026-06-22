@@ -3,7 +3,6 @@ package org.jellyfin.mobile.utils
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.core.content.FileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -11,7 +10,6 @@ import okhttp3.Request
 import org.jellyfin.mobile.BuildConfig
 import org.json.JSONObject
 import timber.log.Timber
-import java.io.File
 
 /**
  * Self-update for sideloaded builds. portalfin ships as a fixed-name
@@ -94,46 +92,57 @@ class AppUpdater(
     }
 
     /**
-     * Download the latest `portalfin.apk` and launch the system installer. The APK
-     * goes to cacheDir/updates and is shared via FileProvider. Caller should check
-     * [canInstall] first; if false, send the user to [openInstallPermissionSettings].
+     * Download the latest `portalfin.apk` and install it via the [PackageInstaller]
+     * session API. Caller should check [canInstall] first; if false, send the user
+     * to [openInstallPermissionSettings].
+     *
+     * Unlike the legacy ACTION_INSTALL_PACKAGE intent (which just opens the system
+     * installer UI and gives no result back — so a buggy installer screen can claim
+     * "App not installed" even on success), the session API reports the real outcome
+     * to [UpdateInstallReceiver], which we surface ourselves.
      */
     suspend fun downloadAndInstall(): InstallResult = withContext(Dispatchers.IO) {
         if (!canInstall()) return@withContext InstallResult.NeedsPermission
         try {
             val request = Request.Builder().url(LATEST_APK_URL).build()
-            val updatesDir = File(context.cacheDir, "updates").apply { mkdirs() }
-            val apk = File(updatesDir, "portalfin.apk")
-
             okHttpClient.newCall(request).execute().use { response ->
                 if (!response.isSuccessful) return@withContext InstallResult.Failed
-                val sink = response.body?.byteStream() ?: return@withContext InstallResult.Failed
-                apk.outputStream().use { out -> sink.copyTo(out) }
+                val source = response.body?.byteStream() ?: return@withContext InstallResult.Failed
+                val length = response.body?.contentLength() ?: -1L
+                installViaSession(source, length)
             }
-
-            launchInstaller(apk)
             InstallResult.Started
         } catch (e: Exception) {
-            Timber.w(e, "Update download failed")
+            Timber.w(e, "Update download/install failed")
             InstallResult.Failed
         }
     }
 
-    @Suppress("DEPRECATION")
-    private fun launchInstaller(apk: File) {
-        val uri: Uri = FileProvider.getUriForFile(context, "${BuildConfig.APPLICATION_ID}.fileprovider", apk)
-        // ACTION_INSTALL_PACKAGE targets the system package installer directly, so
-        // the user doesn't get an "Open with" chooser (other launchers, e.g.
-        // Immortal, also register as APK VIEW handlers). Deprecated but the simplest
-        // reliable path on API 28; the PackageInstaller session API is the modern
-        // alternative if this ever stops working.
-        val intent = Intent(Intent.ACTION_INSTALL_PACKAGE).apply {
-            data = uri
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)
-            putExtra(Intent.EXTRA_NOT_UNKNOWN_SOURCE, true)
-            putExtra(Intent.EXTRA_RETURN_RESULT, false)
+    /** Stream the APK into a PackageInstaller session and commit it. */
+    private fun installViaSession(apkStream: java.io.InputStream, length: Long) {
+        val installer = context.packageManager.packageInstaller
+        val params = android.content.pm.PackageInstaller.SessionParams(
+            android.content.pm.PackageInstaller.SessionParams.MODE_FULL_INSTALL,
+        )
+        val sessionId = installer.createSession(params)
+        installer.openSession(sessionId).use { session ->
+            session.openWrite("portalfin.apk", 0, length).use { out ->
+                apkStream.copyTo(out)
+                session.fsync(out)
+            }
+            // The IntentSender fires UpdateInstallReceiver with the real status
+            // (success / failure+message / pending-user-action confirm screen).
+            val intent = Intent(context, UpdateInstallReceiver::class.java).apply {
+                action = UpdateInstallReceiver.ACTION_INSTALL_STATUS
+            }
+            val flags = if (AndroidVersion.isAtLeastS) {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_MUTABLE
+            } else {
+                android.app.PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            val pending = android.app.PendingIntent.getBroadcast(context, sessionId, intent, flags)
+            session.commit(pending.intentSender)
         }
-        context.startActivity(intent)
     }
 
     companion object {

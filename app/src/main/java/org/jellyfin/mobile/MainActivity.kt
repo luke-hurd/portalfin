@@ -169,6 +169,11 @@ class MainActivity : AppCompatActivity() {
             ) { server, user -> server to user }.collectLatest { (server, user) ->
                 lifecycle.withStarted {
                     handleRouting(server, user)
+                    // Auth state just changed: (re)arm the ambient idle timer now
+                    // that we may be logged in. Without this, the onCreate/onResume
+                    // scheduleAmbient() ran while still logged out, returned early,
+                    // and nothing re-armed it once login completed.
+                    scheduleAmbient()
                 }
             }
         }
@@ -406,14 +411,24 @@ class MainActivity : AppCompatActivity() {
     /** (Re)arm the idle timer unless a video is playing. */
     private fun scheduleAmbient() {
         ambientHandler.removeCallbacks(ambientRunnable)
-        if (isVideoPlaying()) return
+        if (isVideoPlaying() || !isLoggedIn()) return
         ambientHandler.postDelayed(ambientRunnable, AMBIENT_IDLE_MS)
     }
 
     private fun isVideoPlaying(): Boolean = supportFragmentManager.fragments.any { it is PlayerFragment && it.isVisible }
 
+    /**
+     * The ambient slideshow pulls backdrops from the signed-in Jellyfin server, so
+     * it only makes sense once we have BOTH a server and a logged-in user. On the
+     * Connect/Login screens there's no server to fetch from — engaging there gives
+     * an empty (image-less) screensaver. Gate on full auth.
+     */
+    private fun isLoggedIn(): Boolean =
+        mainViewModel.serverState.value is ServerState.Available &&
+            mainViewModel.userState.value is UserState.Available
+
     private fun showAmbient() {
-        if (ambientShown || isVideoPlaying()) return
+        if (ambientShown || isVideoPlaying() || !isLoggedIn()) return
         // Never engage while backgrounded — the timer could otherwise fire just as
         // the app leaves the foreground, and the user would return to a running
         // screensaver (a past regression). RESUMED == we're actually on screen.
