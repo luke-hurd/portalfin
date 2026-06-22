@@ -30,6 +30,9 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Self-update: download portalfin.apk and launch the system installer. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
     <queries>
         <intent>
             <action android:name="android.intent.action.VIEW" />
@@ -104,6 +107,17 @@
             android:exported="true"
             android:grantUriPermissions="true"
             android:readPermission="android.permission.MEDIA_CONTENT_CONTROL" />
+
+        <!-- Hands the downloaded update APK to the system package installer. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
 
         <receiver android:name="org.jellyfin.mobile.downloads.DownloadBroadcastReceiver" />
 
