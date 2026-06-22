@@ -58,6 +58,15 @@ object Constants {
     // Behind a flag so the WebView home stays the default while we build it out.
     const val PREF_USE_NATIVE_HOME = "pref_use_native_home"
 
+    // Immortal-launcher navigation. The Immortal community launcher hides the OEM
+    // OSD back/home pills, so portalfin draws its own. Tri-state: "auto" (detect
+    // via default HOME = com.immortal.launcher), "on" (force), "off" (force OEM
+    // behavior). See SystemUtils.isImmortalLauncherDefault / portalfin-immortal-nav.
+    const val PREF_IMMORTAL_NAV_MODE = "pref_immortal_nav_mode"
+    const val IMMORTAL_NAV_AUTO = "auto"
+    const val IMMORTAL_NAV_ON = "on"
+    const val IMMORTAL_NAV_OFF = "off"
+
     // InputManager commands
     const val PLAYBACK_MANAGER_COMMAND_PLAY = "unpause"
     const val PLAYBACK_MANAGER_COMMAND_PAUSE = "pause"

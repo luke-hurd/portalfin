@@ -230,6 +230,9 @@ Shipped:
   crossfade, hidden OSD band. See [v2.1.0 release notes](docs/releases/v2.1.0.md).
 - [x] **Branded "Now playing" card (v2.1)** — portalfin logo + portrait poster on
   the Portal home media card.
+- [x] **Immortal launcher support (v2.2)** — detects the Immortal community
+  launcher (no OEM OSD) and draws OEM-matched back/home buttons; back pops, home
+  drops to Immortal. Auto/On/Off toggle in Profile. See [v2.2.0 release notes](docs/releases/v2.2.0.md).
 - [x] **CSS view transitions** between SPA routes (v1.1)
 - [x] **Native splash → home crossfade** (v1.1)
 - [x] **Ambient slideshow** — 60s-idle fullscreen backdrop gallery with clock/date (v1.1)

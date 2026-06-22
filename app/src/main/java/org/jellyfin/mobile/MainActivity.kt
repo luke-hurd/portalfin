@@ -40,6 +40,8 @@ import org.jellyfin.mobile.utils.BackPressInterceptor
 import org.jellyfin.mobile.utils.BluetoothPermissionHelper
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.PermissionRequestHelper
+import org.jellyfin.mobile.utils.isImmortalLauncherDefault
+import org.jellyfin.mobile.utils.launchImmortalHome
 import org.jellyfin.mobile.utils.SmartOrientationListener
 import org.jellyfin.mobile.utils.extensions.addFragment
 import org.jellyfin.mobile.utils.extensions.addFragmentAnimated
@@ -125,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         setupPortalHeader()
+        refreshImmortalNavState()
 
         // Check WebView support
         if (!isWebViewSupported()) {
@@ -278,12 +281,35 @@ class MainActivity : AppCompatActivity() {
         val header = findViewById<androidx.compose.ui.platform.ComposeView>(R.id.portal_header)
         header.setContent {
             org.jellyfin.mobile.ui.utils.AppTheme {
-                org.jellyfin.mobile.ui.screens.PortalHeader(onLogoClick = { popToHome() })
+                org.jellyfin.mobile.ui.screens.PortalHeader(
+                    onLogoClick = { popToHome() },
+                    showImmortalNav = immortalNavState.value,
+                    onBack = { onBackPressedDispatcher.onBackPressed() },
+                    onHome = { launchImmortalHome() },
+                )
             }
         }
         // Keep header visibility in sync with whatever fragment is on top —
         // covers routing, openLibrary, and back/pop in one place.
         supportFragmentManager.addOnBackStackChangedListener { updatePortalHeaderVisibility() }
+    }
+
+    /**
+     * Whether to draw portalfin's own back/home nav (Immortal launcher has no OEM
+     * OSD pills). Resolves the tri-state setting against live launcher detection.
+     * Re-evaluated in [onResume] in case the user toggles the setting or switches
+     * launchers. Backed by a Compose state so the header recomposes.
+     */
+    private val immortalNavState = androidx.compose.runtime.mutableStateOf(false)
+
+    fun shouldUseImmortalNav(): Boolean = when (appPreferences.immortalNavMode) {
+        Constants.IMMORTAL_NAV_ON -> true
+        Constants.IMMORTAL_NAV_OFF -> false
+        else -> isImmortalLauncherDefault() // "auto"
+    }
+
+    private fun refreshImmortalNavState() {
+        immortalNavState.value = shouldUseImmortalNav()
     }
 
     /** Header is shown only on the native home/library screens. */
@@ -392,6 +418,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         scheduleAmbient()
+        // Launcher/setting may have changed while we were away.
+        refreshImmortalNavState()
     }
 
     override fun onStop() {

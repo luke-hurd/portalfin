@@ -2,11 +2,18 @@ package org.jellyfin.mobile.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBackIos
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -24,26 +31,43 @@ import coil3.compose.AsyncImage
  * apron. Used by the home and the library/category screens so they look the
  * same. It's an OVERLAY: content scrolls behind it and dissolves under the
  * apron's tall fade (true backdrop-blur needs API 31; Portal is API 28, so a
- * gradient fade is the substitute). There is intentionally NO on-screen back
- * button or screen title — the Portal OSD back button handles navigation.
+ * gradient fade is the substitute).
  *
- * The wordmark always returns to home via [onLogoClick] (a no-op on the home
- * screen itself). Reserve [HEADER_HEIGHT] of top padding in the scroll content
- * so the first row clears the logo.
+ * On the Portal OEM OS, the back/home OSD pills are drawn by the system in the
+ * top-left band, so there's NO on-screen back button — the centered wordmark is
+ * branding only ([onLogoClick] kept for non-Portal devices). Under the Immortal
+ * launcher there is no OEM OSD, so when [showImmortalNav] is true we draw our own
+ * back + home pills (styled to match the OEM ones) on the left.
+ *
+ * Reserve [HEADER_HEIGHT] of top padding in the scroll content so the first row
+ * clears the logo.
  */
 val HEADER_HEIGHT: Dp = 64.dp
 
 // Simple square white logo (no wordmark). 43dp then -10% → ~39dp.
 private val LOGO_SIZE = 39.dp
 
+// OEM Portal OSD pill geometry (measured from device screenshots): a stadium
+// (fully-rounded) pill, wider than tall, translucent dark fill, centered white
+// icon. We mirror size/shape/color/iconography as closely as we can.
+private val PILL_HEIGHT = 44.dp
+private val PILL_WIDTH = 60.dp
+private val PILL_CORNER = 22.dp
+private val PILL_ICON = 22.dp
+private val PILL_GAP = 12.dp
+private val NAV_EDGE_PADDING = 16.dp
+private val PILL_FILL = Color(0xCC1C1C1C) // ~80% opaque charcoal, matches the OEM band
+
 @Composable
 fun PortalHeader(
     onLogoClick: () -> Unit,
     modifier: Modifier = Modifier,
+    showImmortalNav: Boolean = false,
+    onBack: () -> Unit = {},
+    onHome: () -> Unit = {},
 ) {
-    // Slightly darken the apron toward black so the white logo + Portal OSD
-    // buttons stay legible over scrolled content. Lightened a touch — the white
-    // logo no longer needs as heavy a backing.
+    // Slightly darken the apron toward black so the white logo + nav pills stay
+    // legible over scrolled content.
     val tint = lerp(MaterialTheme.colorScheme.background, Color.Black, 0.35f)
     Box(
         modifier = modifier
@@ -59,11 +83,8 @@ fun PortalHeader(
             ),
         contentAlignment = Alignment.TopCenter,
     ) {
-        // Small white-mark PNG, sized for the header slot (no big-image downscale).
-        // NOTE: this sits in the Portal OSD band (top ~64px) which eats touches, so
-        // it's branding only — taps don't register (the OSD overlay consumes them).
-        // Settings/home navigation lives in tappable content below the band (the
-        // home Settings card). onLogoClick kept for non-Portal devices.
+        // Centered white-mark PNG. On OEM Portal it's branding-only (the OSD band
+        // eats touches); under Immortal nav it still returns to home on tap.
         AsyncImage(
             model = "file:///android_asset/native/white-logo.png",
             contentDescription = "portalfin",
@@ -72,6 +93,50 @@ fun PortalHeader(
                 .padding(top = 8.dp)
                 .size(LOGO_SIZE)
                 .clickable(onClick = onLogoClick),
+        )
+
+        // Our own back/home pills, only under Immortal (no OEM OSD to clear).
+        if (showImmortalNav) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(start = NAV_EDGE_PADDING, top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(PILL_GAP),
+            ) {
+                NavPill(
+                    icon = Icons.AutoMirrored.Filled.ArrowBackIos,
+                    contentDescription = "Back",
+                    onClick = onBack,
+                )
+                NavPill(
+                    icon = Icons.Filled.Home,
+                    contentDescription = "Home",
+                    onClick = onHome,
+                )
+            }
+        }
+    }
+}
+
+/** A single OEM-style OSD pill: stadium shape, translucent dark fill, white icon. */
+@Composable
+private fun NavPill(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .size(width = PILL_WIDTH, height = PILL_HEIGHT)
+            .background(PILL_FILL, RoundedCornerShape(PILL_CORNER))
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = Color.White,
+            modifier = Modifier.size(PILL_ICON),
         )
     }
 }
