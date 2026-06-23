@@ -3,6 +3,7 @@ package org.jellyfin.mobile.ui.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -45,6 +46,13 @@ class HomeViewModel : ViewModel(), KoinComponent {
         _state.value = HomeState.Loading
         viewModelScope.launch {
             try {
+                // Startup race guard: on a cold start (esp. after process death, when
+                // Android recreates this fragment/VM from saved state), HomeViewModel
+                // can construct and refresh() BEFORE ApiClientController.loadSavedServer()
+                // has set the shared ApiClient.baseUrl. Calling the API then throws
+                // MissingBaseUrlException and we'd show a permanent error even though
+                // baseUrl is set milliseconds later. Briefly wait for it instead.
+                awaitBaseUrl()
                 val content = withContext(Dispatchers.IO) { loadContent() }
                 _state.value = if (content.rows.isEmpty() && content.libraries.isEmpty()) {
                     HomeState.Empty
@@ -55,6 +63,15 @@ class HomeViewModel : ViewModel(), KoinComponent {
                 Timber.e(e, "Failed to load native home")
                 _state.value = HomeState.Error(e.message ?: "Couldn't load home")
             }
+        }
+    }
+
+    /** Wait (bounded) for the shared ApiClient to have a baseUrl before calling the API. */
+    private suspend fun awaitBaseUrl() {
+        var waited = 0L
+        while (apiClient.baseUrl == null && waited < BASE_URL_WAIT_TIMEOUT_MS) {
+            delay(BASE_URL_WAIT_STEP_MS)
+            waited += BASE_URL_WAIT_STEP_MS
         }
     }
 
@@ -94,6 +111,10 @@ class HomeViewModel : ViewModel(), KoinComponent {
 
     companion object {
         private const val ROW_LIMIT = 20
+
+        // Bounded wait for ApiClient.baseUrl on cold-start races (see awaitBaseUrl).
+        private const val BASE_URL_WAIT_TIMEOUT_MS = 5000L
+        private const val BASE_URL_WAIT_STEP_MS = 100L
 
         // Library types worth a "Latest" rail on a media-player home. Music and
         // books don't belong on the Portal's video-first home.
