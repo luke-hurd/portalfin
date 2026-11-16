@@ -12,6 +12,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.jellyfin.mobile.data.dao.DownloadDao
@@ -20,8 +21,12 @@ import org.jellyfin.mobile.downloads.DownloadStatus
 import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.interaction.PlayOptions
+import org.jellyfin.mobile.player.queue.EpisodePlaybackQueue
+import org.jellyfin.mobile.player.queue.episodePlaybackQueue
 import org.jellyfin.mobile.ui.screens.HEADER_HEIGHT
 import org.jellyfin.mobile.utils.extensions.requireMainActivity
+import org.jellyfin.sdk.api.client.ApiClient
+import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.extensions.ticks
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
@@ -37,6 +42,8 @@ import org.koin.android.ext.android.inject
 class DetailFragment : Fragment() {
     private val activityEventHandler: ActivityEventHandler by inject()
     private val downloadDao: DownloadDao by inject()
+    private val apiClient: ApiClient by inject()
+    private var playbackJob: Job? = null
     private var _viewBinding: FragmentComposeBinding? = null
     private val viewBinding get() = _viewBinding!!
     private val composeView: ComposeView get() = viewBinding.composeView
@@ -85,20 +92,34 @@ class DetailFragment : Fragment() {
     }
 
     private fun play(item: BaseItemDto, startTicks: Long, subtitleIndex: Int?) {
+        if (playbackJob?.isActive == true) return
         // If this item is downloaded, play the local copy (offline + instant)
         // instead of streaming. Checked off the main thread, then launched.
-        lifecycleScope.launch {
+        playbackJob = viewLifecycleOwner.lifecycleScope.launch {
             val isDownloaded = withContext(Dispatchers.IO) {
                 downloadDao.getDownloadByItemId(item.id)?.status == DownloadStatus.DOWNLOADED
+            }
+            val queue = if (isDownloaded) {
+                EpisodePlaybackQueue(listOf(item.id), 0)
+            } else {
+                withContext(Dispatchers.IO) {
+                    episodePlaybackQueue(item) { seriesId ->
+                        val response by apiClient.tvShowsApi.getEpisodes(
+                            seriesId = seriesId,
+                            isMissing = false,
+                        )
+                        response.items.orEmpty()
+                    }
+                }
             }
             activityEventHandler.emit(
                 ActivityEvent.LaunchNativePlayer(
                     PlayOptions(
-                        ids = listOf(item.id),
+                        ids = queue.ids,
                         // Download playback resolves the source by itemId; for it to
                         // take the download branch, mediaSourceId must be non-null too.
                         mediaSourceId = if (isDownloaded) item.id.toString() else null,
-                        startIndex = 0,
+                        startIndex = queue.startIndex,
                         // Resume from the saved position; "Start Over" passes 0.
                         startPosition = startTicks.takeIf { it > 0 }?.ticks,
                         audioStreamIndex = null,
